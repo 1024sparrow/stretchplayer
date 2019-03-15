@@ -2,6 +2,10 @@
 ## ---------------
 *.[oa]
 *~
+*.swp
+*.swo
+build/
+
 
 ## For debian package building
 ## ---------------------------
