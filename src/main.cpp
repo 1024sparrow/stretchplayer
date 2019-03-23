@@ -44,9 +44,9 @@ int main(int argc, char* argv[])
 	config.copyright();
     }
 
-    std::auto_ptr<StretchPlayer::PlayerWidget> pw;
+    std::unique_ptr<StretchPlayer::PlayerWidget> pw;
     try{
-	pw.reset( new StretchPlayer::PlayerWidget(&config) );
+    pw = std::move(std::unique_ptr<StretchPlayer::PlayerWidget>(new StretchPlayer::PlayerWidget(&config)));
 
 	app.setStyle( new QPlastiqueStyle );
 

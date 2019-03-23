@@ -127,7 +127,7 @@ namespace Widgets
 	    _pos = 0;
 	}
 
-	_canvas.reset(new QPixmap(w*6/5, h) );
+	_canvas = std::move(std::unique_ptr<QPixmap>(new QPixmap(w*6/5, h)));
 	QPainter painter(_canvas.get());
 
 	painter.setBrush( palette().color(QPalette::Active, QPalette::Window) );

@@ -710,8 +710,8 @@ namespace StretchPlayer
 
     void PlayerWidget::_setup_signals_and_slots()
     {
-	_engine_callback.reset(new Details::PlayerWidgetMessageCallback(this));
-	_engine.reset(new Engine(_config) );
+	_engine_callback = std::move(std::unique_ptr<EngineMessageCallback>(new Details::PlayerWidgetMessageCallback(this)));
+	_engine = std::move(std::unique_ptr<Engine>(new Engine(_config)));
 	_engine->subscribe_errors(_engine_callback.get());
 	_engine->subscribe_messages(_engine_callback.get());
 

@@ -36,22 +36,22 @@ namespace StretchPlayer
 	_pitch_scale_param(1.0),
 	_reset_param(false)
     {
-	_stretcher.reset(
-	    new RubberBandStretcher( sample_rate,
-				     2,
-				     RubberBandStretcher::OptionProcessRealTime
-				     | RubberBandStretcher::OptionThreadingAuto
+    _stretcher = std::move(std::unique_ptr<RubberBand::RubberBandStretcher>(
+	    new RubberBandStretcher(
+            sample_rate,
+			2,
+			RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionThreadingAuto
 		)
-	    );
+    ));
 
 	const uint32_t MAXBUF = 8196L; // 2x the highest typical value
 
 	_stretcher->setMaxProcessSize(MAXBUF*4);
 
-	_inputs[0].reset( new ringbuffer_t(MAXBUF*4) );
-	_inputs[1].reset( new ringbuffer_t(MAXBUF*4) );
-	_outputs[0].reset( new ringbuffer_t(MAXBUF*4) );
-	_outputs[1].reset( new ringbuffer_t(MAXBUF*4) );
+	_inputs[0] = std::move(std::unique_ptr<ringbuffer_t>(new ringbuffer_t(MAXBUF*4)));
+	_inputs[1] = std::move(std::unique_ptr<ringbuffer_t>(new ringbuffer_t(MAXBUF*4)));
+	_outputs[0] = std::move(std::unique_ptr<ringbuffer_t>(new ringbuffer_t(MAXBUF*4)));
+	_outputs[1] = std::move(std::unique_ptr<ringbuffer_t>(new ringbuffer_t(MAXBUF*4)));
 
 	_proc_time.insert( _proc_time.end(), 64, 0 );
 	_idle_time.insert( _idle_time.end(), 64, 0 );

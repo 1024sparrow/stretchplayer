@@ -80,9 +80,9 @@ namespace StretchPlayer
 
     private:
 	bool _running;
-	std::auto_ptr< RubberBand::RubberBandStretcher > _stretcher;
-	std::auto_ptr< ringbuffer_t > _inputs[2];
-	std::auto_ptr< ringbuffer_t > _outputs[2];
+	std::unique_ptr< RubberBand::RubberBandStretcher > _stretcher;
+	std::unique_ptr< ringbuffer_t > _inputs[2];
+	std::unique_ptr< ringbuffer_t > _outputs[2];
 	unsigned long _stretcher_feed_block;
 
 	mutable QWaitCondition _wait_cond;

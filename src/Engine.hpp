@@ -156,8 +156,8 @@ private:
     float _stretch;
     int _pitch;
     float _gain;
-    std::auto_ptr<RubberBandServer> _stretcher;
-    std::auto_ptr<AudioSystem> _audio_system;
+    std::unique_ptr<RubberBandServer> _stretcher;
+    std::unique_ptr<AudioSystem> _audio_system;
 
     /* Latency tracking */
     unsigned long _output_position;

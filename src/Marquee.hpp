@@ -59,7 +59,7 @@ namespace Widgets
     private:
 	QString _temporary;
 	QString _permanent;
-	std::auto_ptr<QPixmap> _canvas;
+	std::unique_ptr<QPixmap> _canvas;
 	QTimer _scroll_timer;
 	bool _scroll;
 	QTimer _wait_timer;

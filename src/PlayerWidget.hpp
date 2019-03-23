@@ -136,8 +136,8 @@ private:
     QSlider *_volume;
     PlayerSizes _sizes;
 
-    std::auto_ptr<EngineMessageCallback> _engine_callback;
-    std::auto_ptr<Engine> _engine;
+    std::unique_ptr<EngineMessageCallback> _engine_callback;
+    std::unique_ptr<Engine> _engine;
 
     // State variables
     QPoint _anchor; // for window moves
