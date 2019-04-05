@@ -19,19 +19,26 @@
 
 #include "config.h"
 
-#include <QApplication>
+#include <stdio.h> // for printf, fgets
+#include <stdlib.h> // atoll
+#include <string.h>
+#include <unistd.h> // read
+
+//#include <QApplication>
 
 #include "Configuration.hpp"
-#include "PlayerWidget.hpp"
+//#include "PlayerWidget.hpp"
 #include <iostream>
-#include <QPlastiqueStyle>
+//#include <QPlastiqueStyle>
 #include <memory>
 #include <stdexcept>
-#include <QtGui/QMessageBox>
+//#include <QtGui/QMessageBox>
+
+#include "Engine.hpp"
 
 int main(int argc, char* argv[])
 {
-    QApplication app(argc, argv);
+    //QApplication app(argc, argv);
     StretchPlayer::Configuration config(argc, argv);
 
     if(config.help() || ( !config.ok() )) {
@@ -44,7 +51,127 @@ int main(int argc, char* argv[])
 	config.copyright();
     }
 
-    std::unique_ptr<StretchPlayer::PlayerWidget> pw;
+    std::unique_ptr<StretchPlayer::EngineMessageCallback> _engine_callback;
+    std::unique_ptr<StretchPlayer::Engine> _engine(new StretchPlayer::Engine(&config));
+
+    printf("boris 123\n");
+    char c;
+    ssize_t dataLen;
+    char str[1024];
+    //const char *paramString;
+    char *paramString;
+    while (true)
+    {
+        dataLen = read(0, &str, 1024);
+        if (dataLen <= 0)
+        {
+            printf("file IO error\n");
+            break;
+        }
+        if (dataLen == 1)
+            continue; // no command
+        c = str[0];
+        //paramString = (const char *)(str + 1);
+        paramString = (str + 1);
+        str[dataLen - 1] = '\0';
+        if (c == 'q')
+            break;
+        else if (c == 'h')
+        {
+            printf("########################################\n");
+            printf("# Команды от пользователя:\n");
+            printf("#  q - выйти.\n");
+            printf("#  h - отобразить справку по консольным командам управления.\n");
+            printf("#  1 - открыть. Сразу после этой команды необходимо ввести путь к файлу.\n");
+            printf("#  2 - начать воспроизведение. Параметр: милисекунда начала\n");
+            printf("#  3 - Начать воспроизведение. Парметры: милисекунды начала и конца воспроизведения.\n");
+            printf("#  4 - Прекратить воспроизведение. Возвращает милисекунду останова.\n");
+            printf("#  5 - запрос позиции воспроизведения. Возвращает милисекунду текущего воспроизведения.\n");
+            printf("#  6 - задать скорость воспроизведения (в процентах).\n");
+            printf("#  7 - задать смещение частот.\n");
+            printf("#  8 - установить громкость (в процентах)");
+            printf("#\n");
+            printf("# Сообщения пользователю:\n");
+            printf("#  0 - сообщение об ошибке (текст).\n");
+            printf("#  1 - успешность открытия. Без параметров.\n");
+            printf("#  4 - милисекунда останова.\n");
+            printf("#  6 - скорость воспроизведения. Посылается в ответ на команды 2, 3 и 6.\n");
+            printf("#  7 - смещение частот (число от -12 до 12). ПОсылается вответ на команды 2, 3 и 7.\n");
+            // установить громкость
+            //
+            //
+            //
+            printf("########################################\n");
+        }
+        else if (c == '1')
+        {
+            _engine->load_song(paramString);
+        }
+        else if (c == '2')
+        {
+            long long ll = atoll(paramString);
+            double d = ll/1000.;
+            printf("%f\n", d);
+            _engine->locate(d);
+            _engine->play();
+        }
+        else if (c == '3')
+        {
+            long long ll1, ll2;
+            const char *s = strtok(paramString, " ");
+            if (s)
+                ll1 = atoll(s);
+            else
+            {
+                printf("error");
+                continue;
+            }
+            s = strtok(NULL, " ");
+            if (s)
+                ll2 = atoll(s);
+            else
+            {
+                printf("error");
+                continue;
+            }
+            printf("%lli - %lli\n", ll1, ll2);
+            double d1 = ll1/1000.;
+            _engine->locate(d1);
+            _engine->play();
+        }
+        else if (c == '4')
+        {
+            _engine->stop();
+        }
+        else if (c == '5')
+        {
+        }
+        else if (c == '6')
+        {
+            short i = atoi(paramString);
+            float d = i/100.;
+            _engine->set_stretch(d);
+        }
+        else if (c == '7')
+        {
+            short i = atoi(paramString);
+            _engine->set_pitch(i);
+        }
+        else if (c == '8')
+        {
+            short i = atoi(paramString);
+            float d = i / 100.;
+            _engine->set_volume(d);
+        }
+        else
+        {
+            printf("=============: %c\n", c);
+            printf("else: \"%s\"\n", paramString);
+        }
+    }
+    return 0;
+
+    /*std::unique_ptr<StretchPlayer::PlayerWidget> pw;
     try{
     pw = std::move(std::unique_ptr<StretchPlayer::PlayerWidget>(new StretchPlayer::PlayerWidget(&config)));
 
@@ -58,6 +185,7 @@ int main(int argc, char* argv[])
 		      << std::endl;
 	    pw->load_song( config.startup_file() );
 	}
+        //printf("started\n");
 
 	app.exec();
     } catch (std::runtime_error& e) {
@@ -72,7 +200,7 @@ int main(int argc, char* argv[])
 			       "Unhandled Exception",
 			       "StretchPlayer Exception: There was an unhandled exception... aborting"
 	    );
-    }
+    }*/
 
     return 0;
 }

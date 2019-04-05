@@ -24,7 +24,7 @@
 #include "RingBuffer.hpp"
 #include <QMutex>
 #include <QWaitCondition>
-#include <QThread>
+//#include <QThread>
 #include <vector>
 
 namespace RubberBand
@@ -39,13 +39,16 @@ namespace StretchPlayer
      *
      * This is designed for a stereo setup only.
      */
-    class RubberBandServer : private QThread
+    class RubberBandServer// : private QThread
     {
     public:
 	typedef Tritium::RingBuffer<float> ringbuffer_t;
 
-	RubberBandServer( uint32_t sample_rate );
+	RubberBandServer();
+	RubberBandServer(const RubberBandServer &tt);
 	~RubberBandServer();
+    void setSampleRate(uint32_t sample_rate);
+    void operator()();
 
 	void start();
 	void shutdown();
@@ -79,6 +82,7 @@ namespace StretchPlayer
 	void _update_cpu_load();
 
     private:
+    friend class RubberBandServerFunc;
 	bool _running;
 	std::unique_ptr< RubberBand::RubberBandStretcher > _stretcher;
 	std::unique_ptr< ringbuffer_t > _inputs[2];

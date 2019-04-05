@@ -21,11 +21,13 @@
 
 #include <stdint.h>
 #include <memory>
+#include <thread>
 #include <QString>
 #include <QMutex>
 #include <QAtomicInt>
 #include <vector>
 #include <set>
+#include "RubberBandServer.hpp"
 
 namespace StretchPlayer
 {
@@ -41,7 +43,8 @@ public:
     Engine(Configuration *config = 0);
     ~Engine();
 
-    QString load_song(const QString& filename);
+    //QString load_song(const QString& filename);
+    bool load_song(const char *filename);
     void play();
     void play_pause();
     void stop();
@@ -125,8 +128,8 @@ private:
 
     void _zero_buffers(uint32_t nframes);
     void _process_playing(uint32_t nframes);
-    bool _load_song_using_libsndfile(const QString &filename);
-    bool _load_song_using_libmpg123(const QString &filename);
+    bool _load_song_using_libsndfile(const char *filename);
+    bool _load_song_using_libmpg123(const char *filename);
     void _handle_loop_ab();
 
     typedef std::set<EngineMessageCallback*> callback_seq_t;
@@ -156,7 +159,9 @@ private:
     float _stretch;
     int _pitch;
     float _gain;
-    std::unique_ptr<RubberBandServer> _stretcher;
+    //std::unique_ptr<RubberBandServer> _stretcher;
+    RubberBandServer _stretcher;
+    std::thread t;
     std::unique_ptr<AudioSystem> _audio_system;
 
     /* Latency tracking */

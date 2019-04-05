@@ -28,13 +28,27 @@ using RubberBand::RubberBandStretcher;
 
 namespace StretchPlayer
 {
-    RubberBandServer::RubberBandServer(uint32_t sample_rate) :
+    RubberBandServer::RubberBandServer() :
 	_running(true),
 	_stretcher_feed_block(512),
 	_cpu_load(0.0),
 	_time_ratio_param(1.0),
 	_pitch_scale_param(1.0),
 	_reset_param(false)
+    {
+    }
+
+    RubberBandServer::RubberBandServer(const RubberBandServer &tt):
+	_running(true),
+	_stretcher_feed_block(512),
+	_cpu_load(0.0),
+	_time_ratio_param(1.0),
+	_pitch_scale_param(1.0),
+	_reset_param(false)
+    {
+    }
+
+    void RubberBandServer::setSampleRate(uint32_t sample_rate)
     {
     _stretcher = std::move(std::unique_ptr<RubberBand::RubberBandStretcher>(
 	    new RubberBandStretcher(
@@ -61,9 +75,14 @@ namespace StretchPlayer
     {
     }
 
+    void RubberBandServer::operator ()()
+    {
+        printf("running...");
+    }
+
     void RubberBandServer::start()
     {
-	QThread::start();
+	//QThread::start();
     }
 
     void RubberBandServer::shutdown()
@@ -74,12 +93,13 @@ namespace StretchPlayer
 
     bool RubberBandServer::is_running()
     {
-	return QThread::isRunning();
+	//return QThread::isRunning();
+    return true;
     }
 
     void RubberBandServer::wait()
     {
-	QThread::wait();
+	//QThread::wait();
     }
 
     void RubberBandServer::reset()
@@ -117,12 +137,12 @@ namespace StretchPlayer
 
     void RubberBandServer::go_idle()
     {
-	setPriority(QThread::IdlePriority);
+	//setPriority(QThread::IdlePriority);
     }
 
     void RubberBandServer::go_active()
     {
-	setPriority(QThread::TimeCriticalPriority);
+	//setPriority(QThread::TimeCriticalPriority);
     }
 
     void RubberBandServer::set_segment_size(unsigned long nframes)

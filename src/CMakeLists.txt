@@ -52,6 +52,9 @@ FIND_PACKAGE(RubberBand REQUIRED)
 INCLUDE_DIRECTORIES(${RubberBand_INCLUDE_DIRS})
 SET(LIBS ${LIBS} ${RubberBand_LIBRARIES})
 
+FIND_PACKAGE(Threads)
+SET(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
+
 ######################################################################
 ### LIBRARY SOURCES AND BUILD                                      ###
 ######################################################################
@@ -59,12 +62,12 @@ SET(LIBS ${LIBS} ${RubberBand_LIBRARIES})
 LIST(APPEND sp_cpp
   main.cpp
   Configuration.cpp
-  PlayerWidget.cpp
+  #PlayerWidget.cpp
   Engine.cpp
-  StatusWidget.cpp
-  PlayerSizes.cpp
-  ThinSlider.cpp
-  Marquee.cpp
+  #StatusWidget.cpp
+  #PlayerSizes.cpp
+  #ThinSlider.cpp
+  #Marquee.cpp
   AudioSystem.cpp
   jack_memops.c
   bams_format.c
@@ -73,12 +76,12 @@ LIST(APPEND sp_cpp
 
 LIST(APPEND sp_hpp
   Configuration.hpp
-  PlayerWidget.hpp
+  #PlayerWidget.hpp
   Engine.hpp
-  StatusWidget.hpp
-  PlayerSizes.hpp
-  ThinSlider.hpp
-  Marquee.hpp
+  #StatusWidget.hpp
+  #PlayerSizes.hpp
+  #ThinSlider.hpp
+  #Marquee.hpp
   AudioSystem.hpp
   jack_memops.h
   bams_format.h
@@ -86,11 +89,11 @@ LIST(APPEND sp_hpp
   RingBuffer.hpp
   )
 
-LIST(APPEND sp_moc_hpp
-  PlayerWidget.hpp
-  StatusWidget.hpp
-  Marquee.hpp
-  )
+#LIST(APPEND sp_moc_hpp
+#  PlayerWidget.hpp
+#  StatusWidget.hpp
+#  Marquee.hpp
+#  )
 
 # Add files for audio API's:
 
@@ -105,8 +108,8 @@ IF( ALSA_FOUND )
   LIST(APPEND sp_hpp AlsaAudioSystemPrivate.hpp)
 ENDIF( ALSA_FOUND )
 
-QT4_WRAP_CPP(sp_moc ${sp_moc_hpp}) 
-QT4_ADD_RESOURCES(sp_qrc stretchplayer.qrc)
+#QT4_WRAP_CPP(sp_moc ${sp_moc_hpp}) 
+#QT4_ADD_RESOURCES(sp_qrc stretchplayer.qrc)
 
 INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}
@@ -117,8 +120,8 @@ INCLUDE_DIRECTORIES(
 ADD_EXECUTABLE(stretchplayer
   ${sp_cpp}
   ${sp_hpp}
-  ${sp_moc}
-  ${sp_qrc}
+  #${sp_moc}
+  #${sp_qrc}
   )
 
 TARGET_LINK_LIBRARIES(stretchplayer

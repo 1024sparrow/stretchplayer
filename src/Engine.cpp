@@ -19,7 +19,6 @@
 
 #include "Engine.hpp"
 #include "AudioSystem.hpp"
-#include "RubberBandServer.hpp"
 #include "Configuration.hpp"
 #include <sndfile.h>
 #include <mpg123.h>
@@ -38,6 +37,11 @@ using RubberBand::RubberBandStretcher;
 
 namespace StretchPlayer
 {
+    //struct A
+    //{
+    //    RubberBandServer server;
+    //};
+
     Engine::Engine(Configuration *config)
 	: _config(config),
 	  _playing(false),
@@ -78,9 +82,12 @@ namespace StretchPlayer
 
         uint32_t sample_rate = _audio_system->sample_rate();
 
-        _stretcher = std::move( std::unique_ptr<RubberBandServer>(new RubberBandServer(sample_rate)) );
-        _stretcher->set_segment_size( _audio_system->current_segment_size() );
-        _stretcher->start();
+        //_stretcher = std::move( std::unique_ptr<RubberBandServer>(new RubberBandServer(sample_rate)) );
+        _stretcher.setSampleRate(sample_rate);
+        _stretcher.set_segment_size( _audio_system->current_segment_size() );
+        _stretcher.start();
+        t = std::thread(_stretcher);
+        t.join();
 
         if( _audio_system->activate(&err) )
             throw std::runtime_error(err.toLocal8Bit().data());
@@ -90,8 +97,8 @@ namespace StretchPlayer
     {
         QMutexLocker lk(&_audio_lock);
 
-        _stretcher->go_idle();
-        _stretcher->shutdown();
+        _stretcher.go_idle();
+        _stretcher.shutdown();
 
         _audio_system->deactivate();
         _audio_system->cleanup();
@@ -105,7 +112,7 @@ namespace StretchPlayer
             (*it)->_parent = 0;
         }
 
-        _stretcher->wait();
+        _stretcher.wait();
     }
 
     void Engine::_zero_buffers(uint32_t nframes)
@@ -126,7 +133,7 @@ namespace StretchPlayer
 
     int Engine::segment_size_callback(uint32_t nframes)
     {
-        _stretcher->set_segment_size(nframes);
+        _stretcher.set_segment_size(nframes);
     }
 
     int Engine::process_callback(uint32_t nframes)
@@ -141,11 +148,11 @@ namespace StretchPlayer
             locked = _audio_lock.tryLock();
             if(_state_changed) {
             _state_changed = false;
-            _stretcher->reset();
+            _stretcher.reset();
             float left[64], right[64];
-            while( _stretcher->available_read() > 0 )
-                _stretcher->read_audio(left, right, 64);
-            assert( 0 == _stretcher->available_read() );
+            while( _stretcher.available_read() > 0 )
+                _stretcher.read_audio(left, right, 64);
+            assert( 0 == _stretcher.available_read() );
             _position = _output_position;
             }
             if(locked) {
@@ -182,21 +189,21 @@ namespace StretchPlayer
         uint32_t srate = _audio_system->sample_rate();
         float time_ratio = srate / _sample_rate / _stretch;
 
-        _stretcher->time_ratio( time_ratio );
-        _stretcher->pitch_scale( ::pow(2.0, double(_pitch)/12.0) * _sample_rate / srate );
+        _stretcher.time_ratio( time_ratio );
+        _stretcher.pitch_scale( ::pow(2.0, double(_pitch)/12.0) * _sample_rate / srate );
 
         uint32_t frame;
         uint32_t reqd, gend, zeros, feed;
 
-        assert( _stretcher->is_running() );
+        assert( _stretcher.is_running() );
 
         // Determine how much data to push into the stretcher
         int32_t write_space, written, input_frames;
-        write_space = _stretcher->available_write();
-        written = _stretcher->written();
-        if(written < _stretcher->feed_block_min()
-           && write_space >= _stretcher->feed_block_max() ) {
-            input_frames = _stretcher->feed_block_max();
+        write_space = _stretcher.available_write();
+        written = _stretcher.written();
+        if(written < _stretcher.feed_block_min()
+           && write_space >= _stretcher.feed_block_max() ) {
+            input_frames = _stretcher.feed_block_max();
         } else {
             input_frames = 0;
         }
@@ -220,7 +227,7 @@ namespace StretchPlayer
             feed = _left.size() - _position;
             input_frames = feed;
             }
-            _stretcher->write_audio( &_left[_position], &_right[_position], feed );
+            _stretcher.write_audio( &_left[_position], &_right[_position], feed );
             _position += feed;
             assert( input_frames >= feed );
             input_frames -= feed;
@@ -231,19 +238,19 @@ namespace StretchPlayer
 
         // Pull generated data off the stretcher
         uint32_t read_space;
-        read_space = _stretcher->available_read();
+        read_space = _stretcher.available_read();
 
         if( read_space >= nframes ) {
-            _stretcher->read_audio(buf_L, buf_R, nframes);
+            _stretcher.read_audio(buf_L, buf_R, nframes);
         } else if ( (read_space > 0) && _hit_end ) {
             _zero_buffers(nframes);
-            _stretcher->read_audio(buf_L, buf_R, read_space);
+            _stretcher.read_audio(buf_L, buf_R, read_space);
         } else {
             _zero_buffers(nframes);
         }
 
         // Update our estimation of the output position.
-        unsigned n_feed_buf = _stretcher->latency();
+        unsigned n_feed_buf = _stretcher.latency();
         if(_position > n_feed_buf) {
             _output_position = _position - n_feed_buf;
         } else {
@@ -271,11 +278,11 @@ namespace StretchPlayer
             _hit_end = false;
             _playing = false;
             _position = 0;
-            _stretcher->reset();
+            _stretcher.reset();
         }
 
         // Wake up, lazybones!
-        _stretcher->nudge();
+        _stretcher.nudge();
     }
 
     /**
@@ -283,14 +290,14 @@ namespace StretchPlayer
      *
      * \return true on success
      */
-    bool Engine::_load_song_using_libsndfile(const QString& filename)
+    bool Engine::_load_song_using_libsndfile(const char *filename)
     {
         SNDFILE *sf = 0;
         SF_INFO sf_info;
         memset(&sf_info, 0, sizeof(sf_info));
 
         _message( QString("Opening file...") );
-        sf = sf_open(filename.toLocal8Bit().data(), SFM_READ, &sf_info);
+        sf = sf_open(filename, SFM_READ, &sf_info);
         if( !sf ) {
             _error( QString("Error opening file '%1': %2")
                 .arg(filename)
@@ -343,7 +350,7 @@ namespace StretchPlayer
      *
      * \return true on success
      */
-    bool Engine::_load_song_using_libmpg123(const QString& filename)
+    bool Engine::_load_song_using_libmpg123(const char *filename)
     {
         mpg123_handle *mh = 0;
         int err, channels, encoding;
@@ -352,7 +359,7 @@ namespace StretchPlayer
         _message( QString("Opening file...") );
         if ((err = mpg123_init()) != MPG123_OK ||
             (mh = mpg123_new(0, &err)) == 0 ||
-            mpg123_open(mh, filename.toLocal8Bit().data()) != MPG123_OK ||
+            mpg123_open(mh, filename) != MPG123_OK ||
             mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK) {
 
             _error( QString("Error opening file '%1': %2")
@@ -428,7 +435,8 @@ namespace StretchPlayer
      *
      * \return Name of song
      */
-    QString Engine::load_song(const QString& filename)
+    //QString Engine::load_song(const QString& filename)
+    bool Engine::load_song(const char *filename)
     {
         QMutexLocker lk(&_audio_lock);
         stop();
@@ -436,14 +444,15 @@ namespace StretchPlayer
         _right.clear();
         _position = 0;
         _output_position = 0;
-        _stretcher->reset();
+        _stretcher.reset();
 
-        if( ! _load_song_using_libsndfile(filename) &&
+        /*if( ! _load_song_using_libsndfile(filename) &&
             ! _load_song_using_libmpg123(filename) )
-            return QString();
+            return QString();*/
+        return  _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
 
-        QFileInfo f_info(filename);
-        return f_info.fileName();
+        /*QFileInfo f_info(filename);
+        return f_info.fileName();*/
     }
 
     void Engine::play()
@@ -487,7 +496,7 @@ namespace StretchPlayer
             uint32_t pos, lat;
             uint32_t pressed_frame, seg_frame;
 
-            assert( _stretcher->time_ratio() > 0 );
+            assert( _stretcher.time_ratio() > 0 );
             pos = _output_position;
 
             if(pos > lat) pos -= lat;
@@ -527,7 +536,7 @@ namespace StretchPlayer
         QMutexLocker lk(&_audio_lock);
         _output_position = _position = pos;
         _state_changed = true;
-        _stretcher->reset();
+        _stretcher.reset();
     }
 
     void Engine::_dispatch_message(const Engine::callback_seq_t& seq, const QString& msg) const
@@ -561,7 +570,7 @@ namespace StretchPlayer
 
         audio_load = _audio_system->dsp_load();
         if(_playing) {
-            worker_load = _stretcher->cpu_load();
+            worker_load = _stretcher.cpu_load();
         } else {
             worker_load = 0.0;
         }
