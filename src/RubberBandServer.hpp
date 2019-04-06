@@ -21,6 +21,7 @@
 
 #include <stdint.h>
 #include <memory>
+#include <thread>
 #include "RingBuffer.hpp"
 #include <QMutex>
 #include <QWaitCondition>
@@ -45,7 +46,8 @@ namespace StretchPlayer
 	typedef Tritium::RingBuffer<float> ringbuffer_t;
 
 	RubberBandServer();
-	RubberBandServer(const RubberBandServer &tt);
+	RubberBandServer(const RubberBandServer &tt) = delete;
+    RubberBandServer(RubberBandServer&& tt) = default;
 	~RubberBandServer();
     void setSampleRate(uint32_t sample_rate);
     void operator()();
@@ -83,6 +85,7 @@ namespace StretchPlayer
 
     private:
     friend class RubberBandServerFunc;
+    std::thread t;
 	bool _running;
 	std::unique_ptr< RubberBand::RubberBandStretcher > _stretcher;
 	std::unique_ptr< ringbuffer_t > _inputs[2];

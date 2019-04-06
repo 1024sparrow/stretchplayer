@@ -86,8 +86,8 @@ namespace StretchPlayer
         _stretcher.setSampleRate(sample_rate);
         _stretcher.set_segment_size( _audio_system->current_segment_size() );
         _stretcher.start();
-        t = std::thread(_stretcher);
-        t.join();
+        //t = std::thread(_stretcher);
+        //t.detach();
 
         if( _audio_system->activate(&err) )
             throw std::runtime_error(err.toLocal8Bit().data());

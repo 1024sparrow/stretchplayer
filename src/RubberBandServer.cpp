@@ -38,16 +38,6 @@ namespace StretchPlayer
     {
     }
 
-    RubberBandServer::RubberBandServer(const RubberBandServer &tt):
-	_running(true),
-	_stretcher_feed_block(512),
-	_cpu_load(0.0),
-	_time_ratio_param(1.0),
-	_pitch_scale_param(1.0),
-	_reset_param(false)
-    {
-    }
-
     void RubberBandServer::setSampleRate(uint32_t sample_rate)
     {
     _stretcher = std::move(std::unique_ptr<RubberBand::RubberBandStretcher>(
@@ -78,11 +68,14 @@ namespace StretchPlayer
     void RubberBandServer::operator ()()
     {
         printf("running...");
+        run();
     }
 
     void RubberBandServer::start()
     {
 	//QThread::start();
+        t = std::thread(&RubberBandServer::run, this);
+        t.detach();
     }
 
     void RubberBandServer::shutdown()

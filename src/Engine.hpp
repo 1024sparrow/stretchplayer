@@ -161,7 +161,7 @@ private:
     float _gain;
     //std::unique_ptr<RubberBandServer> _stretcher;
     RubberBandServer _stretcher;
-    std::thread t;
+    //std::thread t;
     std::unique_ptr<AudioSystem> _audio_system;
 
     /* Latency tracking */
