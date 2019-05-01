@@ -25,7 +25,7 @@
 #define TRITIUM_RINGBUFFER_HPP
 
 #include <cstring>
-#include <QAtomicInt>
+#include <atomic>
 
 namespace Tritium
 {
@@ -52,14 +52,14 @@ class RingBuffer
 
 	void reset () {
 		/* !!! NOT THREAD SAFE !!! */
-		write_idx.fetchAndStoreOrdered(0);
-		read_idx.fetchAndStoreOrdered(0);
+        write_idx.store(0);
+        read_idx.store(0);
 	}
 
 	void set (unsigned r, unsigned w) {
 		/* !!! NOT THREAD SAFE !!! */
-		write_idx.fetchAndStoreOrdered(w);
-		read_idx.fetchAndStoreOrdered(r);
+        write_idx.store(w);
+        read_idx.store(r);
 	}
 	
 	unsigned read  (T *dest, unsigned cnt);
@@ -74,22 +74,16 @@ class RingBuffer
 	void get_write_vector (rw_vector *);
 	
 	void decrement_read_idx (unsigned cnt) {
-		read_idx.fetchAndStoreOrdered(
-			read_idx.fetchAndAddOrdered( - (int)cnt ) & size_mask
-			);
-	}                
+        read_idx.store(read_idx.fetch_add(-(int)cnt) & size_mask);
+    }
 
 	void increment_read_idx (unsigned cnt) {
-		read_idx.fetchAndStoreOrdered(
-			read_idx.fetchAndAddOrdered( (int)cnt ) & size_mask
-			);
-	}                
+        read_idx.store(read_idx.fetch_add((int)cnt) & size_mask);
+    }
 
 	void increment_write_idx (unsigned cnt) {
-		write_idx.fetchAndStoreOrdered(
-			write_idx.fetchAndAddOrdered( (int)cnt ) & size_mask
-			);
-	}                
+        write_idx.store(write_idx.fetch_add((int)cnt) & size_mask);
+    }
 
 	unsigned write_space () {
 		unsigned w, r;
@@ -127,8 +121,8 @@ class RingBuffer
   protected:
 	T *buf;
 	unsigned size;
-	mutable QAtomicInt write_idx;
-	mutable QAtomicInt read_idx;
+    mutable std::atomic<int> write_idx;
+    mutable std::atomic<int> read_idx;
 	unsigned size_mask;
 };
 
@@ -167,7 +161,8 @@ RingBuffer<T>::read (T *dest, unsigned cnt)
                 priv_read_idx = n2;
         }
 
-        read_idx.fetchAndStoreOrdered(priv_read_idx);
+        //read_idx.fetchAndStoreOrdered(priv_read_idx);
+        read_idx.store(priv_read_idx);
         return to_read;
 }
 
@@ -175,40 +170,40 @@ template<class T> unsigned
 RingBuffer<T>::write (T *src, unsigned cnt)
 
 {
-        unsigned free_cnt;
-        unsigned cnt2;
-        unsigned to_write;
-        unsigned n1, n2;
-        unsigned priv_write_idx;
+    unsigned free_cnt;
+    unsigned cnt2;
+    unsigned to_write;
+    unsigned n1, n2;
+    unsigned priv_write_idx;
 
-        priv_write_idx = (int) write_idx;
+    priv_write_idx = (int) write_idx;
 
-        if ((free_cnt = write_space ()) == 0) {
-                return 0;
-        }
+    if ((free_cnt = write_space ()) == 0) {
+            return 0;
+    }
 
-        to_write = cnt > free_cnt ? free_cnt : cnt;
-        
-        cnt2 = priv_write_idx + to_write;
+    to_write = cnt > free_cnt ? free_cnt : cnt;
 
-        if (cnt2 > size) {
-                n1 = size - priv_write_idx;
-                n2 = cnt2 & size_mask;
-        } else {
-                n1 = to_write;
-                n2 = 0;
-        }
+    cnt2 = priv_write_idx + to_write;
 
-        memcpy (&buf[priv_write_idx], src, n1 * sizeof (T));
-        priv_write_idx = (priv_write_idx + n1) & size_mask;
+    if (cnt2 > size) {
+            n1 = size - priv_write_idx;
+            n2 = cnt2 & size_mask;
+    } else {
+            n1 = to_write;
+            n2 = 0;
+    }
 
-        if (n2) {
-                memcpy (buf, src+n1, n2 * sizeof (T));
-                priv_write_idx = n2;
-        }
+    memcpy (&buf[priv_write_idx], src, n1 * sizeof (T));
+    priv_write_idx = (priv_write_idx + n1) & size_mask;
 
-	write_idx.fetchAndStoreOrdered( priv_write_idx );
-        return to_write;
+    if (n2) {
+            memcpy (buf, src+n1, n2 * sizeof (T));
+            priv_write_idx = n2;
+    }
+
+    write_idx.store(priv_write_idx);
+    return to_write;
 }
 
 template<class T> void

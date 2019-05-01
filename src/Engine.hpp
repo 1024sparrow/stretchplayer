@@ -24,10 +24,11 @@
 #include <thread>
 #include <QString>
 #include <QMutex>
-#include <QAtomicInt>
+#include <atomic>
 #include <vector>
 #include <set>
 #include "RubberBandServer.hpp"
+
 
 namespace StretchPlayer
 {
@@ -154,7 +155,7 @@ private:
     unsigned long _position;
     unsigned long _loop_a;
     unsigned long _loop_b;
-    QAtomicInt _loop_ab_pressed;
+    std::atomic<int> _loop_ab_pressed;
     float _sample_rate;
     float _stretch;
     int _pitch;

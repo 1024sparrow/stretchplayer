@@ -487,7 +487,7 @@ namespace StretchPlayer
 
     void Engine::loop_ab()
     {
-        _loop_ab_pressed.fetchAndAddRelaxed(1);
+        _loop_ab_pressed.fetch_add(1, std::memory_order_relaxed);
     }
 
     void Engine::_handle_loop_ab()
@@ -518,7 +518,7 @@ namespace StretchPlayer
             } else {
             assert(false);  // invalid state
             }
-            _loop_ab_pressed.fetchAndAddOrdered(-1);
+            _loop_ab_pressed.fetch_add(-1, std::memory_order_seq_cst);
         }
     }
 
