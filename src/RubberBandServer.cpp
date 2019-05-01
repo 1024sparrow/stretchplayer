@@ -33,7 +33,7 @@ namespace StretchPlayer
 	_stretcher_feed_block(512),
 	_cpu_load(0.0),
 	_time_ratio_param(1.0),
-	_pitch_scale_param(1.0),
+    _pitch_scale_param(1.0),
 	_reset_param(false)
     {
     }
@@ -86,13 +86,16 @@ namespace StretchPlayer
 
     bool RubberBandServer::is_running()
     {
+        return true;
+        //return t.joinable();
 	//return QThread::isRunning();
-    return true;
     }
 
     void RubberBandServer::wait()
     {
 	//QThread::wait();
+        if (t.joinable())
+            t.join();
     }
 
     void RubberBandServer::reset()
