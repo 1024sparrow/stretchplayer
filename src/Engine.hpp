@@ -23,7 +23,7 @@
 #include <memory>
 #include <thread>
 #include <QString>
-#include <QMutex>
+#include <mutex>
 #include <atomic>
 #include <vector>
 #include <set>
@@ -149,7 +149,7 @@ private:
     bool _playing;
     bool _hit_end;
     bool _state_changed;
-    mutable QMutex _audio_lock;
+    mutable std::mutex _audio_lock;
     std::vector<float> _left;
     std::vector<float> _right;
     unsigned long _position;
@@ -168,7 +168,7 @@ private:
     /* Latency tracking */
     unsigned long _output_position;
 
-    mutable QMutex _callback_lock;
+    mutable std::mutex _callback_lock;
     callback_seq_t _error_callbacks;
     callback_seq_t _message_callbacks;
 

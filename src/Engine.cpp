@@ -58,7 +58,7 @@ namespace StretchPlayer
     {
         QString err;
 
-        QMutexLocker lk(&_audio_lock);
+        std::lock_guard<std::mutex> lk(_audio_lock);
 
         Configuration::driver_t pref_driver;
 
@@ -95,7 +95,7 @@ namespace StretchPlayer
 
     Engine::~Engine()
     {
-        QMutexLocker lk(&_audio_lock);
+        std::lock_guard<std::mutex> lk(_audio_lock);
 
         _stretcher.go_idle();
         _stretcher.shutdown();
@@ -104,7 +104,7 @@ namespace StretchPlayer
         _audio_system->cleanup();
 
         callback_seq_t::iterator it;
-        QMutexLocker lk_cb(&_callback_lock);
+        std::lock_guard<std::mutex> lk_cb(_callback_lock);
         for( it=_error_callbacks.begin() ; it!=_error_callbacks.end() ; ++it ) {
             (*it)->_parent = 0;
         }
@@ -145,7 +145,7 @@ namespace StretchPlayer
         }
 
         try {
-            locked = _audio_lock.tryLock();
+            locked = _audio_lock.try_lock();
             if(_state_changed) {
             _state_changed = false;
             _stretcher.reset();
@@ -438,7 +438,7 @@ namespace StretchPlayer
     //QString Engine::load_song(const QString& filename)
     bool Engine::load_song(const char *filename)
     {
-        QMutexLocker lk(&_audio_lock);
+        std::lock_guard<std::mutex> lk(_audio_lock);
         stop();
         _left.clear();
         _right.clear();
@@ -533,7 +533,7 @@ namespace StretchPlayer
     void Engine::locate(double secs)
     {
         unsigned long pos = secs * _sample_rate;
-        QMutexLocker lk(&_audio_lock);
+        std::lock_guard<std::mutex> lk(_audio_lock);
         _output_position = _position = pos;
         _state_changed = true;
         _stretcher.reset();
@@ -541,7 +541,7 @@ namespace StretchPlayer
 
     void Engine::_dispatch_message(const Engine::callback_seq_t& seq, const QString& msg) const
     {
-        QMutexLocker lk(&_callback_lock);
+        std::lock_guard<std::mutex> lk(_callback_lock);
         Engine::callback_seq_t::const_iterator it;
         for( it=seq.begin() ; it!=seq.end() ; ++it ) {
             (**it)(msg);
@@ -551,7 +551,7 @@ namespace StretchPlayer
     void Engine::_subscribe_list(Engine::callback_seq_t& seq, EngineMessageCallback* obj)
     {
         if( obj == 0 ) return;
-        QMutexLocker lk(&_callback_lock);
+        std::lock_guard<std::mutex> lk(_callback_lock);
         obj->_parent = this;
         seq.insert(obj);
     }
@@ -559,7 +559,7 @@ namespace StretchPlayer
     void Engine::_unsubscribe_list(Engine::callback_seq_t& seq, EngineMessageCallback* obj)
     {
         if( obj == 0 ) return;
-        QMutexLocker lk(&_callback_lock);
+        std::lock_guard<std::mutex> lk(_callback_lock);
         obj->_parent = 0;
         seq.erase(obj);
     }
