@@ -81,7 +81,7 @@ namespace StretchPlayer
     void RubberBandServer::shutdown()
     {
 	_running = false;
-	_wait_cond.wakeOne();
+    _wait_cond.notify_one();
     }
 
     bool RubberBandServer::is_running()
@@ -93,26 +93,23 @@ namespace StretchPlayer
 
     void RubberBandServer::wait()
     {
-	//QThread::wait();
         if (t.joinable())
             t.join();
     }
 
     void RubberBandServer::reset()
     {
-    //QMutexLocker lk(&_param_mutex);//
     std::lock_guard<std::mutex> lk(_param_mutex);
 	_reset_param = true;
 	for(size_t k=0 ; k < _proc_time.size() ; ++k) {
 	    _proc_time[k] = 0;
 	    _idle_time[k] = 0;
 	}
-	_wait_cond.wakeOne();
+    _wait_cond.notify_one();
     }
 
     void RubberBandServer::time_ratio(float val)
     {
-    //QMutexLocker lk(&_param_mutex);
     std::lock_guard<std::mutex> lk(_param_mutex);
 	_time_ratio_param = val;
     }
@@ -124,7 +121,6 @@ namespace StretchPlayer
 
     void RubberBandServer::pitch_scale(float val)
     {
-    //QMutexLocker lk(&_param_mutex);
     std::lock_guard<std::mutex> lk(_param_mutex);
 	_pitch_scale_param = val;
     }
@@ -221,8 +217,8 @@ namespace StretchPlayer
 	if( count > max ) count = max;
 	l = _inputs[0]->write(left, count);
 	r = _inputs[1]->write(right, count);
-	_wait_cond.wakeOne();
-	// _have_new_data.wakeAll();
+    _wait_cond.notify_one();
+    // _have_new_data.wakeAll();
 	assert( l == r );
 	return l;
     }
@@ -245,7 +241,7 @@ namespace StretchPlayer
 	if( count > max ) count = max;
 	l = _outputs[0]->read(left, count);
 	r = _outputs[1]->read(right, count);
-	_wait_cond.wakeOne();
+    _wait_cond.notify_one();
 	// _room_for_output.wakeAll();
 	assert( l == r );
 	return l;
@@ -253,7 +249,7 @@ namespace StretchPlayer
 
     void RubberBandServer::nudge()
     {
-	_wait_cond.wakeOne();
+    _wait_cond.notify_one();
     }
 
     float RubberBandServer::cpu_load() const
@@ -317,14 +313,14 @@ namespace StretchPlayer
             pitch_scale = _pitch_scale_param;
             reset = _reset_param;
             if(reset) {
-            _stretcher->reset();
-            _inputs[0]->reset();
-            _inputs[1]->reset();
-            _outputs[0]->reset();
-            _outputs[1]->reset();
-	    }
-	    _reset_param = false;
-        //lock.unlock();
+                _stretcher->reset();
+                _inputs[0]->reset();
+                _inputs[1]->reset();
+                _outputs[0]->reset();
+                _outputs[1]->reset();
+            }
+            _reset_param = false;
+            //lock.unlock();
         }
 	    _stretcher->setTimeRatio(time_ratio);
 	    _stretcher->setPitchScale(pitch_scale);
@@ -376,7 +372,10 @@ namespace StretchPlayer
 	    _proc_time[cpu_load_pos] = (b.tv_sec - a.tv_sec) * 1000000 + b.tv_usec - a.tv_usec;
 	    if( (nget == 0) && (! proc_output) && _stretcher->getSamplesRequired()) {
 		a = b;
-		_wait_cond.wait(&_wait_mutex, 100 /* ms */);
+        {
+            std::unique_lock<std::mutex> lk_wait(_wait_mutex);
+            _wait_cond.wait_for(lk_wait, std::chrono::milliseconds(100));
+        }
 		gettimeofday(&b, 0);
 		_idle_time[cpu_load_pos] = (b.tv_sec - a.tv_sec) * 1000000 + b.tv_usec - a.tv_usec;
 	    } else {

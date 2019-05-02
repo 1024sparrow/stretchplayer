@@ -23,10 +23,8 @@
 #include <memory>
 #include <thread>
 #include "RingBuffer.hpp"
-#include <QMutex>//
 #include <mutex>
-#include <QWaitCondition>
-//#include <QThread>
+#include <condition_variable>
 #include <vector>
 
 namespace RubberBand
@@ -93,15 +91,13 @@ namespace StretchPlayer
 	std::unique_ptr< ringbuffer_t > _outputs[2];
 	unsigned long _stretcher_feed_block;
 
-	mutable QWaitCondition _wait_cond;
-    mutable QMutex _wait_mutex;
-    //mutable std::mutex _wait_mutex;
+    mutable std::condition_variable _wait_cond;
+    mutable std::mutex _wait_mutex;
 
 	std::vector<uint32_t> _proc_time; // usecs
 	std::vector<uint32_t> _idle_time; // usecs
 	float _cpu_load; // [0.0, 1.0]
 
-    //mutable QMutex _param_mutex; // Must be locked for these params:
     mutable std::mutex _param_mutex; // Must be locked for these params:
 	float _time_ratio_param;
 	float _pitch_scale_param;
