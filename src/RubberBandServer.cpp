@@ -21,7 +21,7 @@
 #include <rubberband/RubberBandStretcher.h>
 #include <unistd.h>
 #include <cassert>
-#include <pthread.h>
+//#include <pthread.h>
 #include <sys/time.h>
 
 using RubberBand::RubberBandStretcher;
