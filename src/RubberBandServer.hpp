@@ -23,7 +23,8 @@
 #include <memory>
 #include <thread>
 #include "RingBuffer.hpp"
-#include <QMutex>
+#include <QMutex>//
+#include <mutex>
 #include <QWaitCondition>
 //#include <QThread>
 #include <vector>
@@ -93,13 +94,15 @@ namespace StretchPlayer
 	unsigned long _stretcher_feed_block;
 
 	mutable QWaitCondition _wait_cond;
-	mutable QMutex _wait_mutex;
+    mutable QMutex _wait_mutex;
+    //mutable std::mutex _wait_mutex;
 
 	std::vector<uint32_t> _proc_time; // usecs
 	std::vector<uint32_t> _idle_time; // usecs
 	float _cpu_load; // [0.0, 1.0]
 
-	mutable QMutex _param_mutex; // Must be locked for these params:
+    //mutable QMutex _param_mutex; // Must be locked for these params:
+    mutable std::mutex _param_mutex; // Must be locked for these params:
 	float _time_ratio_param;
 	float _pitch_scale_param;
 	bool _reset_param;

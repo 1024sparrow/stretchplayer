@@ -100,7 +100,8 @@ namespace StretchPlayer
 
     void RubberBandServer::reset()
     {
-	QMutexLocker lk(&_param_mutex);
+    //QMutexLocker lk(&_param_mutex);//
+    std::lock_guard<std::mutex> lk(_param_mutex);
 	_reset_param = true;
 	for(size_t k=0 ; k < _proc_time.size() ; ++k) {
 	    _proc_time[k] = 0;
@@ -111,7 +112,8 @@ namespace StretchPlayer
 
     void RubberBandServer::time_ratio(float val)
     {
-	QMutexLocker lk(&_param_mutex);
+    //QMutexLocker lk(&_param_mutex);
+    std::lock_guard<std::mutex> lk(_param_mutex);
 	_time_ratio_param = val;
     }
 
@@ -122,7 +124,8 @@ namespace StretchPlayer
 
     void RubberBandServer::pitch_scale(float val)
     {
-	QMutexLocker lk(&_param_mutex);
+    //QMutexLocker lk(&_param_mutex);
+    std::lock_guard<std::mutex> lk(_param_mutex);
 	_pitch_scale_param = val;
     }
 
@@ -293,30 +296,36 @@ namespace StretchPlayer
 	bufs[0] = left;
 	bufs[1] = right;
 
-	QMutexLocker lock(&_param_mutex);
-	time_ratio = _time_ratio_param;
-	pitch_scale = _pitch_scale_param;
-	lock.unlock();
+    //QMutexLocker lock(&_param_mutex);
+    {
+        std::lock_guard<std::mutex> lk(_param_mutex);
+        time_ratio = _time_ratio_param;
+        pitch_scale = _pitch_scale_param;
+    }
+    //lock.unlock();
 
 	size_t samples_required;
 	int samples_available;
 	while(_running) {
 	    gettimeofday(&a, 0);
 
-	    // Update stretcher parameters
-	    lock.relock();
-	    time_ratio = _time_ratio_param;
-	    pitch_scale = _pitch_scale_param;
-	    reset = _reset_param;
-	    if(reset) {
-		_stretcher->reset();
-		_inputs[0]->reset();
-		_inputs[1]->reset();
-		_outputs[0]->reset();
-		_outputs[1]->reset();
+        {
+            // Update stretcher parameters
+            //lock.relock();
+            std::lock_guard<std::mutex> lk(_param_mutex);
+            time_ratio = _time_ratio_param;
+            pitch_scale = _pitch_scale_param;
+            reset = _reset_param;
+            if(reset) {
+            _stretcher->reset();
+            _inputs[0]->reset();
+            _inputs[1]->reset();
+            _outputs[0]->reset();
+            _outputs[1]->reset();
 	    }
 	    _reset_param = false;
-	    lock.unlock();
+        //lock.unlock();
+        }
 	    _stretcher->setTimeRatio(time_ratio);
 	    _stretcher->setPitchScale(pitch_scale);
 
