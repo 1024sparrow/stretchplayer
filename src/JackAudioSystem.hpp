@@ -41,12 +41,12 @@ namespace StretchPlayer
 
 	/* Implementing all of AudioSystem's interface:
 	 */
-	virtual int init(QString * app_name, Configuration *config, QString *err_msg = 0);
+	virtual int init(const char *app_name, Configuration *config, char *err_msg = 0);
 	virtual void cleanup();
-	virtual int set_process_callback(process_callback_t cb, void* arg, QString* err_msg = 0);
-	virtual int set_segment_size_callback(segment_size_callback_t cb, void* arg, QString* err_msg = 0);
-	virtual int activate(QString *err_msg = 0);
-	virtual int deactivate(QString *err_msg = 0);
+	virtual int set_process_callback(process_callback_t cb, void* arg, char* err_msg = 0);
+	virtual int set_segment_size_callback(segment_size_callback_t cb, void* arg, char* err_msg = 0);
+	virtual int activate(char *err_msg = 0);
+	virtual int deactivate(char *err_msg = 0);
 	virtual sample_t* output_buffer(int index);
 	virtual uint32_t output_buffer_size(int index);
 	virtual uint32_t sample_rate();

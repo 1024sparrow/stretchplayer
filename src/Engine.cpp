@@ -56,7 +56,7 @@ namespace StretchPlayer
 	  _gain(1.0),
 	  _output_position(0)
     {
-        QString err;
+        char err[1024] = "";
 
         std::lock_guard<std::mutex> lk(_audio_lock);
 
@@ -68,8 +68,7 @@ namespace StretchPlayer
 
         _audio_system = std::move(std::unique_ptr<AudioSystem>( audio_system_factory(pref_driver) ));
 
-        QString app_name("StretchPlayer");
-        _audio_system->init( &app_name, _config, &err );
+        _audio_system->init( "StretchPlayer" , _config, err );
         _audio_system->set_process_callback(Engine::static_process_callback, this);
         _audio_system->set_segment_size_callback(Engine::static_segment_size_callback, this);
 
@@ -78,6 +77,8 @@ namespace StretchPlayer
             strncpy(msg, err.toLocal8Bit().data(), 512); 
             throw std::runtime_error(msg);
         }
+        if (err[0] != '\0')
+            throw std::runtime_error(err);
 
 
         uint32_t sample_rate = _audio_system->sample_rate();
@@ -89,8 +90,8 @@ namespace StretchPlayer
         //t = std::thread(_stretcher);
         //t.detach();
 
-        if( _audio_system->activate(&err) )
-            throw std::runtime_error(err.toLocal8Bit().data());
+        if( _audio_system->activate(err) )
+            throw std::runtime_error(err);
     }
 
     Engine::~Engine()

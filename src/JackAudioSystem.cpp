@@ -40,23 +40,25 @@ namespace StretchPlayer
 	cleanup();
     }
 
-    int JackAudioSystem::init(QString * app_name, Configuration *config, QString *err_msg)
+    int JackAudioSystem::init(const char *app_name, Configuration *config, char *err_msg)
     {
-	QString name("StretchPlayer"), err;
+	QString name("StretchPlayer");
 
 	if(config == 0) {
-	    err = "The JackAudioSystem::init() function must have a non-null config parameter.";
+        if (err_msg)
+            strcat(err_msg, "The JackAudioSystem::init() function must have a non-null config parameter.");
 	    goto init_bail;
 	}
 	_config = config;
 
 	if(app_name) {
-	    name = *app_name;
+	    name = app_name;
 	}
 
 	_client = jack_client_open(name.toAscii(), JackNullOption, 0);
 	if(!_client) {
-	    err = "Could not set up JACK";
+        if (err_msg)
+            strcat(err_msg, "Could not set up JACK");
 	    goto init_bail;
 	}
 
@@ -66,7 +68,8 @@ namespace StretchPlayer
 					JackPortIsOutput,
 					0 );
 	if(!_port[0]) {
-	    err = "Could not set up left out";
+        if (err_msg)
+            strcat(err_msg, "Could not set up left out");
 	    goto init_bail;
 	}
 
@@ -76,16 +79,14 @@ namespace StretchPlayer
 					JackPortIsOutput,
 					0 );
 	if(!_port[1]) {
-	    err = "Could not set up right out";
+        if (err_msg)
+            strcat(err_msg, "Could not set up right out");
 	    goto init_bail;
 	}
 
 	return 0;
 
     init_bail:
-	if(err_msg) {
-	    *err_msg = err;
-	}
 	return 0xDEADBEEF;
     }
 
@@ -108,7 +109,7 @@ namespace StretchPlayer
 	}
     }
 
-    int JackAudioSystem::set_process_callback(process_callback_t cb, void* arg, QString* err_msg)
+    int JackAudioSystem::set_process_callback(process_callback_t cb, void* arg, char* err_msg)
     {
 	assert(_client);
 
@@ -116,12 +117,12 @@ namespace StretchPlayer
 					    cb,
 					    arg );
 	if(rv && err_msg) {
-	    *err_msg = "Could not set up jack callback.";
+        strcat(err_msg, "Could not set up jack callback.");
 	}
 	return rv;
     }
 
-    int JackAudioSystem::set_segment_size_callback(segment_size_callback_t cb, void* arg, QString* err_msg)
+    int JackAudioSystem::set_segment_size_callback(segment_size_callback_t cb, void* arg, char* err_msg)
     {
 	assert(_client);
 
@@ -129,12 +130,12 @@ namespace StretchPlayer
 						cb,
 						arg );
 	if(rv && err_msg) {
-	    *err_msg = "Could not set up jack callback.";
+        strcat(err_msg, "Could not set up jack callback.");
 	}
 	return rv;
     }
 
-    int JackAudioSystem::activate(QString *err_msg)
+    int JackAudioSystem::activate(char *err_msg)
     {
 	assert(_client);
 	assert(_port[0]);
@@ -164,11 +165,11 @@ namespace StretchPlayer
 		    break;
 		}
 		if( rv && err_msg ) {
-		    *err_msg = "Could not connect output ports";
+            strcat(err_msg, "Could not connect output ports");
 		}
 	    }
 	    if(k==0 && err_msg) {
-		*err_msg = "There were no output ports to connect to.";
+        strcat(err_msg, "There were no output ports to connect to.");
 		rv = 1;
 	    }
 	    if(ports) {
@@ -178,7 +179,7 @@ namespace StretchPlayer
 	return rv;
     }
 
-    int JackAudioSystem::deactivate(QString *err_msg)
+    int JackAudioSystem::deactivate(char *err_msg)
     {
 	int rv = 0;
 	if(_client) {
