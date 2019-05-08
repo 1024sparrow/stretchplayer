@@ -72,11 +72,6 @@ namespace StretchPlayer
         _audio_system->set_process_callback(Engine::static_process_callback, this);
         _audio_system->set_segment_size_callback(Engine::static_segment_size_callback, this);
 
-        if( ! err.isNull() ) {
-            char msg[513];
-            strncpy(msg, err.toLocal8Bit().data(), 512); 
-            throw std::runtime_error(msg);
-        }
         if (err[0] != '\0')
             throw std::runtime_error(err);
 
