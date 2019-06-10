@@ -28,8 +28,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
-#include <QFileInfo>
-#include <QString>
 
 #include "config.h"
 
@@ -37,11 +35,6 @@ using RubberBand::RubberBandStretcher;
 
 namespace StretchPlayer
 {
-    //struct A
-    //{
-    //    RubberBandServer server;
-    //};
-
     Engine::Engine(Configuration *config)
 	: _config(config),
 	  _playing(false),
@@ -82,8 +75,6 @@ namespace StretchPlayer
         _stretcher.setSampleRate(sample_rate);
         _stretcher.set_segment_size( _audio_system->current_segment_size() );
         _stretcher.start();
-        //t = std::thread(_stretcher);
-        //t.detach();
 
         if( _audio_system->activate(err) )
             throw std::runtime_error(err);
@@ -292,12 +283,14 @@ namespace StretchPlayer
         SF_INFO sf_info;
         memset(&sf_info, 0, sizeof(sf_info));
 
-        _message( QString("Opening file...") );
+        _message("Opening file...");
         sf = sf_open(filename, SFM_READ, &sf_info);
         if( !sf ) {
-            _error( QString("Error opening file '%1': %2")
-                .arg(filename)
-                .arg( sf_strerror(sf) ) );
+            char tmp[1024] = "Error opening file: '";
+            strcat(tmp, filename);
+            strcat(tmp, "': ");
+            strcat(tmp, sf_strerror(sf));
+            _error(tmp);
             return false;
         }
 
@@ -306,13 +299,15 @@ namespace StretchPlayer
         _right.reserve( sf_info.frames );
 
         if(sf_info.frames == 0) {
-            _error( QString("Error opening file '%1': File is empty")
-                .arg(filename) );
+            char tmp[512] = "Error opening file '";
+            strcat(tmp, filename);
+            strcat(tmp, "': File is empty");
+            _error(tmp);
             sf_close(sf);
             return false;
         }
 
-        _message( QString("Reading file...") );
+        _message("Reading file...");
         std::vector<float> buf(4096, 0.0f);
         sf_count_t read, k;
         unsigned mod;
@@ -332,7 +327,7 @@ namespace StretchPlayer
         }
 
         if( _left.size() != sf_info.frames ) {
-            _error( QString("Warning: not all of the file data was read.") );
+            _error("Warning: not all of the file data was read.");
         }
 
         sf_close(sf);
@@ -351,16 +346,21 @@ namespace StretchPlayer
         mpg123_handle *mh = 0;
         int err, channels, encoding;
         long rate;
+        char tmpp[1024] = "Error opening file '";
 
-        _message( QString("Opening file...") );
+        _message("Opening file...");
         if ((err = mpg123_init()) != MPG123_OK ||
             (mh = mpg123_new(0, &err)) == 0 ||
             mpg123_open(mh, filename) != MPG123_OK ||
             mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK) {
 
-            _error( QString("Error opening file '%1': %2")
-                .arg(filename)
-                .arg(mh == NULL ? mpg123_plain_strerror(err) : mpg123_strerror(mh)) );
+            strcat(tmpp, filename);
+            strcat(tmpp, "': ");
+            if (mh == NULL)
+                strcat(tmpp, mpg123_plain_strerror(err));
+            else
+                strcat(tmpp, mpg123_strerror(mh));
+            _error(tmpp);
 
           mpg123error:
             mpg123_close(mh);
@@ -369,7 +369,7 @@ namespace StretchPlayer
             return false;
         }
         if (encoding != MPG123_ENC_SIGNED_16) {
-            _error( QString("Error: unsupported encoding format.") );
+            _error("Error: unsupported encoding format.");
             goto mpg123error;
         }
         /* lock the output format */
@@ -378,7 +378,7 @@ namespace StretchPlayer
 
         off_t length = mpg123_length(mh);
         if (length == MPG123_ERR || length == 0) {
-            _error( QString("Error: file is empty or length unknown.") );
+            _error("Error: file is empty or length unknown.");
             goto mpg123error;
         }
 
@@ -386,7 +386,7 @@ namespace StretchPlayer
         _left.reserve( length );
         _right.reserve( length );
         
-        _message( QString("Reading file...") );
+        _message("Reading file...");
         std::vector<signed short> buffer(4096, 0);
         size_t read = 0, k;
 
@@ -412,11 +412,13 @@ namespace StretchPlayer
         };
 
         if (err == MPG123_NEED_MORE) {
-            _error( QString("Warning: premature end of MP3 stream"));
+            _error("Warning: premature end of MP3 stream");
             /* allow user to play what we did manage to read */
         } else if (err != MPG123_DONE) {
-            _error( QString("Error decoding file: %1.")
-                .arg(err == MPG123_ERR ? mpg123_strerror(mh) : mpg123_plain_strerror(err)));
+             char tmp[512] = "Error decoding file: ";
+             strcat(tmp, err == MPG123_ERR ? mpg123_strerror(mh) : mpg123_plain_strerror(err));
+             strcat(tmp, ".");
+             _error(tmp);
             goto mpg123error;
         }
 
@@ -431,7 +433,6 @@ namespace StretchPlayer
      *
      * \return Name of song
      */
-    //QString Engine::load_song(const QString& filename)
     bool Engine::load_song(const char *filename)
     {
         std::lock_guard<std::mutex> lk(_audio_lock);
@@ -441,14 +442,7 @@ namespace StretchPlayer
         _position = 0;
         _output_position = 0;
         _stretcher.reset();
-
-        /*if( ! _load_song_using_libsndfile(filename) &&
-            ! _load_song_using_libmpg123(filename) )
-            return QString();*/
         return  _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
-
-        /*QFileInfo f_info(filename);
-        return f_info.fileName();*/
     }
 
     void Engine::play()
@@ -535,7 +529,7 @@ namespace StretchPlayer
         _stretcher.reset();
     }
 
-    void Engine::_dispatch_message(const Engine::callback_seq_t& seq, const QString& msg) const
+    void Engine::_dispatch_message(const Engine::callback_seq_t& seq, const char *msg) const
     {
         std::lock_guard<std::mutex> lk(_callback_lock);
         Engine::callback_seq_t::const_iterator it;

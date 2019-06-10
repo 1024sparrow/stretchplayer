@@ -22,7 +22,6 @@
 #include <stdint.h>
 #include <memory>
 #include <thread>
-#include <QString>
 #include <mutex>
 #include <atomic>
 #include <vector>
@@ -44,7 +43,6 @@ public:
     Engine(Configuration *config = 0);
     ~Engine();
 
-    //QString load_song(const QString& filename);
     bool load_song(const char *filename);
     void play();
     void play_pause();
@@ -135,13 +133,13 @@ private:
 
     typedef std::set<EngineMessageCallback*> callback_seq_t;
 
-    void _error(const QString& msg) const {
+    void _error(const char *msg) const {
 	_dispatch_message(_error_callbacks, msg);
     }
-    void _message(const QString& msg) const {
+    void _message(const char *msg) const {
 	_dispatch_message(_message_callbacks, msg);
     }
-    void _dispatch_message(const callback_seq_t& seq, const QString& msg) const;
+    void _dispatch_message(const callback_seq_t& seq, const char *msg) const;
     void _subscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
     void _unsubscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
 
@@ -162,7 +160,6 @@ private:
     float _gain;
     //std::unique_ptr<RubberBandServer> _stretcher;
     RubberBandServer _stretcher;
-    //std::thread t;
     std::unique_ptr<AudioSystem> _audio_system;
 
     /* Latency tracking */
@@ -186,7 +183,7 @@ public:
 	}
     }
 
-    virtual void operator()(const QString& message) = 0;
+    virtual void operator()(const char *message) = 0;
 
 private:
     friend class Engine;

@@ -5,6 +5,7 @@
 *.swp
 *.swo
 build/
+CMakeLists.txt.user
 
 
 ## For debian package building

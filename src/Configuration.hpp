@@ -19,7 +19,6 @@
 #ifndef STRETCHPLAYER_CONFIGURATION_HPP
 #define STRETCHPLAYER_CONFIGURATION_HPP
 
-#include <QtCore/QString>
 #include <cassert>
 
 namespace StretchPlayer
@@ -83,14 +82,14 @@ public:
     void copyright();
     void usage();
 
-    ReadOnlyProperty<QString> version;
+    ReadOnlyProperty<const char *> version;
     ReadOnlyProperty<bool> ok;
     Property<driver_t> driver;
-    Property<QString>  audio_device;
+    Property<const char *>  audio_device;
     Property<unsigned> sample_rate;
     Property<unsigned> period_size;
     Property<unsigned> periods_per_buffer;
-    Property<QString>  startup_file;
+    Property<const char *>  startup_file;
     Property<bool>     autoconnect; // Automatically connect to first 2 outputs
     Property<bool>     compositing;
     Property<bool>     quiet;

@@ -19,7 +19,8 @@
 #ifndef ALSAAUDIOSYSTEMPRIVATE_HPP
 #define ALSAAUDIOSYSTEMPRIVATE_HPP
 
-#include <QtCore/QThread>
+//#include <QtCore/QThread>
+#include <thread>
 
 namespace StretchPlayer
 {
@@ -27,7 +28,7 @@ namespace StretchPlayer
      * \brief Thread for AlsaAudioSystem's main loop.
      *
      */
-    class AlsaAudioSystemPrivate : public QThread
+    class AlsaAudioSystemPrivate
     {
     public:
 	typedef void (*callback_t)(AlsaAudioSystem*);
@@ -39,6 +40,18 @@ namespace StretchPlayer
 
 	virtual ~AlsaAudioSystemPrivate()
 	    {}
+
+    void start()
+    {
+        t = std::thread(&AlsaAudioSystemPrivate::run, this);
+        t.detach();
+    }
+
+    void wait()
+    {
+        if (t.joinable())
+            t.join();
+    }
 
 	void parent(AlsaAudioSystem *parent) {
 	    _parent = parent;
@@ -61,6 +74,7 @@ namespace StretchPlayer
 
 	callback_t _run_callback;
 	AlsaAudioSystem *_parent;
+    std::thread t;
     };
 
 } // namespace StretchPlayer

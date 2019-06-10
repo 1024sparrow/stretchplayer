@@ -21,7 +21,6 @@
 #include <rubberband/RubberBandStretcher.h>
 #include <unistd.h>
 #include <cassert>
-//#include <pthread.h>
 #include <sys/time.h>
 
 using RubberBand::RubberBandStretcher;
@@ -73,7 +72,6 @@ namespace StretchPlayer
 
     void RubberBandServer::start()
     {
-	//QThread::start();
         t = std::thread(&RubberBandServer::run, this);
         t.detach();
     }
@@ -87,8 +85,6 @@ namespace StretchPlayer
     bool RubberBandServer::is_running()
     {
         return true;
-        //return t.joinable();
-	//return QThread::isRunning();
     }
 
     void RubberBandServer::wait()
@@ -292,13 +288,11 @@ namespace StretchPlayer
 	bufs[0] = left;
 	bufs[1] = right;
 
-    //QMutexLocker lock(&_param_mutex);
     {
         std::lock_guard<std::mutex> lk(_param_mutex);
         time_ratio = _time_ratio_param;
         pitch_scale = _pitch_scale_param;
     }
-    //lock.unlock();
 
 	size_t samples_required;
 	int samples_available;
@@ -307,7 +301,6 @@ namespace StretchPlayer
 
         {
             // Update stretcher parameters
-            //lock.relock();
             std::lock_guard<std::mutex> lk(_param_mutex);
             time_ratio = _time_ratio_param;
             pitch_scale = _pitch_scale_param;
@@ -320,7 +313,6 @@ namespace StretchPlayer
                 _outputs[1]->reset();
             }
             _reset_param = false;
-            //lock.unlock();
         }
 	    _stretcher->setTimeRatio(time_ratio);
 	    _stretcher->setPitchScale(pitch_scale);

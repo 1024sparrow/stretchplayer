@@ -31,7 +31,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdio> // For snprintf
-#include <QString>//
 #include <string.h>
 #include <alsa/asoundlib.h>
 #include <sys/time.h>
@@ -258,16 +257,12 @@ namespace StretchPlayer
 	}
 
 	if((err = snd_pcm_hw_params_set_buffer_size(_playback_handle, hw_params, _period_nframes * nfrags)) < 0) {
-	    QString qstring_emsg = QString("cannot set the buffer size to %1 x %2 (%3)")
-		.arg( nfrags )
-		.arg( _period_nframes )
-		.arg( snd_strerror(err) );
         if (err_msg){
-            strcat(err_msg, qstring_emsg.toStdString().c_str());//
-            /*strcat(err_msg, "cannot set the buffer size to ");
-            strcat(err_msg, );
-            strcat(err_msg, );
-            strcat(err_msg, );*/
+            char tmp[512];
+            sprintf(tmp, "cannot set the buffer size to %i x %i (", nfrags, _period_nframes);
+            strcat(err_msg, tmp);
+            strcat(err_msg, snd_strerror(err));
+            strcat(err_msg, ")");
         }
 	    goto init_bail;
 	}
@@ -399,12 +394,11 @@ namespace StretchPlayer
     {
 	assert(!_active);
 	assert(_d);
-	assert( ! (_d->isRunning()) );
 	assert(_left);
 	assert(_right);
 
 	_active = true;
-	_d->start(QThread::TimeCriticalPriority);
+    _d->start();
 
 	return 0;
     }

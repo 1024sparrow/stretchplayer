@@ -23,7 +23,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <jack/jack.h>
-#include <QString>
 
 namespace StretchPlayer
 {
@@ -42,7 +41,7 @@ namespace StretchPlayer
 
     int JackAudioSystem::init(const char *app_name, Configuration *config, char *err_msg)
     {
-	QString name("StretchPlayer");
+	const char *name = "StretchPlayer";
 
 	if(config == 0) {
         if (err_msg)
@@ -55,7 +54,7 @@ namespace StretchPlayer
 	    name = app_name;
 	}
 
-	_client = jack_client_open(name.toAscii(), JackNullOption, 0);
+	_client = jack_client_open(name, JackNullOption, 0);
 	if(!_client) {
         if (err_msg)
             strcat(err_msg, "Could not set up JACK");

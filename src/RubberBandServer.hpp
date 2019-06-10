@@ -39,7 +39,7 @@ namespace StretchPlayer
      *
      * This is designed for a stereo setup only.
      */
-    class RubberBandServer// : private QThread
+    class RubberBandServer
     {
     public:
 	typedef Tritium::RingBuffer<float> ringbuffer_t;

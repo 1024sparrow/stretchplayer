@@ -22,6 +22,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <cstdlib>
+#include <string.h>
 
 using namespace std;
 
@@ -241,7 +242,7 @@ namespace StretchPlayer
 	sample_rate( atoi(DEFAULT_SAMPLE_RATE) );
 	period_size( atoi(DEFAULT_PERIOD_SIZE) );
 	periods_per_buffer( atoi(DEFAULT_PERIODS_PER_BUFFER) );
-	startup_file( QString() );
+	startup_file( "" );
 	autoconnect(true);
 	compositing(true);
 	quiet(false);
@@ -300,7 +301,7 @@ namespace StretchPlayer
 
 	int o = optind;
 	for( o=optind ; o < argc; ++o ) {
-	    startup_file( QString::fromLocal8Bit(argv[o]) );
+	    startup_file( argv[o] );
 	}
 
 	// Check if setup is sane.

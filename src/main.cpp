@@ -24,21 +24,15 @@
 #include <string.h>
 #include <unistd.h> // read
 
-//#include <QApplication>
-
 #include "Configuration.hpp"
-//#include "PlayerWidget.hpp"
 #include <iostream>
-//#include <QPlastiqueStyle>
 #include <memory>
 #include <stdexcept>
-//#include <QtGui/QMessageBox>
 
 #include "Engine.hpp"
 
 int main(int argc, char* argv[])
 {
-    //QApplication app(argc, argv);
     StretchPlayer::Configuration config(argc, argv);
 
     if(config.help() || ( !config.ok() )) {
@@ -54,11 +48,10 @@ int main(int argc, char* argv[])
     std::unique_ptr<StretchPlayer::EngineMessageCallback> _engine_callback;
     std::unique_ptr<StretchPlayer::Engine> _engine(new StretchPlayer::Engine(&config));
 
-    printf("boris 123\n");
+    printf("enter a command (enter \"h\" for help).\n");
     char c;
     ssize_t dataLen;
     char str[1024];
-    //const char *paramString;
     char *paramString;
     while (true)
     {
@@ -71,8 +64,7 @@ int main(int argc, char* argv[])
         if (dataLen == 1)
             continue; // no command
         c = str[0];
-        //paramString = (const char *)(str + 1);
-        paramString = (str + 1);
+        paramString = str + 1;
         str[dataLen - 1] = '\0';
         if (c == 'q')
             break;
@@ -169,38 +161,5 @@ int main(int argc, char* argv[])
             printf("else: \"%s\"\n", paramString);
         }
     }
-    return 0;
-
-    /*std::unique_ptr<StretchPlayer::PlayerWidget> pw;
-    try{
-    pw = std::move(std::unique_ptr<StretchPlayer::PlayerWidget>(new StretchPlayer::PlayerWidget(&config)));
-
-	app.setStyle( new QPlastiqueStyle );
-
-	pw->show();
-
-	if(! config.startup_file().isEmpty() ) {
-	    std::cout << "Loading file " 
-		      << (config.startup_file().toLocal8Bit().data())
-		      << std::endl;
-	    pw->load_song( config.startup_file() );
-	}
-        //printf("started\n");
-
-	app.exec();
-    } catch (std::runtime_error& e) {
-	std::cerr << "Exception caught: " << e.what() << std::endl;
-	QMessageBox::critical( 0,
-			       "Runtime Exception",
-			       QString("StretchPlayer Exception: %2").arg(e.what())
-	    );
-    } catch (...) {
-	std::cerr << "Unhandled exception... aborting." << std::endl;
-	QMessageBox::critical( 0,
-			       "Unhandled Exception",
-			       "StretchPlayer Exception: There was an unhandled exception... aborting"
-	    );
-    }*/
-
     return 0;
 }

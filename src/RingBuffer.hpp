@@ -161,7 +161,6 @@ RingBuffer<T>::read (T *dest, unsigned cnt)
                 priv_read_idx = n2;
         }
 
-        //read_idx.fetchAndStoreOrdered(priv_read_idx);
         read_idx.store(priv_read_idx);
         return to_read;
 }
