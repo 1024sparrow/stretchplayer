@@ -121,6 +121,7 @@ namespace StretchPlayer
 	int Engine::segment_size_callback(uint32_t nframes)
 	{
 		_stretcher.set_segment_size(nframes);
+		return 0;
 	}
 
 	int Engine::process_callback(uint32_t nframes)
