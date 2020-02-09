@@ -388,6 +388,7 @@ namespace StretchPlayer
     int AlsaAudioSystem::set_segment_size_callback(process_callback_t, void*, char*)
     {
 	// This API never changes the segment size automatically
+	return 0;
     }
 
     int AlsaAudioSystem::activate(char *err_msg)
