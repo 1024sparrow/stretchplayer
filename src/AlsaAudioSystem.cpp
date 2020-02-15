@@ -120,6 +120,8 @@ namespace StretchPlayer
 	_period_nframes = config->period_size();
 	nfrags = config->periods_per_buffer();
 
+	snd_pcm_uframes_t bufferSizeCandidate = _period_nframes * nfrags ;
+
 	if( config == 0 ) {
         if (err_msg){
             strcat(err_msg, "The AlsaAudioSystem::init() function must have a non-null config parameter.");// strcat заменить на strncat(..., 1024)
@@ -256,7 +258,7 @@ namespace StretchPlayer
 	    goto init_bail;
 	}
 
-	if((err = snd_pcm_hw_params_set_buffer_size(_playback_handle, hw_params, _period_nframes * nfrags)) < 0) {
+	if ((err = snd_pcm_hw_params_set_buffer_size_near(_playback_handle, hw_params, &bufferSizeCandidate)) < 0){
         if (err_msg){
             char tmp[512];
             sprintf(tmp, "cannot set the buffer size to %i x %i (", nfrags, _period_nframes);
