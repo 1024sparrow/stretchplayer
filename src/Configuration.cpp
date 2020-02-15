@@ -168,7 +168,7 @@ namespace StretchPlayer
 				b = portionSize == bufferSize;
 				for (int iCh = 0 ; iCh < portionSize ; ++iCh)
 				{
-					//
+					// boris here
 				}
 			}
 		}
