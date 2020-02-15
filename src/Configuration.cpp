@@ -148,6 +148,20 @@ namespace StretchPlayer
 			const int bufferSize = 1024;
 			char buffer[bufferSize];
 
+			const char *templCommon = "defaults.ctl.";
+			const char *templCard = "card";
+			const char *templDevice = "device";
+			/* States:
+			 * 0 - initial
+			 * 1 - templCommon. "defaults.ctl."
+			 * 2 - templCard. "card"
+			 * 3 - card number
+			 * 102 - templDevice. "device"
+			 * 103 - device number
+			 */
+			int state = 0;
+			int counter = 0;
+
 			for (bool b = true ; b ;)
 			{
 				ssize_t portionSize = read(fd, (void *)buffer, bufferSize);
