@@ -23,30 +23,35 @@
 #include <iostream>
 #include <cstdlib>
 #include <string.h>
+#include <sys/types.h> // man 2 open
+#include <sys/stat.h> // man 2 open
+#include <fcntl.h> // man 2 open
+#include <unistd.h> // man 2 read
+
 
 using namespace std;
 
 #define DEFAULT_SAMPLE_RATE "44100"
 #define DEFAULT_PERIOD_SIZE "1024"
 #define DEFAULT_PERIODS_PER_BUFFER "2"
-#define DEFAULT_ALSA_DEVICE "hw:0"
+#define DEFAULT_ALSA_DEVICE "hw:0,1"
 
 namespace StretchPlayer
 {
-    typedef struct _stretchplayer_options_t
-    {
+	typedef struct _stretchplayer_options_t
+	{
 	const char *optstring;
 	struct option longopts; // {const char *name, int has_arg, int *flag, int val}
 	const char *defaults;
 	const char *doc;
-    } stretchplayer_options_t;
+	} stretchplayer_options_t;
 
-    /* CAREFUL: Because defaults and doc are adjacent "const char*" fields,
-     * a missing comma between them will concatenate the strings... and
-     * everything in the structure after it will be misaligned (corrupt).
-     */
+	/* CAREFUL: Because defaults and doc are adjacent "const char*" fields,
+	 * a missing comma between them will concatenate the strings... and
+	 * everything in the structure after it will be misaligned (corrupt).
+	 */
 
-    static const stretchplayer_options_t sp_opts[] = {
+	static const stretchplayer_options_t sp_opts[] = {
 #ifdef AUDIO_SUPPORT_JACK
 	{ "J",
 	  {"jack", 0, 0, 'J'},
@@ -65,7 +70,7 @@ namespace StretchPlayer
 
 	{ "d:",
 	  {"device", 1, 0, 'd'},
-	  DEFAULT_ALSA_DEVICE,
+	  DEFAULT_ALSA_DEVICE, // boris e
 	  "device to use for ALSA" },
 
 	{ "r:",
@@ -113,24 +118,51 @@ namespace StretchPlayer
 	  {0, 0, 0, 0},
 	  0,
 	  0 }
-    };
+	};
 
-    static char optstring[256];
-    static struct option longopts[128];
+	static char optstring[256];
+	static struct option longopts[128];
 
-    static const char usage_line[] = 
+	static const char usage_line[] =
 	"usage: stretchplayer [options] [audio_file_name]";
 
-    static const char copyright_blurb[] =
+	static const char copyright_blurb[] =
 	"StretchPlayer version " STRETCHPLAYER_VERSION ", Copyright 2010 Gabriel M. Beddingfield\n"
 	"StretchPlayer comes with ABSOLUTELY NO WARRANTY;\n"
 	"This is free software, and you are welcome to redistribute it\n"
 	"under terms of the GNU Public License (ver. 2 or later)\n";
 
-    static const char version[] = STRETCHPLAYER_VERSION;
+	static const char version[] = STRETCHPLAYER_VERSION;
 
-    static void setup_options()
-    {
+	static void clarify_defaults()
+	{
+#ifdef AUDIO_SUPPORT_ALSA
+		int fd = open("/usr/share/alsa/alsa.conf", O_RDONLY);
+		if (fd < 0)
+		{
+			//printf("can not open alsa conf file to read");
+		}
+		else
+		{
+			printf("1111111111111111111\n");
+			const int bufferSize = 1024;
+			char buffer[bufferSize];
+
+			for (bool b = true ; b ;)
+			{
+				ssize_t portionSize = read(fd, (void *)buffer, bufferSize);
+				b = portionSize == bufferSize;
+				for (int iCh = 0 ; iCh < portionSize ; ++iCh)
+				{
+					//
+				}
+			}
+		}
+#endif
+	}
+
+	static void setup_options()
+	{
 	int os_pos = 0;
 	int lo_pos = 0;
 	const stretchplayer_options_t *it;
@@ -139,20 +171,20 @@ namespace StretchPlayer
 	memset(longopts, 0, sizeof(longopts));
 
 	for( it=sp_opts ; it->optstring != 0 ; ++it ) {
-	    assert(os_pos < 256);
-	    assert(lo_pos < 128);
+		assert(os_pos < 256);
+		assert(lo_pos < 128);
 
-	    assert( strnlen(it->optstring, 16) < 16 );
-	    strncpy( &optstring[os_pos], it->optstring, strnlen(it->optstring, 16) );
-	    os_pos += strnlen(it->optstring, 16);
+		assert( strnlen(it->optstring, 16) < 16 );
+		strncpy( &optstring[os_pos], it->optstring, strnlen(it->optstring, 16) );
+		os_pos += strnlen(it->optstring, 16);
 
-	    memcpy( &longopts[lo_pos], &(it->longopts), sizeof(struct option) );
-	    ++lo_pos;
+		memcpy( &longopts[lo_pos], &(it->longopts), sizeof(struct option) );
+		++lo_pos;
 	}
-    }
+	}
 
-    static void check_options_validity()
-    {
+	static void check_options_validity()
+	{
 	const char *str = optstring;
 	const option *opts = longopts;
 
@@ -160,21 +192,21 @@ namespace StretchPlayer
 	assert(opts);
 	int pos = 0;
 	while( opts->name != 0 ) {
-	    assert( str[pos] );
-	    assert( opts->val == str[pos] );
+		assert( str[pos] );
+		assert( opts->val == str[pos] );
 
-	    ++pos;
-	    if( (str[pos] != 0) && (str[pos] == ':') ) {
+		++pos;
+		if( (str[pos] != 0) && (str[pos] == ':') ) {
 		assert(opts->has_arg != 0);
 		++pos;
-	    } else {
+		} else {
 		assert(opts->has_arg == 0);
-	    }
-	    ++opts;
+		}
+		++opts;
 	}
-    }
+	}
 
-    Configuration::Configuration(int argc, char* argv[]) :
+	Configuration::Configuration(int argc, char* argv[]) :
 	version(this, STRETCHPLAYER_VERSION),
 	ok(this, false),
 	driver(JackDriver), // actually set in init()
@@ -182,24 +214,25 @@ namespace StretchPlayer
 	period_size(0),
 	periods_per_buffer(0),
 	startup_file()
-    {
+	{
+	clarify_defaults();
 	setup_options();
 	check_options_validity();
 	init(argc, argv);
-    }
+	}
 
-    Configuration::~Configuration()
-    {
-    }
+	Configuration::~Configuration()
+	{
+	}
 
-    void Configuration::copyright()
-    {
+	void Configuration::copyright()
+	{
 	cout << copyright_blurb << endl;
 	cout << endl;
-    }
+	}
 
-    void Configuration::usage()
-    {
+	void Configuration::usage()
+	{
 	copyright();
 	cout << usage_line << endl;
 
@@ -210,27 +243,27 @@ namespace StretchPlayer
 
 	int align = 14, size;
 	for( it=sp_opts ; it->optstring != 0 ; ++it ) {
-	    opts = &(it->longopts);
-	    cout << "  -" << ((char)opts->val)
+		opts = &(it->longopts);
+		cout << "  -" << ((char)opts->val)
 		 << " --" << opts->name;
-	    size = strnlen(opts->name, 32);
-	    if(opts->has_arg) {
+		size = strnlen(opts->name, 32);
+		if(opts->has_arg) {
 		cout << "=X";
 		size += 2;
-	    }
-	    while(size < align) {
+		}
+		while(size < align) {
 		cout << " ";
 		++size;
-	    }
-	    cout << " " << (it->doc)
+		}
+		cout << " " << (it->doc)
 		 << " (default: " << (it->defaults) << ")"
 		 << endl;
 	}
 	cout << endl;
-    }
+	}
 
-    void Configuration::init(int argc, char* argv[])
-    {
+	void Configuration::init(int argc, char* argv[])
+	{
 #if defined( AUDIO_SUPPORT_JACK )
 	driver = JackDriver;
 #elif defined( AUDIO_SUPPORT_ALSA )
@@ -252,68 +285,68 @@ namespace StretchPlayer
 	int c;
 
 	if(argc && argv) {
-	    while(1) {
+		while(1) {
 		c = getopt_long(argc, argv, optstring, longopts, 0);
 
 		if(c == -1)
-		    break;
+			break;
 
 		switch(c)
 		{
 		case 'J':
-		    driver(JackDriver);
-		    break;
+			driver(JackDriver);
+			break;
 		case 'A':
-		    driver(AlsaDriver);
-		    break;
+			driver(AlsaDriver);
+			break;
 		case 'd':
-		    audio_device(optarg);
-		    break;
+			audio_device(optarg);
+			break;
 		case 'r':
-		    sample_rate( atoi(optarg) );
-		    break;
+			sample_rate( atoi(optarg) );
+			break;
 		case 'p':
-		    period_size( atoi(optarg) );
-		    break;
+			period_size( atoi(optarg) );
+			break;
 		case 'n':
-		    periods_per_buffer( atoi(optarg) );
-		    break;
+			periods_per_buffer( atoi(optarg) );
+			break;
 		case 'x':
-		    autoconnect(false);
-		    break;
+			autoconnect(false);
+			break;
 		case 'c':
-		    compositing(true);
-		    break;
+			compositing(true);
+			break;
 		case 'C':
-		    compositing(false);
-		    break;
+			compositing(false);
+			break;
 		case 'q':
-		    quiet(true);
-		    break;
+			quiet(true);
+			break;
 		case 'h':
-		    help(true);
-		    break;
+			help(true);
+			break;
 		default:
-		    bad = true;
+			bad = true;
 		}
-	    }
+		}
 	}
 
 	int o = optind;
 	for( o=optind ; o < argc; ++o ) {
-	    startup_file( argv[o] );
+		startup_file( argv[o] );
 	}
 
 	// Check if setup is sane.
 	if( driver() == AlsaDriver ) {
-	    if( sample_rate() == 0 ) bad = true;
-	    if( audio_device() == "" ) bad = true;
-	    if( period_size() == 0 ) bad = true;
-	    if( periods_per_buffer() == 0 ) bad = true;
+		if( sample_rate() == 0 ) bad = true;
+		if( audio_device() == "" ) bad = true;
+		if( period_size() == 0 ) bad = true;
+		if( periods_per_buffer() == 0 ) bad = true;
 	}
 
 	if( !bad ) ok.set(this, true);
-    }
+	}
 
 
 
