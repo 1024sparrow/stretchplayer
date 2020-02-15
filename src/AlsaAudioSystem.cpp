@@ -120,8 +120,6 @@ namespace StretchPlayer
 	_period_nframes = config->period_size();
 	nfrags = config->periods_per_buffer();
 
-	snd_pcm_uframes_t bufferSizeCandidate = _period_nframes * nfrags ;
-
 	if( config == 0 ) {
         if (err_msg){
             strcat(err_msg, "The AlsaAudioSystem::init() function must have a non-null config parameter.");// strcat заменить на strncat(..., 1024)
@@ -134,7 +132,8 @@ namespace StretchPlayer
 	int nfds;
 	struct pollfd *pfds;
 
-	if((err = snd_pcm_open(&_playback_handle, "default", SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+	if((err = snd_pcm_open(&_playback_handle, "hw:0,0", SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+	//if((err = snd_pcm_open(&_playback_handle, "default", SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
         if (err_msg){
             strcat(err_msg, "cannot open default ALSA audio device (");
             strcat(err_msg, snd_strerror(err));
@@ -231,7 +230,7 @@ namespace StretchPlayer
 	    goto init_bail;
 	}
 
-	if((err = snd_pcm_hw_params_set_rate_near(_playback_handle, hw_params, &_sample_rate, 0)) < 0) {
+	if((err = snd_pcm_hw_params_set_rate(_playback_handle, hw_params, _sample_rate, 0)) < 0) {
         if (err_msg){
             strcat(err_msg, "cannot set sample rate (");
             strcat(err_msg, snd_strerror(err));
@@ -258,7 +257,7 @@ namespace StretchPlayer
 	    goto init_bail;
 	}
 
-	if ((err = snd_pcm_hw_params_set_buffer_size_near(_playback_handle, hw_params, &bufferSizeCandidate)) < 0){
+	if ((err = snd_pcm_hw_params_set_buffer_size(_playback_handle, hw_params, _period_nframes * nfrags)) < 0){
         if (err_msg){
             char tmp[512];
             sprintf(tmp, "cannot set the buffer size to %i x %i (", nfrags, _period_nframes);
@@ -572,6 +571,13 @@ namespace StretchPlayer
 	    }
 
 	    _convert_to_output(frames_to_deliver);
+
+	    /*if ((err = snd_pcm_drain(_playback_handle)) < 0)
+	    {
+	    	err_msg = "1234";
+		str_err = snd_strerror(err);
+		goto run_bail;
+	    }*/
 
 	    if((err = snd_pcm_writei(_playback_handle, _buf, frames_to_deliver)) < 0) {
 		err_msg = "Write to audio card failed [snd_pcm_writei()].";
