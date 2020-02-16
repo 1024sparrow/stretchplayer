@@ -27,40 +27,40 @@ namespace StretchPlayer
 template <typename T>
 class Property {
 public:
-    Property() {}
-    Property(const T& t) : _d(t) {}
-    ~Property() {}
+	Property() {}
+	Property(const T& t) : _d(t) {}
+	~Property() {}
 
-    const T& operator() () { return _d; }
-    void operator() (const T& t) { _d = t; }
+	const T& operator() () { return _d; }
+	void operator() (const T& t) { _d = t; }
 private:
-    T _d;
+	T _d;
 };
 
 template <typename T>
 class ReadOnlyProperty {
 public:
-    ReadOnlyProperty(void *parent) : _p(parent) {}
-    ReadOnlyProperty(void *parent, const T& t) : 
+	ReadOnlyProperty(void *parent) : _p(parent) {}
+	ReadOnlyProperty(void *parent, const T& t) :
 	_p(parent),
 	_d(t)
 	{}
-    ~ReadOnlyProperty() {}
+	~ReadOnlyProperty() {}
 
-    const T& operator() () { return _d; }
-    void set(void *parent, const T& value) {
+	const T& operator() () { return _d; }
+	void set(void *parent, const T& value) {
 	if(parent == _p) {
-	    _d = value;
+		_d = value;
 	} else {
-	    assert(parent == _p);
+		assert(parent == _p);
 	}
-    }
+	}
 
 private:
-    void operator() (const T& t) { _d = t; }
+	void operator() (const T& t) { _d = t; }
 
-    void *_p;
-    T _d;
+	void *_p;
+	T _d;
 };
 
 
@@ -74,29 +74,29 @@ private:
 class Configuration
 {
 public:
-    typedef enum { JackDriver = 1, AlsaDriver = 2 } driver_t;
+	typedef enum { JackDriver = 1, AlsaDriver = 2 } driver_t;
 
-    Configuration(int argc, char* argv[]);
-    ~Configuration();
+	Configuration(int argc, char* argv[]);
+	~Configuration();
 
-    void copyright();
-    void usage();
+	void copyright();
+	void usage();
 
-    ReadOnlyProperty<const char *> version;
-    ReadOnlyProperty<bool> ok;
-    Property<driver_t> driver;
-    Property<const char *>  audio_device;
-    Property<unsigned> sample_rate;
-    Property<unsigned> period_size;
-    Property<unsigned> periods_per_buffer;
-    Property<const char *>  startup_file;
-    Property<bool>     autoconnect; // Automatically connect to first 2 outputs
-    Property<bool>     compositing;
-    Property<bool>     quiet;
-    Property<bool>     help;
+	ReadOnlyProperty<const char *> version;
+	ReadOnlyProperty<bool> ok;
+	Property<driver_t> driver;
+	Property<const char *>  audio_device;
+	Property<unsigned> sample_rate;
+	Property<unsigned> period_size;
+	Property<unsigned> periods_per_buffer;
+	Property<const char *>  startup_file;
+	Property<bool>     autoconnect; // Automatically connect to first 2 outputs
+	Property<bool>     compositing;
+	Property<bool>     quiet;
+	Property<bool>     help;
 
 private:
-    void init(int argc, char* argv[]);
+	void init(int argc, char* argv[]);
 
 }; // class Configuration
 

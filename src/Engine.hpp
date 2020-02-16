@@ -40,154 +40,154 @@ class RubberBandServer;
 class Engine
 {
 public:
-    Engine(Configuration *config = 0);
-    ~Engine();
+	Engine(Configuration *config = 0);
+	~Engine();
 
-    bool load_song(const char *filename);
-    void play();
-    void play_pause();
-    void stop();
-    bool playing() {
+	bool load_song(const char *filename);
+	void play();
+	void play_pause();
+	void stop();
+	bool playing() {
 	return _playing;
-    }
-    void loop_ab();
-    bool looping() {
-	return _loop_b > _loop_a;
-    }
-
-    float get_position(); // in seconds
-    float get_length();   // in seconds
-    void locate(double secs);
-    float get_stretch() {
-	return _stretch;
-    }
-    void set_stretch(float str) {
-	if(str > 0.2499 && str < 1.2501) {  /* would be 'if(str >= 0.25 && str <= 1.25)', but floating point is tricky... */
-	    _stretch = str;
-	    //_state_changed = true;
 	}
-    }
-    int get_pitch() {
+	void loop_ab();
+	bool looping() {
+	return _loop_b > _loop_a;
+	}
+
+	float get_position(); // in seconds
+	float get_length();   // in seconds
+	void locate(double secs);
+	float get_stretch() {
+	return _stretch;
+	}
+	void set_stretch(float str) {
+	if(str > 0.2499 && str < 1.2501) {  /* would be 'if(str >= 0.25 && str <= 1.25)', but floating point is tricky... */
+		_stretch = str;
+		//_state_changed = true;
+	}
+	}
+	int get_pitch() {
 	return _pitch;
-    }
-    void set_pitch(int pit) {
+	}
+	void set_pitch(int pit) {
 	if(pit < -12) {
-	    _pitch = -12;
+		_pitch = -12;
 	} else if (pit > 12) {
-	    _pitch = 12;
+		_pitch = 12;
 	} else {
-	    _pitch = pit;
+		_pitch = pit;
 	}
 	//_state_changed = true;
-    }
+	}
 
-    /**
-     * Clipped to [0.0, 10.0]
-     */
-    void set_volume(float gain) {
+	/**
+	 * Clipped to [0.0, 10.0]
+	 */
+	void set_volume(float gain) {
 	if(gain < 0.0) gain = 0.0;
 	if(gain > 10.0) gain = 10.0;
 	_gain=gain;
-    }
+	}
 
-    float get_volume() {
+	float get_volume() {
 	return _gain;
-    }
+	}
 
-    /**
-     * Returns estimate of CPU load [0.0, 1.0]
-     */
-    float get_cpu_load();
+	/**
+	 * Returns estimate of CPU load [0.0, 1.0]
+	 */
+	float get_cpu_load();
 
-    void subscribe_errors(EngineMessageCallback* obj) {
+	void subscribe_errors(EngineMessageCallback* obj) {
 	_subscribe_list(_error_callbacks, obj);
-    }
-    void unsubscribe_errors(EngineMessageCallback* obj) {
+	}
+	void unsubscribe_errors(EngineMessageCallback* obj) {
 	_unsubscribe_list(_error_callbacks, obj);
-    }
-    void subscribe_messages(EngineMessageCallback* obj) {
+	}
+	void subscribe_messages(EngineMessageCallback* obj) {
 	_subscribe_list(_message_callbacks, obj);
-    }
-    void unsubscribe_messages(EngineMessageCallback* obj) {
+	}
+	void unsubscribe_messages(EngineMessageCallback* obj) {
 	_unsubscribe_list(_message_callbacks, obj);
-    }
+	}
 
 private:
-    static int static_process_callback(uint32_t nframes, void* arg) {
+	static int static_process_callback(uint32_t nframes, void* arg) {
 	Engine *e = static_cast<Engine*>(arg);
 	return e->process_callback(nframes);
-    }
-    static int static_segment_size_callback(uint32_t nframes, void* arg) {
+	}
+	static int static_segment_size_callback(uint32_t nframes, void* arg) {
 	Engine *e = static_cast<Engine*>(arg);
 	return e->segment_size_callback(nframes);
-    }
+	}
 
-    int process_callback(uint32_t nframes);
-    int segment_size_callback(uint32_t nframes);
+	int process_callback(uint32_t nframes);
+	int segment_size_callback(uint32_t nframes);
 
-    void _zero_buffers(uint32_t nframes);
-    void _process_playing(uint32_t nframes);
-    bool _load_song_using_libsndfile(const char *filename);
-    bool _load_song_using_libmpg123(const char *filename);
-    void _handle_loop_ab();
+	void _zero_buffers(uint32_t nframes);
+	void _process_playing(uint32_t nframes);
+	bool _load_song_using_libsndfile(const char *filename);
+	bool _load_song_using_libmpg123(const char *filename);
+	void _handle_loop_ab();
 
-    typedef std::set<EngineMessageCallback*> callback_seq_t;
+	typedef std::set<EngineMessageCallback*> callback_seq_t;
 
-    void _error(const char *msg) const {
+	void _error(const char *msg) const {
 	_dispatch_message(_error_callbacks, msg);
-    }
-    void _message(const char *msg) const {
+	}
+	void _message(const char *msg) const {
 	_dispatch_message(_message_callbacks, msg);
-    }
-    void _dispatch_message(const callback_seq_t& seq, const char *msg) const;
-    void _subscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
-    void _unsubscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
+	}
+	void _dispatch_message(const callback_seq_t& seq, const char *msg) const;
+	void _subscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
+	void _unsubscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
 
-    Configuration *_config;
-    bool _playing;
-    bool _hit_end;
-    bool _state_changed;
-    mutable std::mutex _audio_lock;
-    std::vector<float> _left;
-    std::vector<float> _right;
-    unsigned long _position;
-    unsigned long _loop_a;
-    unsigned long _loop_b;
-    std::atomic<int> _loop_ab_pressed;
-    float _sample_rate;
-    float _stretch;
-    int _pitch;
-    float _gain;
-    //std::unique_ptr<RubberBandServer> _stretcher;
-    RubberBandServer _stretcher;
-    std::unique_ptr<AudioSystem> _audio_system;
+	Configuration *_config;
+	bool _playing;
+	bool _hit_end;
+	bool _state_changed;
+	mutable std::mutex _audio_lock;
+	std::vector<float> _left;
+	std::vector<float> _right;
+	unsigned long _position;
+	unsigned long _loop_a;
+	unsigned long _loop_b;
+	std::atomic<int> _loop_ab_pressed;
+	float _sample_rate;
+	float _stretch;
+	int _pitch;
+	float _gain;
+	//std::unique_ptr<RubberBandServer> _stretcher;
+	RubberBandServer _stretcher;
+	std::unique_ptr<AudioSystem> _audio_system;
 
-    /* Latency tracking */
-    unsigned long _output_position;
+	/* Latency tracking */
+	unsigned long _output_position;
 
-    mutable std::mutex _callback_lock;
-    callback_seq_t _error_callbacks;
-    callback_seq_t _message_callbacks;
+	mutable std::mutex _callback_lock;
+	callback_seq_t _error_callbacks;
+	callback_seq_t _message_callbacks;
 
 }; // Engine
 
 class EngineMessageCallback
 {
 public:
-    virtual ~EngineMessageCallback() {
+	virtual ~EngineMessageCallback() {
 	if(_parent) {
-	    _parent->unsubscribe_errors(this);
+		_parent->unsubscribe_errors(this);
 	}
 	if(_parent) {
-	    _parent->unsubscribe_messages(this);
+		_parent->unsubscribe_messages(this);
 	}
-    }
+	}
 
-    virtual void operator()(const char *message) = 0;
+	virtual void operator()(const char *message) = 0;
 
 private:
-    friend class Engine;
-    Engine *_parent;
+	friend class Engine;
+	Engine *_parent;
 };
 
 } // namespace StretchPlayer

@@ -105,7 +105,7 @@ typedef  float bams_sample_floatbe_t;
 		int src_stride,			    \
 		unsigned long count		    \
 		)
-	
+
 
 /* Function prototypes
  *

@@ -29,27 +29,27 @@
 
 namespace RubberBand
 {
-    class RubberBandStretcher;
+	class RubberBandStretcher;
 }
 
 namespace StretchPlayer
 {
-    /**
-     * \brief A RubberBandStretcher object contained in its own thread.
-     *
-     * This is designed for a stereo setup only.
-     */
-    class RubberBandServer
-    {
-    public:
+	/**
+	 * \brief A RubberBandStretcher object contained in its own thread.
+	 *
+	 * This is designed for a stereo setup only.
+	 */
+	class RubberBandServer
+	{
+	public:
 	typedef Tritium::RingBuffer<float> ringbuffer_t;
 
 	RubberBandServer();
 	RubberBandServer(const RubberBandServer &tt) = delete;
-    RubberBandServer(RubberBandServer&& tt) = default;
+	RubberBandServer(RubberBandServer&& tt) = default;
 	~RubberBandServer();
-    void setSampleRate(uint32_t sample_rate);
-    void operator()();
+	void setSampleRate(uint32_t sample_rate);
+	void operator()();
 
 	void start();
 	void shutdown();
@@ -77,32 +77,32 @@ namespace StretchPlayer
 	uint32_t read_audio(float* left, float* right, uint32_t count);
 	float cpu_load() const;
 
-    private:
+	private:
 	virtual void run();
 	void _process();
 	void _update_cpu_load();
 
-    private:
-    friend class RubberBandServerFunc;
-    std::thread t;
+	private:
+	friend class RubberBandServerFunc;
+	std::thread t;
 	bool _running;
 	std::unique_ptr< RubberBand::RubberBandStretcher > _stretcher;
 	std::unique_ptr< ringbuffer_t > _inputs[2];
 	std::unique_ptr< ringbuffer_t > _outputs[2];
 	unsigned long _stretcher_feed_block;
 
-    mutable std::condition_variable _wait_cond;
-    mutable std::mutex _wait_mutex;
+	mutable std::condition_variable _wait_cond;
+	mutable std::mutex _wait_mutex;
 
 	std::vector<uint32_t> _proc_time; // usecs
 	std::vector<uint32_t> _idle_time; // usecs
 	float _cpu_load; // [0.0, 1.0]
 
-    mutable std::mutex _param_mutex; // Must be locked for these params:
+	mutable std::mutex _param_mutex; // Must be locked for these params:
 	float _time_ratio_param;
 	float _pitch_scale_param;
 	bool _reset_param;
-    };
+	};
 
 } // namespace StretchPlayer
 

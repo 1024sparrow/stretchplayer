@@ -24,18 +24,18 @@
 
 namespace StretchPlayer
 {
-    class Configuration;
+	class Configuration;
 
-    /**
-     * \brief Pure virtual interface to an audio driver API.
-     *
-     * This AudioSystem assumes a very simple system with two audio
-     * outputs.  It maintains those ports and buffers and the
-     * connection of them.
-     */
-    class JackAudioSystem : public AudioSystem
-    {
-    public:
+	/**
+	 * \brief Pure virtual interface to an audio driver API.
+	 *
+	 * This AudioSystem assumes a very simple system with two audio
+	 * outputs.  It maintains those ports and buffers and the
+	 * connection of them.
+	 */
+	class JackAudioSystem : public AudioSystem
+	{
+	public:
 	JackAudioSystem();
 	virtual ~JackAudioSystem();
 
@@ -55,11 +55,11 @@ namespace StretchPlayer
 	virtual uint32_t segment_start_time_stamp();
 	virtual uint32_t current_segment_size();
 
-    private:
+	private:
 	jack_client_t *_client;
 	jack_port_t* _port[2];
 	Configuration* _config;
-    };
+	};
 
 } // namespace StretchPlayer
 
