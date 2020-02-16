@@ -278,26 +278,13 @@ namespace StretchPlayer
 			}
 			sprintf(defaultDeviceName, "hw:%i,%i", ctlCard, pcmDevice);
 
-			for (int i = 0, c = sizeof(sp_opts) / sizeof(stretchplayer_options_t) ; i < c ; ++i)
+			for (stretchplayer_options_t *i = sp_opts ; i->optstring ; ++i)
 			{
-				if (sp_opts[i].optstring)
+				if (!strcmp(i->optstring, "d:"))
 				{
-					if (!strcmp(sp_opts[i].optstring, "d:"))
-					{
-						sp_opts[i].defaults = defaultDeviceName;
-					}
+					i->defaults = defaultDeviceName;
 				}
 			}
-
-			/*for (stretchplayer_options_t *i = sp_opts ; sp_opts->optstring ; ++i)
-			{
-				printf("-- %s\n", sp_opts[i].optstring);
-				if (!strcmp(i->optstring, qweqwe))
-				{
-					printf("123\n");
-				}
-			}*/
-			printf("123123\n");
 		}
 #endif // AUDIO_SUPPORT_ALSA
 	}
