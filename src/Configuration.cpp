@@ -34,7 +34,7 @@ using namespace std;
 #define DEFAULT_SAMPLE_RATE "44100"
 #define DEFAULT_PERIOD_SIZE "1024"
 #define DEFAULT_PERIODS_PER_BUFFER "2"
-#define DEFAULT_ALSA_DEVICE "hw:0,1"
+#define DEFAULT_ALSA_DEVICE "default"
 
 namespace StretchPlayer
 {
@@ -51,7 +51,8 @@ namespace StretchPlayer
 	 * everything in the structure after it will be misaligned (corrupt).
 	 */
 
-	static const stretchplayer_options_t sp_opts[] = {
+	static char defaultDeviceName[8] = DEFAULT_ALSA_DEVICE;
+	static stretchplayer_options_t sp_opts[] = {
 #ifdef AUDIO_SUPPORT_JACK
 	{ "J",
 	  {"jack", 0, 0, 'J'},
@@ -70,7 +71,7 @@ namespace StretchPlayer
 
 	{ "d:",
 	  {"device", 1, 0, 'd'},
-	  DEFAULT_ALSA_DEVICE, // boris e
+      defaultDeviceName,
 	  "device to use for ALSA" },
 
 	{ "r:",
@@ -138,19 +139,23 @@ namespace StretchPlayer
 	{
 #ifdef AUDIO_SUPPORT_ALSA
 		int fd = open("/usr/share/alsa/alsa.conf", O_RDONLY);
+		int ctlCard = 0;
+		int pcmDevice = 0;
 		if (fd < 0)
 		{
-			//printf("can not open alsa conf file to read");
+			// can not open alsa conf file to read: leave current default value
 		}
 		else
 		{
-			printf("1111111111111111111\n");
-			const int bufferSize = 1024;
+			const int bufferSize = 64;
 			char buffer[bufferSize];
 
-			const char *templCommon = "defaults.ctl.";
-			const char *templCard = "card";
-			const char *templDevice = "device";
+			const char *templCommon = "\ndefaults.";
+			int templCommonLength = strlen(templCommon);
+			const char *templCard = "ctl.card";
+			int templCardLength = strlen(templCard);
+			const char *templDevice = "pcm.device";
+			int templDeviceLength = strlen(templDevice);
 			/* States:
 			 * 0 - initial
 			 * 1 - templCommon. "defaults.ctl."
@@ -161,6 +166,7 @@ namespace StretchPlayer
 			 */
 			int state = 0;
 			int counter = 0;
+			int pos = -1; // current position in template
 
 			for (bool b = true ; b ;)
 			{
@@ -168,11 +174,132 @@ namespace StretchPlayer
 				b = portionSize == bufferSize;
 				for (int iCh = 0 ; iCh < portionSize ; ++iCh)
 				{
-					// boris here
+					char ch = buffer[iCh];
+					if (state == 0)
+					{
+						if (ch == templCommon[0])
+						{
+							state = 1;
+							counter = templCommonLength;
+							pos = 1;
+						}
+					}
+					else if (state == 1)
+					{
+						if (ch == templCommon[pos])
+						{
+							++pos;
+						}
+						else
+						{
+							state = 0;
+						}
+						if (--counter == 0)
+						{
+							if (ch == templCard[0])
+							{
+								state = 2;
+								counter = templCardLength;
+								pos = 1;
+							}
+							else if (ch == templDevice[0])
+							{
+								state = 102;
+								counter = templDeviceLength;
+								pos = 1;
+							}
+							else
+							{
+								state = 0;
+							}
+						}
+					}
+					else if (state == 2)
+					{
+						if (ch == templCard[pos])
+						{
+							++pos;
+						}
+						else
+						{
+							state = 0;
+						}
+						if (--counter == 0)
+						{
+							state = 3;
+						}
+					}
+					else if (state == 102)
+					{
+						if (ch == templDevice[pos])
+						{
+							++pos;
+						}
+						else
+						{
+							state = 0;
+						}
+						if (--counter == 0)
+						{
+							state = 103;
+						}
+					}
+					else if (state == 3)
+					{
+						if (ch != ' ')
+						{
+							if (ch > '0' && ch < '9')
+							{
+								ctlCard = ch - '0';
+								state = 0;
+							}
+							else
+							{
+								state = 0; // error: this is incorrect behaviour
+							}
+						}
+					}
+					else if (state == 103)
+					{
+						if (ch != ' ')
+						{
+							if (ch > '0' && ch < '9')
+							{
+								pcmDevice = ch - '0';
+								state = 0;
+							}
+							else
+							{
+								state = 0; // error: this is incorrect behaviour
+							}
+						}
+					}
 				}
 			}
+			sprintf(defaultDeviceName, "hw:%i,%i", ctlCard, pcmDevice);
+
+			for (int i = 0, c = sizeof(sp_opts) / sizeof(stretchplayer_options_t) ; i < c ; ++i)
+			{
+				if (sp_opts[i].optstring)
+				{
+					if (!strcmp(sp_opts[i].optstring, "d:"))
+					{
+						sp_opts[i].defaults = defaultDeviceName;
+					}
+				}
+			}
+
+			/*for (stretchplayer_options_t *i = sp_opts ; sp_opts->optstring ; ++i)
+			{
+				printf("-- %s\n", sp_opts[i].optstring);
+				if (!strcmp(i->optstring, qweqwe))
+				{
+					printf("123\n");
+				}
+			}*/
+			printf("123123\n");
 		}
-#endif
+#endif // AUDIO_SUPPORT_ALSA
 	}
 
 	static void setup_options()
@@ -285,7 +412,7 @@ namespace StretchPlayer
 #else
 #error "Must have support for at least ONE audio API"
 #endif
-	audio_device( DEFAULT_ALSA_DEVICE );
+	audio_device( defaultDeviceName );
 	sample_rate( atoi(DEFAULT_SAMPLE_RATE) );
 	period_size( atoi(DEFAULT_PERIOD_SIZE) );
 	periods_per_buffer( atoi(DEFAULT_PERIODS_PER_BUFFER) );

@@ -132,8 +132,7 @@ namespace StretchPlayer
 	int nfds;
 	struct pollfd *pfds;
 
-	if((err = snd_pcm_open(&_playback_handle, "hw:0,0", SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
-	//if((err = snd_pcm_open(&_playback_handle, "default", SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+	if((err = snd_pcm_open(&_playback_handle, config->audio_device(), SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
         if (err_msg){
             strcat(err_msg, "cannot open default ALSA audio device (");
             strcat(err_msg, snd_strerror(err));
