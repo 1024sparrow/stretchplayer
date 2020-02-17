@@ -215,7 +215,7 @@ namespace StretchPlayer
 			feed = _left.size() - _position;
 			input_frames = feed;
 			}
-			_stretcher.write_audio( &_left[_position], &_right[_position], feed );
+			_stretcher.write_audio( &_left[_position], &_right[_position], feed ); // boris here: apply shift here. Take actual value from _config->shift()
 			_position += feed;
 			assert( input_frames >= feed );
 			input_frames -= feed;

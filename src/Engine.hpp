@@ -148,8 +148,9 @@ private:
     bool _hit_end;
     bool _state_changed;
     mutable std::mutex _audio_lock;
-    std::vector<float> _left;
-    std::vector<float> _right;
+    std::vector<float> _left; // input data: candidate to push into stretcher
+    std::vector<float> _right; // input data: candidate to push into stretcher
+
     unsigned long _position;
     unsigned long _loop_a;
     unsigned long _loop_b;
