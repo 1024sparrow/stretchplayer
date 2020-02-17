@@ -35,6 +35,7 @@ using namespace std;
 #define DEFAULT_PERIOD_SIZE "1024"
 #define DEFAULT_PERIODS_PER_BUFFER "2"
 #define DEFAULT_ALSA_DEVICE "default"
+#define DEFAULT_SHIFT "0"
 
 namespace StretchPlayer
 {
@@ -93,27 +94,44 @@ namespace StretchPlayer
 	{ "x",
 	  {"no-autoconnect", 0, 0, 'x'},
 	  "off",
-	  "disable auto-connection ot ouputs" },
+	  "disable auto-connection ot ouputs"
+	},
 
 	{ "c",
 	  {"compositing", 0, 0, 'c'},
 	  "on",
-	  "enable desktop compositing (if supported by Qt/X11)" },
+	  "enable desktop compositing (if supported by Qt/X11)"
+	},
 
 	{ "C",
 	  {"no-compositing", 0, 0, 'C'},
 	  "off",
-	  "disable desktop compositing" },
+	  "disable desktop compositing"
+	},
 
 	{ "q",
 	  {"quiet", 0, 0, 'q'},
 	  "off",
-	  "suppress most output to console" },
+	  "suppress most output to console"
+	},
 
 	{ "h",
 	  {"help", 0, 0, 'h'},
 	  "off",
-	  "show help/usage and exit" }, // --help
+	  "show help/usage and exit"
+	}, // --help
+
+	{ "s:",
+		{"shift", 1, 0, 's'},
+		DEFAULT_SHIFT,
+		"right channel ahead of left (in seconds). Automaticaly make it mono."
+	},
+
+	{ "m",
+		{"mono", 0, 0, 'm'},
+		"off",
+		"merge all sound channels into the one: make it mono."
+	},
 
 	{ 0,
 	  {0, 0, 0, 0},
@@ -341,6 +359,7 @@ namespace StretchPlayer
 	sample_rate(0),
 	period_size(0),
 	periods_per_buffer(0),
+	shift(0),
 	startup_file()
 	{
 	clarify_defaults();
@@ -403,6 +422,7 @@ namespace StretchPlayer
 	sample_rate( atoi(DEFAULT_SAMPLE_RATE) );
 	period_size( atoi(DEFAULT_PERIOD_SIZE) );
 	periods_per_buffer( atoi(DEFAULT_PERIODS_PER_BUFFER) );
+	shift( atoi(DEFAULT_SHIFT) );
 	startup_file( "" );
 	autoconnect(true);
 	compositing(true);
@@ -439,6 +459,10 @@ namespace StretchPlayer
 		case 'n':
 			periods_per_buffer( atoi(optarg) );
 			break;
+		case 's':
+			shift( atoi(optarg) );
+			mono(true);
+			break;
 		case 'x':
 			autoconnect(false);
 			break;
@@ -453,6 +477,9 @@ namespace StretchPlayer
 			break;
 		case 'h':
 			help(true);
+			break;
+		case 'm':
+			mono(false);
 			break;
 		default:
 			bad = true;

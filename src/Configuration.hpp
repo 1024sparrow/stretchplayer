@@ -94,6 +94,8 @@ public:
     Property<bool>     compositing;
     Property<bool>     quiet;
     Property<bool>     help;
+    Property<bool>     mono;
+    Property<int>      shift; // positive - right ahead (left has actual timing), negative - left ahead (right has actual timing). In seconds.
 
 private:
     void init(int argc, char* argv[]);
