@@ -67,6 +67,12 @@ public:
 		//_state_changed = true;
 	}
 	}
+	int get_shift() {
+	return _shift;
+	}
+	void set_shift(int p_shift) {
+		_shift = p_shift;
+	}
 	int get_pitch() {
 	return _pitch;
 	}
@@ -156,6 +162,7 @@ private:
 	std::atomic<int> _loop_ab_pressed;
 	float _sample_rate;
 	float _stretch;
+	int p_shift;
 	int _pitch;
 	float _gain;
 	//std::unique_ptr<RubberBandServer> _stretcher;

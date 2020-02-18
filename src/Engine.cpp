@@ -45,6 +45,7 @@ namespace StretchPlayer
 	  _loop_b(0),
 	  _sample_rate(48000.0),
 	  _stretch(1.0),
+	  _shift(0)
 	  _pitch(0),
 	  _gain(1.0),
 	  _output_position(0)
@@ -197,6 +198,7 @@ namespace StretchPlayer
 		}
 
 		// Push data into the stretcher, observing A/B loop points
+		//int shiftInFrames = 
 		while( input_frames > 0 ) {
 			feed = input_frames;
 			if( looping() && ((_position + feed) >= _loop_b) ) {
@@ -215,7 +217,7 @@ namespace StretchPlayer
 			feed = _left.size() - _position;
 			input_frames = feed;
 			}
-			_stretcher.write_audio( &_left[_position], &_right[_position], feed ); // boris here: apply shift here. Take actual value from _config->shift()
+			_stretcher.write_audio( &_left[_position], &_right[_position + 100000], feed ); // boris here: apply shift here. Take actual value from _config->shift()
 			_position += feed;
 			assert( input_frames >= feed );
 			input_frames -= feed;
