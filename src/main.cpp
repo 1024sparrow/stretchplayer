@@ -157,6 +157,11 @@ int main(int argc, char* argv[])
 			float d = i / 100.;
 			_engine->set_volume(d);
 		}
+		else if (c == '9')
+		{
+			short i = atoi(paramString);
+			_engine->set_shift(i);
+		}
 		else
 		{
 			printf("=============: %c\n", c);
