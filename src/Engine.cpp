@@ -219,16 +219,20 @@ namespace StretchPlayer
 			input_frames = feed;
 			}
 			if (_shift) {
-				float *cand = &_null;
+				float *cand = &_null[0];
 				if (_shift > 0) { 
 					// actual position at the left channel
-					//if (shiftInFrames < )
-					//cand = _right[_position + shiftInFrames]; // boris here
-					_stretcher.write_audio( &_left[_position], &cand, feed ); // boris here: apply shift here. Take actual value from _config->shift()
+					if (_left.size() > (_position + shiftInFrames))
+						cand = &_right[_position + shiftInFrames]; // boris here
+
+					//_stretcher.write_audio( &_left[_position], &_null[0], feed ); // boris here: apply shift here. Take actual value from _config->shift()
+					_stretcher.write_audio( &_left[_position], cand, feed ); // boris here: apply shift here. Take actual value from _config->shift()
 				}
 				else {
 					// actual position at the right channel
-					_stretcher.write_audio( &_left[_position - shiftInFrames], &_right[_position], feed ); // boris here: apply shift here. Take actual value from _config->shift()
+					if (_position >= shiftInFrames)
+						cand = &_left[_position - shiftInFrames];
+					_stretcher.write_audio( cand, &_right[_position], feed ); // boris here: apply shift here. Take actual value from _config->shift()
 				}
 			}
 			else {
@@ -316,6 +320,7 @@ namespace StretchPlayer
 		_sample_rate = sf_info.samplerate;
 		_left.reserve( sf_info.frames );
 		_right.reserve( sf_info.frames );
+		_null.reserve( sf_info.frames );
 
 		if(sf_info.frames == 0) {
 			char tmp[512] = "Error opening file '";
@@ -404,6 +409,7 @@ namespace StretchPlayer
 		_sample_rate = rate;
 		_left.reserve( length );
 		_right.reserve( length );
+		_null.reserve( length );
 
 		_message("Reading file...");
 		std::vector<signed short> buffer(4096, 0);
