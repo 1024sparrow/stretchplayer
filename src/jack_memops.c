@@ -1,19 +1,19 @@
 /*
-    Copyright (C) 2000 Paul Davis 
+	Copyright (C) 2000 Paul Davis
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 */
 
@@ -39,7 +39,7 @@
    the MAX_<N>BIT values are floating point. when multiplied by
    a full-scale normalized floating point sample value (-1.0..+1.0)
    they should give the maxium value representable with an integer
-   sample type of N bits. Note that this is asymmetric. Sample ranges 
+   sample type of N bits. Note that this is asymmetric. Sample ranges
    for signed integer, 2's complement values are -(2^(N-1) to +(2^(N-1)-1)
 
    Complications
@@ -65,14 +65,14 @@
 #define SAMPLE_16BIT_SCALING  32767.0f
 
 /* these are just values to use if the floating point value was out of range
-   
+
    advice from Fons Adriaensen: make the limits symmetrical
  */
 
-#define SAMPLE_24BIT_MAX  8388607  
-#define SAMPLE_24BIT_MIN  -8388607 
-#define SAMPLE_24BIT_MAX_F  8388607.0f  
-#define SAMPLE_24BIT_MIN_F  -8388607.0f 
+#define SAMPLE_24BIT_MAX  8388607
+#define SAMPLE_24BIT_MIN  -8388607
+#define SAMPLE_24BIT_MAX_F  8388607.0f
+#define SAMPLE_24BIT_MIN_F  -8388607.0f
 
 #define SAMPLE_16BIT_MAX  32767
 #define SAMPLE_16BIT_MIN  -32767
@@ -80,8 +80,8 @@
 #define SAMPLE_16BIT_MIN_F  -32767.0f
 
 /* these mark the outer edges of the range considered "within" range
-   for a floating point sample value. values outside (and on the boundaries) 
-   of this range will be clipped before conversion; values within this 
+   for a floating point sample value. values outside (and on the boundaries)
+   of this range will be clipped before conversion; values within this
    range will be scaled to appropriate values for the target sample
    type.
 */
@@ -108,12 +108,12 @@
  */
 
 #define float_16_scaled(s, d)\
-        if ((s) <= SAMPLE_16BIT_MIN_F) {\
+		if ((s) <= SAMPLE_16BIT_MIN_F) {\
 		(d) = SAMPLE_16BIT_MIN_F;\
 	} else if ((s) >= SAMPLE_16BIT_MAX_F) {	\
 		(d) = SAMPLE_16BIT_MAX;\
 	} else {\
-	        (d) = f_round ((s));\
+			(d) = f_round ((s));\
 	}
 
 #define float_24u32(s, d) \
@@ -129,7 +129,7 @@
  */
 
 #define float_24u32_scaled(s, d)\
-        if ((s) <= SAMPLE_24BIT_MIN_F) {\
+		if ((s) <= SAMPLE_24BIT_MIN_F) {\
 		(d) = SAMPLE_24BIT_MIN << 8;\
 	} else if ((s) >= SAMPLE_24BIT_MAX_F) {	\
 		(d) = SAMPLE_24BIT_MAX << 8;		\
@@ -150,7 +150,7 @@
  */
 
 #define float_24_scaled(s, d)\
-        if ((s) <= SAMPLE_24BIT_MIN_F) {\
+		if ((s) <= SAMPLE_24BIT_MIN_F) {\
 		(d) = SAMPLE_24BIT_MIN;\
 	} else if ((s) >= SAMPLE_24BIT_MAX_F) {	\
 		(d) = SAMPLE_24BIT_MAX;		\
@@ -160,7 +160,7 @@
 
 
 /* Linear Congruential noise generator. From the music-dsp list
- * less random than rand(), but good enough and 10x faster 
+ * less random than rand(), but good enough and 10x faster
  */
 
 //inline unsigned int fast_rand() {
@@ -198,7 +198,7 @@ void sample_move_dS_floatLE (char *dst, jack_default_audio_sample_t *src, unsign
    the "s<TYPE>" component defines the source type for the operation
 
    TYPE can be one of:
-   
+
    S      - sample is a jack_default_audio_sample_t, currently (October 2008) a 32 bit floating point value
    Ss     - like S but reverse endian from the host CPU
    32u24  - sample is an signed 32 bit integer value, but data is in upper 24 bits only
@@ -211,7 +211,7 @@ void sample_move_dS_floatLE (char *dst, jack_default_audio_sample_t *src, unsign
    For obvious reasons, the reverse endian versions only show as source types.
 
    This covers all known sample formats at 16 bits or larger.
-*/   
+*/
 
 /* functions for native integer sample data */
 
@@ -238,7 +238,7 @@ void sample_move_d32u24_sSs (char *dst, jack_default_audio_sample_t *src, unsign
 		dst += dst_skip;
 		src++;
 	}
-}	
+}
 
 void sample_move_d32u24_sS (char *dst, jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
@@ -247,7 +247,7 @@ void sample_move_d32u24_sS (char *dst, jack_default_audio_sample_t *src, unsigne
 		dst += dst_skip;
 		src++;
 	}
-}	
+}
 
 void sample_move_dS_s32u24s (jack_default_audio_sample_t *dst, char *src, unsigned long nsamples, unsigned long src_skip)
 {
@@ -276,7 +276,7 @@ void sample_move_dS_s32u24s (jack_default_audio_sample_t *dst, char *src, unsign
 		dst++;
 		src += src_skip;
 	}
-}	
+}
 
 void sample_move_dS_s32u24 (jack_default_audio_sample_t *dst, char *src, unsigned long nsamples, unsigned long src_skip)
 {
@@ -287,7 +287,7 @@ void sample_move_dS_s32u24 (jack_default_audio_sample_t *dst, char *src, unsigne
 		dst++;
 		src += src_skip;
 	}
-}	
+}
 
 void sample_move_d24_sSs (char *dst, jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
@@ -307,12 +307,12 @@ void sample_move_d24_sSs (char *dst, jack_default_audio_sample_t *src, unsigned 
 		dst += dst_skip;
 		src++;
 	}
-}	
+}
 
 void sample_move_d24_sS (char *dst, jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
-        int32_t z;
-	
+		int32_t z;
+
 	while (nsamples--) {
 		float_24 (*src, z);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -323,7 +323,7 @@ void sample_move_d24_sS (char *dst, jack_default_audio_sample_t *src, unsigned l
 		dst += dst_skip;
 		src++;
 	}
-}	
+}
 
 void sample_move_dS_s24s (jack_default_audio_sample_t *dst, char *src, unsigned long nsamples, unsigned long src_skip)
 {
@@ -356,7 +356,7 @@ void sample_move_dS_s24s (jack_default_audio_sample_t *dst, char *src, unsigned 
 		dst++;
 		src += src_skip;
 	}
-}	
+}
 
 void sample_move_dS_s24 (jack_default_audio_sample_t *dst, char *src, unsigned long nsamples, unsigned long src_skip)
 {
@@ -374,10 +374,10 @@ void sample_move_dS_s24 (jack_default_audio_sample_t *dst, char *src, unsigned l
 		dst++;
 		src += src_skip;
 	}
-}	
+}
 
 
-void sample_move_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)	
+void sample_move_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	int16_t tmp;
 
@@ -404,7 +404,7 @@ void sample_move_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned
 	}
 }
 
-void sample_move_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)	
+void sample_move_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	while (nsamples--) {
 		float_16 (*src, *((int16_t*) dst));
@@ -413,7 +413,7 @@ void sample_move_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned 
 	}
 }
 
-void sample_move_dither_rect_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)	
+void sample_move_dither_rect_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	jack_default_audio_sample_t val;
 	int16_t      tmp;
@@ -433,7 +433,7 @@ void sample_move_dither_rect_d16_sSs (char *dst,  jack_default_audio_sample_t *s
 	}
 }
 
-void sample_move_dither_rect_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)	
+void sample_move_dither_rect_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	jack_default_audio_sample_t val;
 
@@ -445,7 +445,7 @@ void sample_move_dither_rect_d16_sS (char *dst,  jack_default_audio_sample_t *sr
 	}
 }
 
-void sample_move_dither_tri_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)	
+void sample_move_dither_tri_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	jack_default_audio_sample_t val;
 	int16_t      tmp;
@@ -466,7 +466,7 @@ void sample_move_dither_tri_d16_sSs (char *dst,  jack_default_audio_sample_t *sr
 	}
 }
 
-void sample_move_dither_tri_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)	
+void sample_move_dither_tri_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	jack_default_audio_sample_t val;
 
@@ -478,7 +478,7 @@ void sample_move_dither_tri_d16_sS (char *dst,  jack_default_audio_sample_t *src
 	}
 }
 
-void sample_move_dither_shaped_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)	
+void sample_move_dither_shaped_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	jack_default_audio_sample_t     x;
 	jack_default_audio_sample_t     xe; /* the innput sample - filtered error */
@@ -494,11 +494,11 @@ void sample_move_dither_shaped_d16_sSs (char *dst,  jack_default_audio_sample_t 
 		/* Filter the error with Lipshitz's minimally audible FIR:
 		   [2.033 -2.165 1.959 -1.590 0.6149] */
 		xe = x
-		     - state->e[idx] * 2.033f
-		     + state->e[(idx - 1) & DITHER_BUF_MASK] * 2.165f
-		     - state->e[(idx - 2) & DITHER_BUF_MASK] * 1.959f
-		     + state->e[(idx - 3) & DITHER_BUF_MASK] * 1.590f
-		     - state->e[(idx - 4) & DITHER_BUF_MASK] * 0.6149f;
+			 - state->e[idx] * 2.033f
+			 + state->e[(idx - 1) & DITHER_BUF_MASK] * 2.165f
+			 - state->e[(idx - 2) & DITHER_BUF_MASK] * 1.959f
+			 + state->e[(idx - 3) & DITHER_BUF_MASK] * 1.590f
+			 - state->e[(idx - 4) & DITHER_BUF_MASK] * 0.6149f;
 		xp = xe + r - rm1;
 		rm1 = r;
 
@@ -522,7 +522,7 @@ void sample_move_dither_shaped_d16_sSs (char *dst,  jack_default_audio_sample_t 
 	state->idx = idx;
 }
 
-void sample_move_dither_shaped_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)	
+void sample_move_dither_shaped_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	jack_default_audio_sample_t     x;
 	jack_default_audio_sample_t     xe; /* the innput sample - filtered error */
@@ -537,11 +537,11 @@ void sample_move_dither_shaped_d16_sS (char *dst,  jack_default_audio_sample_t *
 		/* Filter the error with Lipshitz's minimally audible FIR:
 		   [2.033 -2.165 1.959 -1.590 0.6149] */
 		xe = x
-		     - state->e[idx] * 2.033f
-		     + state->e[(idx - 1) & DITHER_BUF_MASK] * 2.165f
-		     - state->e[(idx - 2) & DITHER_BUF_MASK] * 1.959f
-		     + state->e[(idx - 3) & DITHER_BUF_MASK] * 1.590f
-		     - state->e[(idx - 4) & DITHER_BUF_MASK] * 0.6149f;
+			 - state->e[idx] * 2.033f
+			 + state->e[(idx - 1) & DITHER_BUF_MASK] * 2.165f
+			 - state->e[(idx - 2) & DITHER_BUF_MASK] * 1.959f
+			 + state->e[(idx - 3) & DITHER_BUF_MASK] * 1.590f
+			 - state->e[(idx - 4) & DITHER_BUF_MASK] * 0.6149f;
 		xp = xe + r - rm1;
 		rm1 = r;
 
@@ -558,7 +558,7 @@ void sample_move_dither_shaped_d16_sS (char *dst,  jack_default_audio_sample_t *
 	state->idx = idx;
 }
 
-void sample_move_dS_s16s (jack_default_audio_sample_t *dst, char *src, unsigned long nsamples, unsigned long src_skip) 	
+void sample_move_dS_s16s (jack_default_audio_sample_t *dst, char *src, unsigned long nsamples, unsigned long src_skip)
 {
 	short z;
 
@@ -577,10 +577,10 @@ void sample_move_dS_s16s (jack_default_audio_sample_t *dst, char *src, unsigned 
 		dst++;
 		src += src_skip;
 	}
-}	
+}
 
-void sample_move_dS_s16 (jack_default_audio_sample_t *dst, char *src, unsigned long nsamples, unsigned long src_skip) 
-	
+void sample_move_dS_s16 (jack_default_audio_sample_t *dst, char *src, unsigned long nsamples, unsigned long src_skip)
+
 {
 	/* ALERT: signed sign-extension portability !!! */
 	while (nsamples--) {
@@ -588,11 +588,11 @@ void sample_move_dS_s16 (jack_default_audio_sample_t *dst, char *src, unsigned l
 		dst++;
 		src += src_skip;
 	}
-}	
+}
 
-void memset_interleave (char *dst, char val, unsigned long bytes, 
-			unsigned long unit_bytes, 
-			unsigned long skip_bytes) 
+void memset_interleave (char *dst, char val, unsigned long bytes,
+			unsigned long unit_bytes,
+			unsigned long skip_bytes)
 {
 	switch (unit_bytes) {
 	case 1:
@@ -608,7 +608,7 @@ void memset_interleave (char *dst, char val, unsigned long bytes,
 			bytes -= 2;
 		}
 		break;
-	case 4:		    
+	case 4:
 		while (bytes) {
 			*((int *) dst) = (int) val;
 			dst += skip_bytes;
@@ -632,13 +632,13 @@ void memset_interleave (char *dst, char val, unsigned long bytes,
    were interleaved differently. We don't try to handle that.
 */
 
-void 
+void
 memcpy_fake (char *dst, char *src, unsigned long src_bytes, unsigned long foo, unsigned long bar)
 {
 	memcpy (dst, src, src_bytes);
 }
 
-void 
+void
 memcpy_interleave_d16_s16 (char *dst, char *src, unsigned long src_bytes,
 			   unsigned long dst_skip_bytes, unsigned long src_skip_bytes)
 {
@@ -650,7 +650,7 @@ memcpy_interleave_d16_s16 (char *dst, char *src, unsigned long src_bytes,
 	}
 }
 
-void 
+void
 memcpy_interleave_d24_s24 (char *dst, char *src, unsigned long src_bytes,
 			   unsigned long dst_skip_bytes, unsigned long src_skip_bytes)
 
@@ -663,7 +663,7 @@ memcpy_interleave_d24_s24 (char *dst, char *src, unsigned long src_bytes,
 	}
 }
 
-void 
+void
 memcpy_interleave_d32_s32 (char *dst, char *src, unsigned long src_bytes,
 			   unsigned long dst_skip_bytes, unsigned long src_skip_bytes)
 

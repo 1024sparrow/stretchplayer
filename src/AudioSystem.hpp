@@ -23,18 +23,18 @@
 
 namespace StretchPlayer
 {
-    class Configuration;
+	class Configuration;
 
-    /**
-     * \brief Pure virtual interface to an audio driver API.
-     *
-     * This AudioSystem assumes a very simple system with two audio
-     * outputs.  It maintains those ports and buffers and the
-     * connection of them.
-     */
-    class AudioSystem
-    {
-    public:
+	/**
+	 * \brief Pure virtual interface to an audio driver API.
+	 *
+	 * This AudioSystem assumes a very simple system with two audio
+	 * outputs.  It maintains those ports and buffers and the
+	 * connection of them.
+	 */
+	class AudioSystem
+	{
+	public:
 	typedef float sample_t;
 	typedef int (*process_callback_t)(uint32_t nframes, void *arg);
 	typedef int (*segment_size_callback_t)(uint32_t nframes, void *arg);
@@ -144,9 +144,9 @@ namespace StretchPlayer
 	 *
 	 */
 	virtual uint32_t current_segment_size() = 0;
-    };
+	};
 
-    AudioSystem* audio_system_factory(int driver);
+	AudioSystem* audio_system_factory(int driver);
 
 } // namespace StretchPlayer
 

@@ -24,58 +24,58 @@
 
 namespace StretchPlayer
 {
-    /**
-     * \brief Thread for AlsaAudioSystem's main loop.
-     *
-     */
-    class AlsaAudioSystemPrivate
-    {
-    public:
+	/**
+	 * \brief Thread for AlsaAudioSystem's main loop.
+	 *
+	 */
+	class AlsaAudioSystemPrivate
+	{
+	public:
 	typedef void (*callback_t)(AlsaAudioSystem*);
 
 	AlsaAudioSystemPrivate() :
-	    _run_callback(0),
-	    _parent(0)
-	    {}
+		_run_callback(0),
+		_parent(0)
+		{}
 
 	virtual ~AlsaAudioSystemPrivate()
-	    {}
+		{}
 
-    void start()
-    {
-        t = std::thread(&AlsaAudioSystemPrivate::run, this);
-        t.detach();
-    }
+	void start()
+	{
+		t = std::thread(&AlsaAudioSystemPrivate::run, this);
+		t.detach();
+	}
 
-    void wait()
-    {
-        if (t.joinable())
-            t.join();
-    }
+	void wait()
+	{
+		if (t.joinable())
+			t.join();
+	}
 
 	void parent(AlsaAudioSystem *parent) {
-	    _parent = parent;
+		_parent = parent;
 	}
 	AlsaAudioSystem* parent() {
-	    return _parent;
+		return _parent;
 	}
 
 	void run_callback( callback_t run_callback ) {
-	    _run_callback = run_callback;
+		_run_callback = run_callback;
 	}
 	callback_t run_callback() {
-	    return _run_callback;
+		return _run_callback;
 	}
 
-    private:
+	private:
 	virtual void run() {
-	    (*_run_callback)(_parent);
+		(*_run_callback)(_parent);
 	}
 
 	callback_t _run_callback;
 	AlsaAudioSystem *_parent;
-    std::thread t;
-    };
+	std::thread t;
+	};
 
 } // namespace StretchPlayer
 

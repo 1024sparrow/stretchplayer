@@ -31,25 +31,25 @@
 namespace StretchPlayer
 {
 
-    AudioSystem* audio_system_factory(int driver)
-    {
+	AudioSystem* audio_system_factory(int driver)
+	{
 	AudioSystem* d = 0;
 	switch(driver) {
 #ifdef AUDIO_SUPPORT_JACK
 	case Configuration::JackDriver:
-	    d = new JackAudioSystem;
-	    break;
+		d = new JackAudioSystem;
+		break;
 #endif
 #ifdef AUDIO_SUPPORT_ALSA
 	case Configuration::AlsaDriver:
-	    d = new AlsaAudioSystem;
-	    break;
+		d = new AlsaAudioSystem;
+		break;
 #endif
 	default:
-	    throw std::runtime_error("Unsupported driver requested");
+		throw std::runtime_error("Unsupported driver requested");
 	}
 	return d;
-    }
+	}
 
 } // namespace StretchPlayer
 

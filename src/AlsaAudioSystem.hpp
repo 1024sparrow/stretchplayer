@@ -25,16 +25,16 @@
 
 namespace StretchPlayer
 {
-    class Configuration;
-    class AlsaAudioSystemPrivate;
+	class Configuration;
+	class AlsaAudioSystemPrivate;
 
-    /**
-     * \brief ALSA audio driver implementation.
-     *
-     */
-    class AlsaAudioSystem : public AudioSystem
-    {
-    public:
+	/**
+	 * \brief ALSA audio driver implementation.
+	 *
+	 */
+	class AlsaAudioSystem : public AudioSystem
+	{
+	public:
 	AlsaAudioSystem();
 	virtual ~AlsaAudioSystem();
 
@@ -54,9 +54,9 @@ namespace StretchPlayer
 	virtual uint32_t segment_start_time_stamp();
 	virtual uint32_t current_segment_size();
 
-    private:
+	private:
 	static void run(AlsaAudioSystem *that) {
-	    that->_run();
+		that->_run();
 	}
 	void _run();
 	void _convert_to_output(uint32_t nframes);
@@ -69,7 +69,7 @@ namespace StretchPlayer
 	void _stopwatch_start_work();
 	void _dsp_load_update();
 
-    private:
+	private:
 	// Configuration variables:
 	unsigned _channels;
 	enum { INT, UINT, FLOAT } _type;
@@ -99,7 +99,7 @@ namespace StretchPlayer
 	// Private object
 	AlsaAudioSystemPrivate *_d;
 
-    };
+	};
 
 } // namespace StretchPlayer
 
