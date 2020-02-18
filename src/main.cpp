@@ -70,31 +70,30 @@ int main(int argc, char* argv[])
 			break;
 		else if (c == 'h')
 		{
-			printf("########################################\n");
-			printf("# Команды от пользователя:\n");
-			printf("#  q - выйти.\n");
-			printf("#  h - отобразить справку по консольным командам управления.\n");
-			printf("#  1 - открыть. Сразу после этой команды необходимо ввести путь к файлу.\n");
-			printf("#  2 - начать воспроизведение. Параметр: милисекунда начала\n");
-			printf("#  3 - Начать воспроизведение. Парметры: милисекунды начала и конца воспроизведения.\n");
-			printf("#  4 - Прекратить воспроизведение. Возвращает милисекунду останова.\n");
-			printf("#  5 - запрос позиции воспроизведения. Возвращает милисекунду текущего воспроизведения.\n");
-			printf("#  6 - задать скорость воспроизведения (в процентах).\n");
-			printf("#  7 - задать смещение частот.\n");
-			printf("#  8 - установить громкость (в процентах)");
-			printf("#\n");
-			printf("# Сообщения пользователю:\n");
-			printf("#  0 - сообщение об ошибке (текст).\n");
-			printf("#  1 - успешность открытия. Без параметров.\n");
-			printf("#  4 - милисекунда останова.\n");
-			printf("#  5 - милисекунда воспроизведения.\n");
-			printf("#  6 - скорость воспроизведения. Посылается в ответ на команды 2, 3 и 6.\n");
-			printf("#  7 - смещение частот (число от -12 до 12). ПОсылается вответ на команды 2, 3 и 7.\n");
-			// установить громкость
-			//
-			//
-			//
-			printf("########################################\n");
+			printf(R"(
+##################################
+# Commands from user:
+#   q - quit
+#   h - show help for console control commands
+#   1 - open audio file. After "1" (without "enter") input file path
+#   2 - start playing. Parameter: millisecond of starting
+#   3 - start playing. Parameters: millisecond of starting and millisecond of stoping
+#   4 - stop playing. Returns stopping millisecond
+#   5 - request current playing position. Returns current playing position
+#   6 - set playing speed (in percents)
+#   7 - set frequency shift (number from -12 to 12)
+#   8 - set volume (in percents)
+#   9 - set right channel position ahead of left. Parameter: shift (in seconds)
+#
+# Messages for user:
+#   0 - error message (text)
+#   1 - opened successfully (without arguments)
+#   4 - stopping position
+#   5 - current playing position (in milliseconds)
+#   6 - playing speed. Appears as response for commands 2, 3, and 6.
+#   7 - frequency shift (number from -12 to 12). Appears as response for commands 2, 3 and 7.
+##################################
+)");
 		}
 		else if (c == '1')
 		{

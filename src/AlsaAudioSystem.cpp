@@ -122,7 +122,7 @@ namespace StretchPlayer
 
 	if( config == 0 ) {
 		if (err_msg){
-			strcat(err_msg, "The AlsaAudioSystem::init() function must have a non-null config parameter.");// strcat заменить на strncat(..., 1024)
+			strcat(err_msg, "The AlsaAudioSystem::init() function must have a non-null config parameter.");// boris e: replace "strcat" for "strncat(..., 1024)"
 		}
 		goto init_bail;
 	}
