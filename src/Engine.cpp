@@ -37,6 +37,7 @@ namespace StretchPlayer
 {
 	Engine::Engine(Configuration *config)
 	: _config(config),
+	  _null(0),
 	  _playing(false),
 	  _hit_end(false),
 	  _state_changed(false),
@@ -217,7 +218,22 @@ namespace StretchPlayer
 			feed = _left.size() - _position;
 			input_frames = feed;
 			}
-			_stretcher.write_audio( &_left[_position], &_right[_position + shiftInFrames], feed ); // boris here: apply shift here. Take actual value from _config->shift()
+			if (_shift) {
+				float *cand = &_null;
+				if (_shift > 0) { 
+					// actual position at the left channel
+					//if (shiftInFrames < )
+					//cand = _right[_position + shiftInFrames]; // boris here
+					_stretcher.write_audio( &_left[_position], &cand, feed ); // boris here: apply shift here. Take actual value from _config->shift()
+				}
+				else {
+					// actual position at the right channel
+					_stretcher.write_audio( &_left[_position - shiftInFrames], &_right[_position], feed ); // boris here: apply shift here. Take actual value from _config->shift()
+				}
+			}
+			else {
+				_stretcher.write_audio( &_left[_position], &_right[_position], feed );
+			}
 			_position += feed;
 			assert( input_frames >= feed );
 			input_frames -= feed;

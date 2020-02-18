@@ -156,6 +156,7 @@ private:
 	mutable std::mutex _audio_lock;
 	std::vector<float> _left; // input data: candidate to push into stretcher
 	std::vector<float> _right; // input data: candidate to push into stretcher
+	float _null;
 	unsigned long _position;
 	unsigned long _loop_a;
 	unsigned long _loop_b;
