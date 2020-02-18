@@ -162,7 +162,7 @@ private:
 	std::atomic<int> _loop_ab_pressed;
 	float _sample_rate;
 	float _stretch;
-	int p_shift;
+	int _shift;
 	int _pitch;
 	float _gain;
 	//std::unique_ptr<RubberBandServer> _stretcher;
