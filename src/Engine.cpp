@@ -37,7 +37,6 @@ namespace StretchPlayer
 {
 	Engine::Engine(Configuration *config)
 	: _config(config),
-	  _null(0),
 	  _playing(false),
 	  _hit_end(false),
 	  _state_changed(false),
@@ -319,7 +318,7 @@ namespace StretchPlayer
 		_sample_rate = sf_info.samplerate;
 		_left.reserve( sf_info.frames );
 		_right.reserve( sf_info.frames );
-		_null.reserve( sf_info.frames );
+		_null.resize( sf_info.frames, 0.f );
 
 		if(sf_info.frames == 0) {
 			char tmp[512] = "Error opening file '";
