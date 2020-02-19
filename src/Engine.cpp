@@ -329,6 +329,7 @@ namespace StretchPlayer
 			sf_close(sf);
 			return false;
 		}
+		_channelCount = sf_info.channels;
 
 		_message("Reading file...");
 		std::vector<float> buf(4096, 0.0f);
@@ -341,6 +342,8 @@ namespace StretchPlayer
 			mod = k % sf_info.channels;
 			if( mod == 0 ) {
 				_left.push_back( buf[k] );
+				if (sf_info.channels == 1) // mono
+					_right.push_back( buf[k] );
 			} else if( mod == 1 ) {
 				_right.push_back( buf[k] );
 			} else {
@@ -398,6 +401,7 @@ namespace StretchPlayer
 		/* lock the output format */
 		mpg123_format_none(mh);
 		mpg123_format(mh, rate, channels, encoding);
+		_channelCount = channels;
 
 		off_t length = mpg123_length(mh);
 		if (length == MPG123_ERR || length == 0) {
@@ -466,7 +470,16 @@ namespace StretchPlayer
 		_position = 0;
 		_output_position = 0;
 		_stretcher.reset();
-		return  _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
+		bool ok = _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
+		if (ok && _channelCount > 1 && _config->mono()) {
+			float average = 0; // for mono option enabled and more then one channels
+			for (size_t i = 0, c = _left.size() ; i < c ; ++i) {
+				average = (_left[i] + _right[i]) / 2.f;
+				_left[i] = average;
+				_right[i] = average;
+			}
+		}
+		return ok;
 	}
 
 	void Engine::play()

@@ -157,6 +157,7 @@ private:
 	std::vector<float> _left; // input data: candidate to push into stretcher
 	std::vector<float> _right; // input data: candidate to push into stretcher
 	std::vector<float> _null;
+	int _channelCount; // 1 for mono, 2 for stereo
 	unsigned long _position;
 	unsigned long _loop_a;
 	unsigned long _loop_b;

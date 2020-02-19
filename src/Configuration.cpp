@@ -428,6 +428,7 @@ namespace StretchPlayer
 	compositing(true);
 	quiet(false);
 	help(false);
+	mono(false);
 
 	bool bad = false;
 	int c;
@@ -479,7 +480,7 @@ namespace StretchPlayer
 			help(true);
 			break;
 		case 'm':
-			mono(false);
+			mono(true);
 			break;
 		default:
 			bad = true;
