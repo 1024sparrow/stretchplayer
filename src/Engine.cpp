@@ -223,14 +223,13 @@ namespace StretchPlayer
 				if (_shift > 0) { 
 					// actual position at the left channel
 					if (_left.size() > (_position + shiftInFrames))
-						cand = &_right[_position + shiftInFrames]; // boris here
+						cand = &_right[_position + shiftInFrames];
 
-					//_stretcher.write_audio( &_left[_position], &_null[0], feed ); // boris here: apply shift here. Take actual value from _config->shift()
-					_stretcher.write_audio( &_left[_position], cand, feed ); // boris here: apply shift here. Take actual value from _config->shift()
+					_stretcher.write_audio( &_left[_position], cand, feed );
 				}
 				else {
 					// actual position at the right channel
-					if (_position >= shiftInFrames)
+					//if (_position >= shiftInFrames)
 						cand = &_left[_position - shiftInFrames];
 					_stretcher.write_audio( cand, &_right[_position], feed ); // boris here: apply shift here. Take actual value from _config->shift()
 				}
