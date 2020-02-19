@@ -94,22 +94,22 @@ namespace StretchPlayer
 	{ "x",
 	  {"no-autoconnect", 0, 0, 'x'},
 	  "off",
-	  "disable auto-connection ot ouputs"
+	  "disable auto-connection ot ouputs (for JACK)"
 	},
 
-	{ "c",
+	{ "c",// boris here 1: remove this option
 	  {"compositing", 0, 0, 'c'},
 	  "on",
 	  "enable desktop compositing (if supported by Qt/X11)"
 	},
 
-	{ "C",
+	{ "C",// boris here 1: remove this option
 	  {"no-compositing", 0, 0, 'C'},
 	  "off",
 	  "disable desktop compositing"
 	},
 
-	{ "q",
+	{ "q", // boris here 2: use this option
 	  {"quiet", 0, 0, 'q'},
 	  "off",
 	  "suppress most output to console"
@@ -121,7 +121,7 @@ namespace StretchPlayer
 	  "show help/usage and exit"
 	}, // --help
 
-	{ "s:",
+	{ "s:",// boris here 1: remove this option
 		{"shift", 1, 0, 's'},
 		DEFAULT_SHIFT,
 		"right channel ahead of left (in seconds). Automaticaly make it mono."
