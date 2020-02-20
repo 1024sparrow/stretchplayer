@@ -48,7 +48,12 @@ int main(int argc, char* argv[])
 	std::unique_ptr<StretchPlayer::EngineMessageCallback> _engine_callback;
 	std::unique_ptr<StretchPlayer::Engine> _engine(new StretchPlayer::Engine(&config));
 
-	printf("enter a command (enter \"h\" for help).\n");
+	_engine->set_shift(config.shift());
+	_engine->set_stretch((float)config.stretch()/100.f);
+	_engine->set_pitch(config.pitch());
+
+	if (!config.quiet())
+		printf("enter a command (enter \"h\" for help).\n");
 	char c;
 	ssize_t dataLen;
 	char str[1024];

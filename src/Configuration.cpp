@@ -36,6 +36,8 @@ using namespace std;
 #define DEFAULT_PERIODS_PER_BUFFER "2"
 #define DEFAULT_ALSA_DEVICE "default"
 #define DEFAULT_SHIFT "0"
+#define DEFAULT_STRETCH "100"
+#define DEFAULT_PITCH "0"
 
 namespace StretchPlayer
 {
@@ -97,18 +99,6 @@ namespace StretchPlayer
 	  "disable auto-connection ot ouputs (for JACK)"
 	},
 
-	{ "c",// boris here 1: remove this option
-	  {"compositing", 0, 0, 'c'},
-	  "on",
-	  "enable desktop compositing (if supported by Qt/X11)"
-	},
-
-	{ "C",// boris here 1: remove this option
-	  {"no-compositing", 0, 0, 'C'},
-	  "off",
-	  "disable desktop compositing"
-	},
-
 	{ "q", // boris here 2: use this option
 	  {"quiet", 0, 0, 'q'},
 	  "off",
@@ -121,10 +111,22 @@ namespace StretchPlayer
 	  "show help/usage and exit"
 	}, // --help
 
-	{ "s:",// boris here 1: remove this option
+	{ "s:",
 		{"shift", 1, 0, 's'},
 		DEFAULT_SHIFT,
 		"right channel ahead of left (in seconds). Automaticaly make it mono."
+	},
+
+	{ "S:",
+	  {"stretch", 1, 0, 'S'},
+	  DEFAULT_STRETCH,
+	  "playing speed (in percents)"
+	},
+
+	{ "P:",
+	  {"pitch", 1, 0, 'P'},
+	  DEFAULT_PITCH,
+	  "frequency shift (number from -12 to 12)"
 	},
 
 	{ "m",
@@ -360,6 +362,8 @@ namespace StretchPlayer
 	period_size(0),
 	periods_per_buffer(0),
 	shift(0),
+	stretch(100),
+	pitch(0),
 	startup_file()
 	{
 	clarify_defaults();
@@ -423,15 +427,16 @@ namespace StretchPlayer
 	period_size( atoi(DEFAULT_PERIOD_SIZE) );
 	periods_per_buffer( atoi(DEFAULT_PERIODS_PER_BUFFER) );
 	shift( atoi(DEFAULT_SHIFT) );
+	stretch( atoi(DEFAULT_STRETCH) );
+	pitch( atoi(DEFAULT_PITCH) );
 	startup_file( "" );
 	autoconnect(true);
-	compositing(true);
 	quiet(false);
 	help(false);
 	mono(false);
 
 	bool bad = false;
-	int c;
+	int i, c;
 
 	if(argc && argv) {
 		while(1) {
@@ -461,17 +466,19 @@ namespace StretchPlayer
 			periods_per_buffer( atoi(optarg) );
 			break;
 		case 's':
-			shift( atoi(optarg) );
-			mono(true);
+			i = atoi(optarg);
+			shift( i );
+			if ( i )
+				mono(true);
+			break;
+		case 'S':
+			stretch( atoi(optarg) );
+			break;
+		case 'P':
+			pitch( atoi(optarg) );
 			break;
 		case 'x':
 			autoconnect(false);
-			break;
-		case 'c':
-			compositing(true);
-			break;
-		case 'C':
-			compositing(false);
 			break;
 		case 'q':
 			quiet(true);

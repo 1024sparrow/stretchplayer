@@ -91,11 +91,12 @@ public:
 	Property<unsigned> periods_per_buffer;
 	Property<const char *>  startup_file;
 	Property<bool>     autoconnect; // Automatically connect to first 2 outputs
-	Property<bool>     compositing;
 	Property<bool>     quiet;
 	Property<bool>     help;
 	Property<bool>     mono;
 	Property<int>      shift; // positive - right ahead (left has actual timing), negative - left ahead (right has actual timing). In seconds.
+	Property<int>      stretch; // in percents
+	Property<int>      pitch; // from -12 to 12, frequency shift
 
 private:
 	void init(int argc, char* argv[]);
