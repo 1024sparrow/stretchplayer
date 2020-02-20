@@ -364,7 +364,7 @@ namespace StretchPlayer
 	shift(0),
 	stretch(100),
 	pitch(0),
-	startup_file()
+	startup_file(0)
 	{
 	clarify_defaults();
 	setup_options();
@@ -429,7 +429,7 @@ namespace StretchPlayer
 	shift( atoi(DEFAULT_SHIFT) );
 	stretch( atoi(DEFAULT_STRETCH) );
 	pitch( atoi(DEFAULT_PITCH) );
-	startup_file( "" );
+	startup_file( 0 );
 	autoconnect(true);
 	quiet(false);
 	help(false);

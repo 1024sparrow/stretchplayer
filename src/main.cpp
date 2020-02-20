@@ -51,6 +51,12 @@ int main(int argc, char* argv[])
 	_engine->set_shift(config.shift());
 	_engine->set_stretch((float)config.stretch()/100.f);
 	_engine->set_pitch(config.pitch());
+	if (config.startup_file()) {
+		if (!_engine->load_song(config.startup_file())) {
+			printf("0can't open\n");
+			return 1;
+		}
+	}
 
 	if (!config.quiet())
 		printf("enter a command (enter \"h\" for help).\n");
