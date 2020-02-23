@@ -90,23 +90,23 @@ INCLUDE_DIRECTORIES(
   ${CMAKE_BINARY_DIR}
   )
 
-ADD_EXECUTABLE(stretchplayer
+ADD_EXECUTABLE(stretchplayer-cli
   ${sp_cpp}
   ${sp_hpp}
   )
 
-TARGET_LINK_LIBRARIES(stretchplayer
+TARGET_LINK_LIBRARIES(stretchplayer-cli
     ${LIBS}
     )
 
-INSTALL(TARGETS stretchplayer RUNTIME DESTINATION bin)
+INSTALL(TARGETS stretchplayer-cli RUNTIME DESTINATION bin)
 
 ######################################################################
 ### CONFIGURATION SUMMARY                                          ###
 ######################################################################
 
 MESSAGE("\n"
-"Configuration Summary for StretchPlayer\n"
+"Configuration Summary for StretchPlayer-cli\n"
 "---------------------------------------\n"
 )
 
