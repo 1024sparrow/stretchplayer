@@ -1,5 +1,9 @@
-BUGS FOR STRETCHPLAYER
-----------------------
+BUGS FOR STRETCHPLAYER-CLI:
+---------------------------
+* fails on exit ('Segmentation fault' at finishing starting be appearing after migrating from QThread-s to std::thread-s )
+
+FROM ORIGINAL PROJECT (STRETCHPLAYER):
+--------------------------------------
 
 Here is an unordered list of complaints, shorcomings, wishes, and
 bugs.
