@@ -105,6 +105,7 @@ int main(int argc, char* argv[])
 #   7 - frequency shift (number from -12 to 12). Appears as response for commands 2, 3 and 7.
 ##################################
 )");
+			fflush(stdout);
 		}
 		else if (c == '1')
 		{
@@ -150,6 +151,7 @@ int main(int argc, char* argv[])
 		{
 			float position = 1000. * _engine->get_position();
 			printf("5%f\n", position);
+			fflush(stdout);
 		}
 		else if (c == '6')
 		{
