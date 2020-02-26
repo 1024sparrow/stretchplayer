@@ -1,6 +1,7 @@
 BUGS FOR STRETCHPLAYER-CLI:
 ---------------------------
 * fails on exit ('Segmentation fault' at finishing starting be appearing after migrating from QThread-s to std::thread-s )
+* prevent warnings for too big buffer taken from rubberband library. Now there's commented that warning on librubberband sources (locally, not commited) but it is a crutch.
 
 FROM ORIGINAL PROJECT (STRETCHPLAYER):
 --------------------------------------
