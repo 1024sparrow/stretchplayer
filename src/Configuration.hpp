@@ -74,7 +74,7 @@ private:
 class Configuration
 {
 public:
-	typedef enum { JackDriver = 1, AlsaDriver = 2 } driver_t;
+	typedef enum { JackDriver = 1, AlsaDriver = 2, FakeAudioDriver = 3 } driver_t;
 
 	Configuration(int argc, char* argv[]);
 	~Configuration();

@@ -45,6 +45,9 @@ namespace StretchPlayer
 		d = new AlsaAudioSystem;
 		break;
 #endif
+	case Configuration::FakeAudioDriver:
+		//d = new FakeAudioSystem; // boris here
+		break;
 	default:
 		throw std::runtime_error("Unsupported driver requested");
 	}

@@ -169,6 +169,7 @@ namespace StretchPlayer
 
 	void Engine::_process_playing(uint32_t nframes)
 	{
+		//boris here (fake audio)
 		// MUTEX MUST ALREADY BE LOCKED
 		float *buf_L = 0, *buf_R = 0;
 
