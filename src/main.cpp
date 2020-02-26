@@ -54,6 +54,7 @@ int main(int argc, char* argv[])
 	if (config.startup_file()) {
 		if (!_engine->load_song(config.startup_file())) {
 			printf("0can't open\n");
+			fflush(stdout);
 			return 1;
 		}
 	}
@@ -69,7 +70,8 @@ int main(int argc, char* argv[])
 		dataLen = read(0, &str, 1024);
 		if (dataLen <= 0)
 		{
-			printf("file IO error\n");
+			printf("0file IO error\n");
+			fflush(stdout);
 			break;
 		}
 		if (dataLen == 1)
@@ -127,7 +129,8 @@ int main(int argc, char* argv[])
 				ll1 = atoll(s);
 			else
 			{
-				printf("error");
+				printf("0error");
+				fflush(stdout);
 				continue;
 			}
 			s = strtok(NULL, " ");
@@ -135,10 +138,11 @@ int main(int argc, char* argv[])
 				ll2 = atoll(s);
 			else
 			{
-				printf("error");
+				printf("0error");
+				fflush(stdout);
 				continue;
 			}
-			printf("%lli - %lli\n", ll1, ll2);
+			//printf("%lli - %lli\n", ll1, ll2);
 			double d1 = ll1/1000.;
 			_engine->locate(d1);
 			_engine->play();
@@ -177,8 +181,8 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			printf("=============: %c\n", c);
-			printf("else: \"%s\"\n", paramString);
+			printf("0=============: %c\n", c);
+			printf("0else: \"%s\"\n", paramString);
 		}
 	}
 	return 0;

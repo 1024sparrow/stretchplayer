@@ -66,7 +66,7 @@ namespace StretchPlayer
 
 	void RubberBandServer::operator ()()
 	{
-		printf("running...");
+		//printf("running...");
 		run();
 	}
 
