@@ -1,5 +1,7 @@
 #include "FakeAudioSystem.hpp"
 
+#include <cassert>
+
 namespace StretchPlayer
 {
 
@@ -16,39 +18,40 @@ namespace StretchPlayer
 		cleanup();
 	}
 
-	int FakeAudioSystem::init(const char *app_name, Configuration *config, char *err_msg = 0){
+	int FakeAudioSystem::init(const char *app_name, Configuration *config, char *err_msg){
 		_left = new float[_period_nframes];
 		_right = new float[_period_nframes];
 		return 0;
 	}
 
-	void cleanup(){
+	void FakeAudioSystem::cleanup(){
+		deactivate();
 		delete [] _left;
 		delete [] _right;
 		_left = 0;
 		_right = 0;
 	}
 
-	int FakeAudioSystem::set_process_callback(process_callback_t cb, void* arg, char* err_msg = 0){
+	int FakeAudioSystem::set_process_callback(process_callback_t cb, void* arg, char* err_msg){
 		assert(cb);
 		_callback = cb;
 		_callback_arg = arg;
 		return 0;
 	}
 
-	int FakeAudioSystem::set_segment_size_callback(segment_size_callback_t cb, void* arg, char* err_msg = 0){
+	int FakeAudioSystem::set_segment_size_callback(segment_size_callback_t cb, void* arg, char* err_msg){
 		return 0;
 	}
 
-	int FakeAudioSystem::activate(char *err_msg = 0){
-		// boris here
+	int FakeAudioSystem::activate(char *err_msg){
+		return 0;
 	}
 
-	int FakeAudioSystem::deactivate(char *err_msg = 0){
-		// boris here
+	int FakeAudioSystem::deactivate(char *err_msg){
+		return 0;
 	}
 
-	sample_t* FakeAudioSystem::output_buffer(int index){
+	AudioSystem::sample_t* FakeAudioSystem::output_buffer(int index){
 		if (index == 0){
 			assert(_left);
 			return _left;
