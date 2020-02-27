@@ -84,6 +84,9 @@ IF( ALSA_FOUND )
   LIST(APPEND sp_hpp AlsaAudioSystemPrivate.hpp)
 ENDIF( ALSA_FOUND )
 
+LIST(APPEND sp_cpp FakeAudioSystem.cpp)
+LIST(APPEND sp_cpp FakeAudioSystem.hpp)
+
 INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}

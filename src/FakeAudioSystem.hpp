@@ -27,6 +27,8 @@ namespace StretchPlayer
 	process_callback_t _callback;
 	void *_callback_arg;
 	float *_left, *_right;
-	}
+	uint32_t _sample_rate;
+	uint32_t _period_nframes;
+	};
 
 } // namespace StretchPlayer
