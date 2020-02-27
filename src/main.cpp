@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
 	}
 
 	std::unique_ptr<StretchPlayer::EngineMessageCallback> _engine_callback;
-	std::unique_ptr<StretchPlayer::Engine> _engine(new StretchPlayer::Engine(&config));
+	StretchPlayer::Engine *_engine = new StretchPlayer::Engine(&config);
 
 	_engine->set_shift(config.shift());
 	_engine->set_stretch((float)config.stretch()/100.f);
