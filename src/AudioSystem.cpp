@@ -28,6 +28,8 @@
 #include "AlsaAudioSystem.hpp"
 #endif
 
+#include "FakeAudioSystem.hpp"
+
 namespace StretchPlayer
 {
 
@@ -46,7 +48,7 @@ namespace StretchPlayer
 		break;
 #endif
 	case Configuration::FakeAudioDriver:
-		//d = new FakeAudioSystem; // boris here
+		d = new FakeAudioSystem;
 		break;
 	default:
 		throw std::runtime_error("Unsupported driver requested");
