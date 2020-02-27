@@ -56,6 +56,10 @@ namespace StretchPlayer
 
 	static char defaultDeviceName[8] = DEFAULT_ALSA_DEVICE;
 	static stretchplayer_options_t sp_opts[] = {
+	{ "F",
+	  {"fake", 0, 0, 'F'},
+	  "off",
+	  "use fake audio device: i.e. playing but without sound" },
 #ifdef AUDIO_SUPPORT_JACK
 	{ "J",
 	  {"jack", 0, 0, 'J'},
@@ -447,6 +451,9 @@ namespace StretchPlayer
 
 		switch(c)
 		{
+		case 'F':
+			driver(FakeAudioDriver);
+			break;
 		case 'J':
 			driver(JackDriver);
 			break;
