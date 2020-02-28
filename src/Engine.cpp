@@ -479,6 +479,7 @@ namespace StretchPlayer
 				_right[i] = average;
 			}
 		}
+		puts("1\n");
 		return ok;
 	}
 
