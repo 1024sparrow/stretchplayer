@@ -59,8 +59,10 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	if (!config.quiet())
+	if (!config.quiet()) {
 		printf("enter a command (enter \"h\" for help).\n");
+		fflush(stdout);
+	}
 	char c;
 	ssize_t dataLen;
 	char str[1024];
