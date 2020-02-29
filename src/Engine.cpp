@@ -479,8 +479,14 @@ namespace StretchPlayer
 				_right[i] = average;
 			}
 		}
-		puts("1");
-		fflush(stdout);
+		if (ok) {
+			puts("1");
+			fflush(stdout);
+		}
+		else {
+			puts("0can not open file");
+			fflush(stdout);
+		}
 		return ok;
 	}
 
