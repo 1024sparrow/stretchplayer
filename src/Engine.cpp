@@ -286,6 +286,7 @@ namespace StretchPlayer
 		if( (_hit_end == true) && (read_space == 0) ) {
 			_hit_end = false;
 			_playing = false;
+			printf("4%f\n", 1000. * get_position());
 			_position = 0;
 			_stretcher.reset();
 		}
