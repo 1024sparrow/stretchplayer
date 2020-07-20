@@ -462,7 +462,7 @@ namespace StretchPlayer
 	 *
 	 * \return Name of song
 	 */
-	bool Engine::load_song(const char *filename)
+	bool Engine::load_song(const char *filename, bool forWriting)
 	{
 		std::lock_guard<std::mutex> lk(_audio_lock);
 		stop();
@@ -471,7 +471,14 @@ namespace StretchPlayer
 		_position = 0;
 		_output_position = 0;
 		_stretcher.reset();
-		bool ok = _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
+		bool ok = false;
+		if (forWriting){
+			// create file
+			ok = _load_song_using_libsndfile(filename);
+		}
+		else{
+			ok = _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
+		}
 		if (ok && _channelCount > 1 && _config->mono()) {
 			float average = 0; // for mono option enabled and more then one channels
 			for (size_t i = 0, c = _left.size() ; i < c ; ++i) {

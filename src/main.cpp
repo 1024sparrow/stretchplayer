@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 	_engine->set_stretch((float)config.stretch()/100.f);
 	_engine->set_pitch(config.pitch());
 	if (config.startup_file()) {
-		if (!_engine->load_song(config.startup_file())) {
+		if (!_engine->load_song(config.startup_file(), false)) {
 			printf("0can't open\n");
 			fflush(stdout);
 			return 1;
@@ -85,12 +85,13 @@ int main(int argc, char* argv[])
 			break;
 		else if (c == 'h')
 		{
+			// TODO: d - use audio filter(for playback only). Parameters: channels (1 - left, 2 - right, 0 - both), path to a filtering program, arguments for the program. It can be useful, for example, for voice replacement.
 			printf(R"(
 ##################################
 # Commands from user:
 #   q - quit
 #   h - show help for console control commands
-#   1 - open audio file. After "1" (without "enter") input file path
+#   1 - open audio file (for playback). After "1" (without "enter") input file path
 #   2 - start playing. Parameter: millisecond of starting
 #   3 - start playing. Parameters: millisecond of starting and millisecond of stoping
 #   4 - stop playing. Returns stopping millisecond
@@ -99,6 +100,9 @@ int main(int argc, char* argv[])
 #   7 - set frequency shift (number from -12 to 12)
 #   8 - set volume (in percents)
 #   9 - set right channel position ahead of left. Parameter: shift (in seconds)
+#   a - open audio file (for recording). Parameter: file path. After opening you can record sound into the file and also you can playback the same file.
+#   b - start recording. Parameters: start position, end position(is not pointed, to end of file). Recorded fragment will be inserted instead of pointed interval. Limit: 30 minuts (max latency if still not stoped).
+#   c - stop recording. Parameter: if apply recorded fragment (1 - apply, 0 - undo changes)
 #
 # Messages for user:
 #   0 - error message (text)
@@ -113,7 +117,7 @@ int main(int argc, char* argv[])
 		}
 		else if (c == '1')
 		{
-			_engine->load_song(paramString);
+			_engine->load_song(paramString, false);
 		}
 		else if (c == '2')
 		{
@@ -180,6 +184,16 @@ int main(int argc, char* argv[])
 		{
 			short i = atoi(paramString);
 			_engine->set_shift(i);
+		}
+		else if (c == 'a')
+		{
+			_engine->load_song(paramString, true);
+		}
+		else if (c == 'b')
+		{
+		}
+		else if (c == 'c')
+		{
 		}
 		else
 		{

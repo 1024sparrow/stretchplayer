@@ -43,16 +43,16 @@ public:
 	Engine(Configuration *config = 0);
 	~Engine();
 
-	bool load_song(const char *filename);
+	bool load_song(const char *filename, bool forWriting);
 	void play();
 	void play_pause();
 	void stop();
 	bool playing() {
-	return _playing;
+		return _playing;
 	}
 	void loop_ab();
 	bool looping() {
-	return _loop_b > _loop_a;
+		return _loop_b > _loop_a;
 	}
 
 	float get_position(); // in seconds
@@ -91,13 +91,15 @@ public:
 	 * Clipped to [0.0, 10.0]
 	 */
 	void set_volume(float gain) {
-	if(gain < 0.0) gain = 0.0;
-	if(gain > 10.0) gain = 10.0;
-	_gain=gain;
+		if (gain < 0.0)
+			gain = 0.0;
+		if(gain > 10.0)
+			gain = 10.0;
+		_gain=gain;
 	}
 
 	float get_volume() {
-	return _gain;
+		return _gain;
 	}
 
 	/**
@@ -106,26 +108,26 @@ public:
 	float get_cpu_load();
 
 	void subscribe_errors(EngineMessageCallback* obj) {
-	_subscribe_list(_error_callbacks, obj);
+		_subscribe_list(_error_callbacks, obj);
 	}
 	void unsubscribe_errors(EngineMessageCallback* obj) {
-	_unsubscribe_list(_error_callbacks, obj);
+		_unsubscribe_list(_error_callbacks, obj);
 	}
 	void subscribe_messages(EngineMessageCallback* obj) {
-	_subscribe_list(_message_callbacks, obj);
+		_subscribe_list(_message_callbacks, obj);
 	}
 	void unsubscribe_messages(EngineMessageCallback* obj) {
-	_unsubscribe_list(_message_callbacks, obj);
+		_unsubscribe_list(_message_callbacks, obj);
 	}
 
 private:
 	static int static_process_callback(uint32_t nframes, void* arg) {
-	Engine *e = static_cast<Engine*>(arg);
-	return e->process_callback(nframes);
+		Engine *e = static_cast<Engine*>(arg);
+		return e->process_callback(nframes);
 	}
 	static int static_segment_size_callback(uint32_t nframes, void* arg) {
-	Engine *e = static_cast<Engine*>(arg);
-	return e->segment_size_callback(nframes);
+		Engine *e = static_cast<Engine*>(arg);
+		return e->segment_size_callback(nframes);
 	}
 
 	int process_callback(uint32_t nframes);
