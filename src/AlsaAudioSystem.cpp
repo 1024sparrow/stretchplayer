@@ -117,6 +117,10 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 	int err;
 	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
 	int k;
+	snd_pcm_hw_params_t *hw_params_playback = nullptr;
+	snd_pcm_sw_params_t *sw_params_playback = nullptr;
+	snd_pcm_hw_params_t *hw_params_record = nullptr;
+	snd_pcm_sw_params_t *sw_params_record = nullptr;
 
 	_sample_rate = config->sample_rate();
 	_period_nframes = config->period_size();
@@ -129,8 +133,6 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	snd_pcm_hw_params_t *hw_params;
-	snd_pcm_sw_params_t *sw_params;
 	int nfds;
 	struct pollfd *pfds;
 
@@ -144,6 +146,34 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 	}
 	assert(_playback_handle);
 
+	if((err = snd_pcm_hw_params_malloc(&hw_params_playback)) < 0) {
+		if (err_msg){
+			strcat(err_msg, "cannot allocate hardware parameter structure for sound playback (");
+			strcat(err_msg, snd_strerror(err));
+			strcat(err_msg, ")");
+		}
+		goto init_bail;
+	}
+
+	if((err = snd_pcm_hw_params_any(_playback_handle, hw_params_playback)) < 0) {
+		if (err_msg){
+			strcat(err_msg, "cannot initialize hardware parameter structure for sound playback (");
+			strcat(err_msg, snd_strerror(err));
+			strcat(err_msg, ")");
+		}
+		goto init_bail;
+	}
+
+	if((err = snd_pcm_hw_params_set_access(_playback_handle, hw_params_playback,
+						   SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
+		if (err_msg){
+			strcat(err_msg, "cannot set access type (");
+			strcat(err_msg, snd_strerror(err));
+			strcat(err_msg, ")");
+		}
+		goto init_bail;
+	}
+
 	if (config->sound_recording()) {
 		if((err = snd_pcm_open(&_record_handle, config->audio_device(), SND_PCM_STREAM_CAPTURE, 0)) < 0) {
 			if (err_msg){
@@ -154,40 +184,43 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 			goto init_bail;
 		}
 		assert(_record_handle);
-	}
-
-	if((err = snd_pcm_hw_params_malloc(&hw_params)) < 0) {
-		if (err_msg){
-			strcat(err_msg, "cannot allocate hardware parameter structure (");
-			strcat(err_msg, snd_strerror(err));
-			strcat(err_msg, ")");
+		if((err = snd_pcm_hw_params_malloc(&hw_params_record)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot allocate hardware parameter structure for sound recording (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
 		}
-		goto init_bail;
-	}
-
-	if((err = snd_pcm_hw_params_any(_playback_handle, hw_params)) < 0) {
-		if (err_msg){
-			strcat(err_msg, "cannot initialize hardware parameter structure (");
-			strcat(err_msg, snd_strerror(err));
-			strcat(err_msg, ")");
+		if((err = snd_pcm_hw_params_any(_record_handle, hw_params_record)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot initialize hardware parameter structure for sound recording (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
 		}
-		goto init_bail;
-	}
-
-	if((err = snd_pcm_hw_params_set_access(_playback_handle, hw_params,
-						   SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
-		if (err_msg){
-			strcat(err_msg, "cannot set access type (");
-			strcat(err_msg, snd_strerror(err));
-			strcat(err_msg, ")");
+		if((err = snd_pcm_hw_params_set_access(_record_handle, hw_params_record,
+							   SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot set access type (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
 		}
-		goto init_bail;
 	}
 
 	for(k = 0 ; aas_supported_formats[k] != SND_PCM_FORMAT_UNKNOWN ; ++k) {
 		format = aas_supported_formats[k];
-		if(snd_pcm_hw_params_test_format(_playback_handle, hw_params, format)) {
-			format = SND_PCM_FORMAT_UNKNOWN;
+		if(snd_pcm_hw_params_test_format(_playback_handle, hw_params_playback, format)) {
+			if (config->sound_recording()) {
+				if(snd_pcm_hw_params_test_format(_record_handle, hw_params_record, format)) {
+					format = SND_PCM_FORMAT_UNKNOWN;
+				}
+			} else {
+				format = SND_PCM_FORMAT_UNKNOWN;
+			}
 		} else {
 			break;
 		}
@@ -234,7 +267,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		assert(false);
 	}
 
-	if((err = snd_pcm_hw_params_set_format(_playback_handle, hw_params, format)) < 0) {
+	if((err = snd_pcm_hw_params_set_format(_playback_handle, hw_params_playback, format)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot set sample format (");
 			strcat(err_msg, snd_strerror(err));
@@ -242,8 +275,18 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
+	if (config->sound_recording()) {
+		if((err = snd_pcm_hw_params_set_format(_record_handle, hw_params_record, format)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot set sample format for sound recording (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
+		}
+	}
 
-	if((err = snd_pcm_hw_params_set_rate(_playback_handle, hw_params, _sample_rate, 0)) < 0) {
+	if((err = snd_pcm_hw_params_set_rate(_playback_handle, hw_params_playback, _sample_rate, 0)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot set sample rate (");
 			strcat(err_msg, snd_strerror(err));
@@ -251,8 +294,18 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
+	if (config->sound_recording()) {
+		if((err = snd_pcm_hw_params_set_rate(_record_handle, hw_params_record, _sample_rate, 0)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot set sample rate for sound recording (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
+		}
+	}
 
-	if((err = snd_pcm_hw_params_set_channels(_playback_handle, hw_params, 2)) < 0) {
+	if((err = snd_pcm_hw_params_set_channels(_playback_handle, hw_params_playback, 2)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot set channel count (");
 			strcat(err_msg, snd_strerror(err));
@@ -260,8 +313,9 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
+	//if (config->sound_recording()) { // boris here
 
-	if((err = snd_pcm_hw_params_set_periods_near(_playback_handle, hw_params, &nfrags, 0)) < 0) {
+	if((err = snd_pcm_hw_params_set_periods_near(_playback_handle, hw_params_playback, &nfrags, 0)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot set the period count (");
 			strcat(err_msg, snd_strerror(err));
@@ -270,7 +324,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	if ((err = snd_pcm_hw_params_set_buffer_size(_playback_handle, hw_params, _period_nframes * nfrags)) < 0){
+	if ((err = snd_pcm_hw_params_set_buffer_size(_playback_handle, hw_params_playback, _period_nframes * nfrags)) < 0){
 		if (err_msg){
 			char tmp[512];
 			sprintf(tmp, "cannot set the buffer size to %i x %i (", nfrags, _period_nframes);
@@ -281,7 +335,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	if((err = snd_pcm_hw_params(_playback_handle, hw_params)) < 0) {
+	if((err = snd_pcm_hw_params(_playback_handle, hw_params_playback)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot set parameters (");
 			strcat(err_msg, snd_strerror(err));
@@ -290,14 +344,14 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	snd_pcm_hw_params_free(hw_params);
+	snd_pcm_hw_params_free(hw_params_playback);
 
 	/* Tell ALSA to wake us up whenever _period_nframes or more frames
 	 * of playback data can be delivered.  Also, tell ALSA
 	 * that we'll start the device ourselves.
 	 */
 
-	if((err = snd_pcm_sw_params_malloc(&sw_params)) < 0) {
+	if((err = snd_pcm_sw_params_malloc(&sw_params_playback)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot allocate software parameters structure (");
 			strcat(err_msg, snd_strerror(err));
@@ -306,7 +360,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	if((err = snd_pcm_sw_params_current(_playback_handle, sw_params)) < 0) {
+	if((err = snd_pcm_sw_params_current(_playback_handle, sw_params_playback)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot initialize software parameters structure (");
 			strcat(err_msg, snd_strerror(err));
@@ -315,7 +369,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	if((err = snd_pcm_sw_params_set_avail_min(_playback_handle, sw_params, _period_nframes)) < 0) {
+	if((err = snd_pcm_sw_params_set_avail_min(_playback_handle, sw_params_playback, _period_nframes)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot set minimum available count (");
 			strcat(err_msg, snd_strerror(err));
@@ -324,7 +378,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	if((err = snd_pcm_sw_params_set_start_threshold(_playback_handle, sw_params, 0U)) < 0) {
+	if((err = snd_pcm_sw_params_set_start_threshold(_playback_handle, sw_params_playback, 0U)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot set start mode (");
 			strcat(err_msg, snd_strerror(err));
@@ -332,7 +386,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
-	if((err = snd_pcm_sw_params(_playback_handle, sw_params)) < 0) {
+	if((err = snd_pcm_sw_params(_playback_handle, sw_params_playback)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot set software parameters (");
 			strcat(err_msg, snd_strerror(err));
@@ -365,7 +419,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 
 	return 0;
 
-	init_bail:
+init_bail:
 	cleanup();
 	return 0xDEADBEEF;
 }
