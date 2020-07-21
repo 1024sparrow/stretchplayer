@@ -67,50 +67,52 @@ static const snd_pcm_format_t aas_supported_formats[] = {
 
 namespace StretchPlayer
 {
-	inline bool not_aligned_16(void* ptr) {
-	return (reinterpret_cast<uintptr_t>(ptr) & 0x0F);
-	}
 
-	AlsaAudioSystem::AlsaAudioSystem() :
-	_channels(2),
-	_type(FLOAT),
-	_bits(32),
+inline bool not_aligned_16(void* ptr) {
+return (reinterpret_cast<uintptr_t>(ptr) & 0x0F);
+}
+
+AlsaAudioSystem::AlsaAudioSystem() :
+_channels(2),
+_type(FLOAT),
+_bits(32),
 /*	_type(INT),
-	_bits(16), */
-	_little_endian(true),
-	_sample_rate(44100),
-	_period_nframes(512),
-	_active(false),
-	_playback_handle(0),
-	_left_root(0),
-	_right_root(0),
-	_left(0),
-	_right(0),
-	_callback(0),
-	_callback_arg(0),
-	_dsp_load_pos(0),
-	_dsp_load(0.0f),
-	_d(0)
-	{
-	memset(&_dsp_a, 0, sizeof(timeval));
-	memset(&_dsp_b, 0, sizeof(timeval));
-	memset(_dsp_idle_time, 0, sizeof(_dsp_idle_time));
-	memset(_dsp_work_time, 0, sizeof(_dsp_work_time));
+_bits(16), */
+_little_endian(true),
+_sample_rate(44100),
+_period_nframes(512),
+_active(false),
+_playback_handle(0),
+_record_handle(0),
+_left_root(0),
+_right_root(0),
+_left(0),
+_right(0),
+_callback(0),
+_callback_arg(0),
+_dsp_load_pos(0),
+_dsp_load(0.0f),
+_d(0)
+{
+memset(&_dsp_a, 0, sizeof(timeval));
+memset(&_dsp_b, 0, sizeof(timeval));
+memset(_dsp_idle_time, 0, sizeof(_dsp_idle_time));
+memset(_dsp_work_time, 0, sizeof(_dsp_work_time));
 
-	_d = new AlsaAudioSystemPrivate();
-	_d->parent(this);
-	_d->run_callback( AlsaAudioSystem::run );
-	}
+_d = new AlsaAudioSystemPrivate();
+_d->parent(this);
+_d->run_callback( AlsaAudioSystem::run );
+}
 
-	AlsaAudioSystem::~AlsaAudioSystem()
-	{
-	cleanup();
-	delete _d;
-	_d = 0;
-	}
+AlsaAudioSystem::~AlsaAudioSystem()
+{
+cleanup();
+delete _d;
+_d = 0;
+}
 
-	int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char *err_msg)
-	{
+int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char *err_msg)
+{
 	unsigned nfrags;
 	int err;
 	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
@@ -134,13 +136,25 @@ namespace StretchPlayer
 
 	if((err = snd_pcm_open(&_playback_handle, config->audio_device(), SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
 		if (err_msg){
-			strcat(err_msg, "cannot open default ALSA audio device (");
+			strcat(err_msg, "cannot open default ALSA audio device for playback (");
 			strcat(err_msg, snd_strerror(err));
 			strcat(err_msg, ")");
 		}
 		goto init_bail;
 	}
 	assert(_playback_handle);
+
+	if (config->sound_recording()) {
+		if((err = snd_pcm_open(&_record_handle, config->audio_device(), SND_PCM_STREAM_CAPTURE, 0)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot open default ALSA audio device for audio-capturing (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
+		}
+		assert(_record_handle);
+	}
 
 	if((err = snd_pcm_hw_params_malloc(&hw_params)) < 0) {
 		if (err_msg){
@@ -354,10 +368,10 @@ namespace StretchPlayer
 	init_bail:
 	cleanup();
 	return 0xDEADBEEF;
-	}
+}
 
-	void AlsaAudioSystem::cleanup()
-	{
+void AlsaAudioSystem::cleanup()
+{
 	deactivate();
 	if(_right_root) {
 		delete [] _right_root;
@@ -375,24 +389,24 @@ namespace StretchPlayer
 		snd_pcm_close(_playback_handle);
 		_playback_handle = 0;
 	}
-	}
+}
 
-	int AlsaAudioSystem::set_process_callback(process_callback_t cb, void* arg, char* err_msg)
-	{
+int AlsaAudioSystem::set_process_callback(process_callback_t cb, void* arg, char* err_msg)
+{
 	assert(cb);
 	_callback = cb;
 	_callback_arg = arg;
 	return 0;
-	}
+}
 
-	int AlsaAudioSystem::set_segment_size_callback(process_callback_t, void*, char*)
-	{
+int AlsaAudioSystem::set_segment_size_callback(process_callback_t, void*, char*)
+{
 	// This API never changes the segment size automatically
 	return 0;
-	}
+}
 
-	int AlsaAudioSystem::activate(char *err_msg)
-	{
+int AlsaAudioSystem::activate(char *err_msg)
+{
 	assert(!_active);
 	assert(_d);
 	assert(_left);
@@ -402,18 +416,18 @@ namespace StretchPlayer
 	_d->start();
 
 	return 0;
-	}
+}
 
-	int AlsaAudioSystem::deactivate(char *err_msg)
-	{
+int AlsaAudioSystem::deactivate(char *err_msg)
+{
 	assert(_d);
 	_active = false;
 	_d->wait();
 	return 0;
-	}
+}
 
-	AudioSystem::sample_t* AlsaAudioSystem::output_buffer(int index)
-	{
+AudioSystem::sample_t* AlsaAudioSystem::output_buffer(int index)
+{
 	if(index == 0) {
 		assert(_left);
 		return _left;
@@ -422,40 +436,40 @@ namespace StretchPlayer
 		return _right;
 	}
 	return 0;
-	}
+}
 
-	uint32_t AlsaAudioSystem::output_buffer_size(int /*index*/)
-	{
+uint32_t AlsaAudioSystem::output_buffer_size(int /*index*/)
+{
 	return _period_nframes;
-	}
+}
 
-	uint32_t AlsaAudioSystem::sample_rate()
-	{
+uint32_t AlsaAudioSystem::sample_rate()
+{
 	return _sample_rate;
-	}
+}
 
-	float AlsaAudioSystem::dsp_load()
-	{
+float AlsaAudioSystem::dsp_load()
+{
 	return _dsp_load;
-	}
+}
 
-	uint32_t AlsaAudioSystem::time_stamp()
-	{
+uint32_t AlsaAudioSystem::time_stamp()
+{
 	return 0;
-	}
+}
 
-	uint32_t AlsaAudioSystem::segment_start_time_stamp()
-	{
+uint32_t AlsaAudioSystem::segment_start_time_stamp()
+{
 	return 0;
-	}
+}
 
-	uint32_t AlsaAudioSystem::current_segment_size()
-	{
+uint32_t AlsaAudioSystem::current_segment_size()
+{
 	return _period_nframes;
-	}
+}
 
-	static inline unsigned long calc_elapsed(const timeval& a, const timeval& b)
-	{
+static inline unsigned long calc_elapsed(const timeval& a, const timeval& b)
+{
 	unsigned long ans;
 	if(b.tv_sec < a.tv_sec)
 		return 0;
@@ -463,15 +477,15 @@ namespace StretchPlayer
 	if(ans >= a.tv_usec)
 		ans -= a.tv_usec;
 	return ans;
-	}
+}
 
-	void AlsaAudioSystem::_stopwatch_init()
-	{
+void AlsaAudioSystem::_stopwatch_init()
+{
 	gettimeofday(&_dsp_a, 0);
-	}
+}
 
-	void AlsaAudioSystem::_stopwatch_start_idle()
-	{
+void AlsaAudioSystem::_stopwatch_start_idle()
+{
 	gettimeofday(&_dsp_b, 0);
 	_dsp_work_time[_dsp_load_pos] = calc_elapsed(_dsp_a, _dsp_b);
 	_dsp_load_update();
@@ -479,17 +493,17 @@ namespace StretchPlayer
 	++_dsp_load_pos;
 	if(_dsp_load_pos > DSP_AVG_SIZE)
 		_dsp_load_pos = 0;
-	}
+}
 
-	void AlsaAudioSystem::_stopwatch_start_work()
-	{
+void AlsaAudioSystem::_stopwatch_start_work()
+{
 	gettimeofday(&_dsp_b, 0);
 	_dsp_idle_time[_dsp_load_pos] = calc_elapsed(_dsp_a, _dsp_b);
 	_dsp_a = _dsp_b;
-	}
+}
 
-	void AlsaAudioSystem::_dsp_load_update()
-	{
+void AlsaAudioSystem::_dsp_load_update()
+{
 	int k = DSP_AVG_SIZE;
 	unsigned long work = 0, idle = 0, tot;
 	while(k--) {
@@ -504,10 +518,10 @@ namespace StretchPlayer
 	assert(_dsp_load <= 1.0f);
 	assert(_dsp_load >= 0.0f);
 	assert( !isnan(_dsp_load) );
-	}
+}
 
-	void AlsaAudioSystem::_run()
-	{
+void AlsaAudioSystem::_run()
+{
 	int err;
 	snd_pcm_sframes_t frames_to_deliver;
 	uint32_t f;
@@ -540,33 +554,34 @@ namespace StretchPlayer
 
 		_stopwatch_start_idle();
 		if((err = snd_pcm_wait(_playback_handle, 1000)) < 0) {
-		err_msg = "Audio poll failed [snd_pcm_wait()].";
-		str_err = strerror(errno);
-		goto run_bail;
+			err_msg = "Audio poll failed [snd_pcm_wait()].";
+			str_err = strerror(errno);
+			goto run_bail;
 		}
 
 		_stopwatch_start_work();
 		if((frames_to_deliver = snd_pcm_avail_update(_playback_handle)) < 0) {
-		if(frames_to_deliver == -EPIPE) {
-			/* An XRUN Occurred.  Ignoring. */
-		} else {
-			err_msg = "Unknown ALSA snd_pcm_avail_update return value [snd_pcm_avail_update()].";
-			snprintf(misc_msg, misc_msg_size, "%ld", frames_to_deliver);
-			str_err = misc_msg;
-			goto run_bail;
-		}
+			if(frames_to_deliver == -EPIPE) {
+				/* An XRUN Occurred.  Ignoring. */
+			} else {
+				err_msg = "Unknown ALSA snd_pcm_avail_update return value [snd_pcm_avail_update()].";
+				snprintf(misc_msg, misc_msg_size, "%ld", frames_to_deliver);
+				str_err = misc_msg;
+				goto run_bail;
+			}
 		}
 
-		if(frames_to_deliver < _period_nframes) continue;
+		if(frames_to_deliver < _period_nframes)
+			continue;
 
 		frames_to_deliver = frames_to_deliver > _period_nframes ? _period_nframes : frames_to_deliver;
 
 		assert( 0 == ((frames_to_deliver-1)&frames_to_deliver) );  // is power of 2.
 
 		if( _callback(frames_to_deliver, _callback_arg) != 0 ) {
-		err_msg = "Application's audio callback failed.";
-		str_err = 0;
-		goto run_bail;
+			err_msg = "Application's audio callback failed.";
+			str_err = 0;
+			goto run_bail;
 		}
 
 		_convert_to_output(frames_to_deliver);
@@ -574,14 +589,14 @@ namespace StretchPlayer
 		/*if ((err = snd_pcm_drain(_playback_handle)) < 0)
 		{
 			err_msg = "1234";
-		str_err = snd_strerror(err);
-		goto run_bail;
+			str_err = snd_strerror(err);
+			goto run_bail;
 		}*/
 
 		if((err = snd_pcm_writei(_playback_handle, _buf, frames_to_deliver)) < 0) {
-		err_msg = "Write to audio card failed [snd_pcm_writei()].";
-		str_err = snd_strerror(err);
-		goto run_bail;
+			err_msg = "Write to audio card failed [snd_pcm_writei()].";
+			str_err = snd_strerror(err);
+			goto run_bail;
 		}
 
 	}
@@ -603,27 +618,27 @@ namespace StretchPlayer
 	cerr << "Aborting audio driver." << endl;
 
 	return;
-	}
+}
 
-	/**
-	 * \brief Convert, copy, and interleave _left and _right to _buf;
-	 */
-	void AlsaAudioSystem::_convert_to_output(uint32_t nframes)
-	{
+/**
+ * \brief Convert, copy, and interleave _left and _right to _buf;
+ */
+void AlsaAudioSystem::_convert_to_output(uint32_t nframes)
+{
 	switch(_type) {
 	case INT: _convert_to_output_int(nframes); break;
 	case UINT: _convert_to_output_uint(nframes); break;
 	case FLOAT: _convert_to_output_float(nframes); break;
 	default: assert(false);
 	}
-	}
+}
 
-	void AlsaAudioSystem::_convert_to_output_int(uint32_t nframes)
-	{
+void AlsaAudioSystem::_convert_to_output_int(uint32_t nframes)
+{
 	switch(_bits) {
 	case 16: {
 		bams_sample_s16le_t *dst = (bams_sample_s16le_t*)_buf;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+	#if __BYTE_ORDER == __LITTLE_ENDIAN
 		if(_little_endian) {
 		bams_copy_s16le_floatle(dst, 2, &_left[0], 1, nframes);
 		bams_copy_s16le_floatle(dst+1, 2, &_right[0], 1, nframes);
@@ -631,7 +646,7 @@ namespace StretchPlayer
 		bams_copy_s16be_floatle(dst, 2, &_left[0], 1, nframes);
 		bams_copy_s16be_floatle(dst+1, 2, &_right[0], 1, nframes);
 		}
-#else
+	#else
 		if(_little_endian) {
 		bams_copy_s16le_floatbe(dst, 2, &_left[0], 1, nframes);
 		bams_copy_s16le_floatbe(dst+1, 2, &_right[0], 1, nframes);
@@ -639,7 +654,7 @@ namespace StretchPlayer
 		bams_copy_s16be_floatbe(dst, 2, &_left[0], 1, nframes);
 		bams_copy_s16be_floatbe(dst+1, 2, &_right[0], 1, nframes);
 		}
-#endif
+	#endif
 	}   break;
 	case 8:
 	case 24:
@@ -647,14 +662,14 @@ namespace StretchPlayer
 	default:
 		assert(false);
 	}
-	}
+}
 
-	void AlsaAudioSystem::_convert_to_output_uint(uint32_t nframes)
-	{
+void AlsaAudioSystem::_convert_to_output_uint(uint32_t nframes)
+{
 	switch(_bits) {
 	case 16: {
 		bams_sample_u16le_t *dst = (bams_sample_u16le_t*)_buf;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+	#if __BYTE_ORDER == __LITTLE_ENDIAN
 		if(_little_endian) {
 		bams_copy_u16le_floatle(dst, 2, &_left[0], 1, nframes);
 		bams_copy_u16le_floatle(dst+1, 2, &_right[0], 1, nframes);
@@ -662,7 +677,7 @@ namespace StretchPlayer
 		bams_copy_u16be_floatle(dst, 2, &_left[0], 1, nframes);
 		bams_copy_u16be_floatle(dst+1, 2, &_right[0], 1, nframes);
 		}
-#else
+	#else
 		if(_little_endian) {
 		bams_copy_u16le_floatbe(dst, 2, &_left[0], 1, nframes);
 		bams_copy_u16le_floatbe(dst+1, 2, &_right[0], 1, nframes);
@@ -670,7 +685,7 @@ namespace StretchPlayer
 		bams_copy_u16be_floatbe(dst, 2, &_left[0], 1, nframes);
 		bams_copy_u16be_floatbe(dst+1, 2, &_right[0], 1, nframes);
 		}
-#endif
+	#endif
 	}   break;
 	case 8:
 	case 24:
@@ -678,10 +693,10 @@ namespace StretchPlayer
 	default:
 		assert(false);
 	}
-	}
+}
 
-	void AlsaAudioSystem::_convert_to_output_float(uint32_t nframes)
-	{
+void AlsaAudioSystem::_convert_to_output_float(uint32_t nframes)
+{
 	float *out, *l, *r;
 	uint32_t f, count;
 	assert(_bits == 32);
@@ -695,15 +710,15 @@ namespace StretchPlayer
 		(*out++) = (*r++);
 	}
 	/* Check for non-native byte ordering */
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+	#if __BYTE_ORDER == __LITTLE_ENDIAN
 	if(!_little_endian) {
 		bams_byte_reorder_in_place(_buf, 4, 1, 2*nframes);
 	}
-#else
+	#else
 	if(_little_endian) {
 		bams_byte_reorder_in_place(_buf, 4, 1, 2*nframes);
 	}
-#endif
-	}
+	#endif
+}
 
 } // namespace StretchPlayer

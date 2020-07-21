@@ -94,6 +94,7 @@ public:
 	Property<bool>     quiet;
 	Property<bool>     help;
 	Property<bool>     mono;
+	Property<bool>     sound_recording;
 	Property<int>      shift; // positive - right ahead (left has actual timing), negative - left ahead (right has actual timing). In seconds.
 	Property<int>      stretch; // in percents
 	Property<int>      pitch; // from -12 to 12, frequency shift

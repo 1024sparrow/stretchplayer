@@ -56,93 +56,123 @@ namespace StretchPlayer
 
 	static char defaultDeviceName[8] = DEFAULT_ALSA_DEVICE;
 	static stretchplayer_options_t sp_opts[] = {
-	{ "F",
-	  {"fake", 0, 0, 'F'},
-	  "off",
-	  "use fake audio device: i.e. playing but without sound" },
-#ifdef AUDIO_SUPPORT_JACK
-	{ "J",
-	  {"jack", 0, 0, 'J'},
-	  "on",
-	  "use JACK for audio" },
-#endif
-#ifdef AUDIO_SUPPORT_ALSA
-	{ "A",
-	  {"alsa", 0, 0, 'A'},
-#ifdef AUDIO_SUPPORT_JACK
-	  "off",
-#else
-	  "on",
-#endif
-	  "use ALSA for audio" },
+		{
+			"F",
+			{"fake", 0, 0, 'F'},
+			"off",
+			"use fake audio device: i.e. playing but without sound"
+		},
+	#ifdef AUDIO_SUPPORT_JACK
+		{
+			"J",
+			{"jack", 0, 0, 'J'},
+			"on",
+			"use JACK for audio"
+		},
+	#endif
+	#ifdef AUDIO_SUPPORT_ALSA
+		{
+			"A",
+			{"alsa", 0, 0, 'A'},
+	#ifdef AUDIO_SUPPORT_JACK
+			"off",
+	#else
+			"on",
+	#endif
+			"use ALSA for audio"
+		},
 
-	{ "d:",
-	  {"device", 1, 0, 'd'},
-      defaultDeviceName,
-	  "device to use for ALSA" },
+		{
+			"d:",
+			{"device", 1, 0, 'd'},
+			defaultDeviceName,
+			"device to use for ALSA"
+		},
 
-	{ "r:",
-	  {"sample-rate", 1, 0, 'r'},
-	  DEFAULT_SAMPLE_RATE,
-	  "sample rate to use for ALSA" },
+		{
+			"r:",
+			{"sample-rate", 1, 0, 'r'},
+			DEFAULT_SAMPLE_RATE,
+			"sample rate to use for ALSA"
+		},
 
-	{ "p:",
-	  {"period-size", 1, 0, 'p'},
-	  DEFAULT_PERIOD_SIZE,
-	  "period size to use for ALSA" },
+		{
+			"p:",
+			{"period-size", 1, 0, 'p'},
+			DEFAULT_PERIOD_SIZE,
+			"period size to use for ALSA"
+		},
 
-	{ "n:",
-	  {"periods", 1, 0, 'n'},
-	  DEFAULT_PERIODS_PER_BUFFER,
-	  "periods per buffer for ALSA" },
-#endif
+		{
+			"n:",
+			{"periods", 1, 0, 'n'},
+			DEFAULT_PERIODS_PER_BUFFER,
+			"periods per buffer for ALSA"
+		},
+	#endif
 
-	{ "x",
-	  {"no-autoconnect", 0, 0, 'x'},
-	  "off",
-	  "disable auto-connection ot ouputs (for JACK)"
-	},
+		{
+			"x",
+			{"no-autoconnect", 0, 0, 'x'},
+			"off",
+			"disable auto-connection ot ouputs (for JACK)"
+		},
 
-	{ "q", // boris here 2: use this option
-	  {"quiet", 0, 0, 'q'},
-	  "off",
-	  "suppress most output to console"
-	},
+		{
+			"q", // boris here 2: use this option
+			{"quiet", 0, 0, 'q'},
+			"off",
+			"suppress most output to console"
+		},
 
-	{ "h",
-	  {"help", 0, 0, 'h'},
-	  "off",
-	  "show help/usage and exit"
-	}, // --help
+		{
+			"h",
+			{"help", 0, 0, 'h'},
+			"off",
+			"show help/usage and exit"
+		}, // --help
 
-	{ "s:",
-		{"shift", 1, 0, 's'},
-		DEFAULT_SHIFT,
-		"right channel ahead of left (in seconds). Automaticaly make it mono."
-	},
+		{
+			"s:",
+			{"shift", 1, 0, 's'},
+			DEFAULT_SHIFT,
+			"right channel ahead of left (in seconds). Automaticaly make it mono."
+		},
 
-	{ "S:",
-	  {"stretch", 1, 0, 'S'},
-	  DEFAULT_STRETCH,
-	  "playing speed (in percents)"
-	},
+		{
+			"S:",
+			{"stretch", 1, 0, 'S'},
+			DEFAULT_STRETCH,
+			"playing speed (in percents)"
+		},
 
-	{ "P:",
-	  {"pitch", 1, 0, 'P'},
-	  DEFAULT_PITCH,
-	  "frequency shift (number from -12 to 12)"
-	},
+		{
+			"P:",
+			{"pitch", 1, 0, 'P'},
+			DEFAULT_PITCH,
+			"frequency shift (number from -12 to 12)"
+		},
 
-	{ "m",
-		{"mono", 0, 0, 'm'},
-		"off",
-		"merge all sound channels into the one: make it mono."
-	},
+		{
+			"m",
+			{"mono", 0, 0, 'm'},
+			"off",
+			"merge all sound channels into the one: make it mono."
+		},
 
-	{ 0,
-	  {0, 0, 0, 0},
-	  0,
-	  0 }
+		{
+			"M",
+			{"mic", 0, 0, 'M'},
+			"off",
+			"use microphone for sound catching"
+		},
+
+		{
+			0,
+			{0, 0, 0, 0},
+			0,
+			0
+		}
 	};
 
 	static char optstring[256];
@@ -315,24 +345,24 @@ namespace StretchPlayer
 
 	static void setup_options()
 	{
-	int os_pos = 0;
-	int lo_pos = 0;
-	const stretchplayer_options_t *it;
+		int os_pos = 0;
+		int lo_pos = 0;
+		const stretchplayer_options_t *it;
 
-	memset(optstring, 0, sizeof(optstring));
-	memset(longopts, 0, sizeof(longopts));
+		memset(optstring, 0, sizeof(optstring));
+		memset(longopts, 0, sizeof(longopts));
 
-	for( it=sp_opts ; it->optstring != 0 ; ++it ) {
-		assert(os_pos < 256);
-		assert(lo_pos < 128);
+		for( it=sp_opts ; it->optstring != 0 ; ++it ) {
+			assert(os_pos < 256);
+			assert(lo_pos < 128);
 
-		assert( strnlen(it->optstring, 16) < 16 );
-		strncpy( &optstring[os_pos], it->optstring, strnlen(it->optstring, 16) );
-		os_pos += strnlen(it->optstring, 16);
+			assert( strnlen(it->optstring, 16) < 16 );
+			strncpy( &optstring[os_pos], it->optstring, strnlen(it->optstring, 16) );
+			os_pos += strnlen(it->optstring, 16);
 
-		memcpy( &longopts[lo_pos], &(it->longopts), sizeof(struct option) );
-		++lo_pos;
-	}
+			memcpy( &longopts[lo_pos], &(it->longopts), sizeof(struct option) );
+			++lo_pos;
+		}
 	}
 
 	static void check_options_validity()
@@ -359,21 +389,21 @@ namespace StretchPlayer
 	}
 
 	Configuration::Configuration(int argc, char* argv[]) :
-	version(this, STRETCHPLAYER_VERSION),
-	ok(this, false),
-	driver(JackDriver), // actually set in init()
-	sample_rate(0),
-	period_size(0),
-	periods_per_buffer(0),
-	shift(0),
-	stretch(100),
-	pitch(0),
-	startup_file(0)
+		version(this, STRETCHPLAYER_VERSION),
+		ok(this, false),
+		driver(JackDriver), // actually set in init()
+		sample_rate(0),
+		period_size(0),
+		periods_per_buffer(0),
+		shift(0),
+		stretch(100),
+		pitch(0),
+		startup_file(0)
 	{
-	clarify_defaults();
-	setup_options();
-	check_options_validity();
-	init(argc, argv);
+		clarify_defaults();
+		setup_options();
+		check_options_validity();
+		init(argc, argv);
 	}
 
 	Configuration::~Configuration()
@@ -382,39 +412,39 @@ namespace StretchPlayer
 
 	void Configuration::copyright()
 	{
-	cout << copyright_blurb << endl;
-	cout << endl;
+		cout << copyright_blurb << endl;
+		cout << endl;
 	}
 
 	void Configuration::usage()
 	{
-	copyright();
-	cout << usage_line << endl;
+		copyright();
+		cout << usage_line << endl;
 
-	const stretchplayer_options_t *it;
-	const option *opts;
+		const stretchplayer_options_t *it;
+		const option *opts;
 
-	it = sp_opts;
+		it = sp_opts;
 
-	int align = 14, size;
-	for( it=sp_opts ; it->optstring != 0 ; ++it ) {
-		opts = &(it->longopts);
-		cout << "  -" << ((char)opts->val)
-		 << " --" << opts->name;
-		size = strnlen(opts->name, 32);
-		if(opts->has_arg) {
-		cout << "=X";
-		size += 2;
+		int align = 14, size;
+		for( it=sp_opts ; it->optstring != 0 ; ++it ) {
+			opts = &(it->longopts);
+			cout << "  -" << ((char)opts->val)
+			 << " --" << opts->name;
+			size = strnlen(opts->name, 32);
+			if(opts->has_arg) {
+			cout << "=X";
+			size += 2;
+			}
+			while(size < align) {
+			cout << " ";
+			++size;
+			}
+			cout << " " << (it->doc)
+			 << " (default: " << (it->defaults) << ")"
+			 << endl;
 		}
-		while(size < align) {
-		cout << " ";
-		++size;
-		}
-		cout << " " << (it->doc)
-		 << " (default: " << (it->defaults) << ")"
-		 << endl;
-	}
-	cout << endl;
+		cout << endl;
 	}
 
 	void Configuration::init(int argc, char* argv[])
@@ -438,6 +468,7 @@ namespace StretchPlayer
 	quiet(false);
 	help(false);
 	mono(false);
+	sound_recording(false);
 
 	bool bad = false;
 	int i, c;
@@ -495,6 +526,9 @@ namespace StretchPlayer
 			break;
 		case 'm':
 			mono(true);
+			break;
+		case 'M':
+			sound_recording(true);
 			break;
 		default:
 			bad = true;

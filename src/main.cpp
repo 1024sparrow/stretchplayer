@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 #   7 - set frequency shift (number from -12 to 12)
 #   8 - set volume (in percents)
 #   9 - set right channel position ahead of left. Parameter: shift (in seconds)
-#   a - open audio file (for recording). Parameter: file path. After opening you can record sound into the file and also you can playback the same file.
+#   a - open audio file (for recording). Parameter: file path. After opening you can record sound into the file and also you can playback the same file. <-- boris here: remove this option: sound card is capturing at start of the program, not on-go
 #   b - start recording. Parameters: start position, end position(is not pointed, to end of file). Recorded fragment will be inserted instead of pointed interval. Limit: 30 minuts (max latency if still not stoped).
 #   c - stop recording. Parameter: if apply recorded fragment (1 - apply, 0 - undo changes)
 #
