@@ -73,42 +73,42 @@ return (reinterpret_cast<uintptr_t>(ptr) & 0x0F);
 }
 
 AlsaAudioSystem::AlsaAudioSystem() :
-_channels(2),
-_type(FLOAT),
-_bits(32),
-/*	_type(INT),
-_bits(16), */
-_little_endian(true),
-_sample_rate(44100),
-_period_nframes(512),
-_active(false),
-_playback_handle(0),
-_record_handle(0),
-_left_root(0),
-_right_root(0),
-_left(0),
-_right(0),
-_callback(0),
-_callback_arg(0),
-_dsp_load_pos(0),
-_dsp_load(0.0f),
-_d(0)
+	_channels(2),
+	_type(FLOAT),
+	_bits(32),
+	/*	_type(INT),
+	_bits(16), */
+	_little_endian(true),
+	_sample_rate(44100),
+	_period_nframes(512),
+	_active(false),
+	_playback_handle(0),
+	_record_handle(0),
+	_left_root(0),
+	_right_root(0),
+	_left(0),
+	_right(0),
+	_callback(0),
+	_callback_arg(0),
+	_dsp_load_pos(0),
+	_dsp_load(0.0f),
+	_d(0)
 {
-memset(&_dsp_a, 0, sizeof(timeval));
-memset(&_dsp_b, 0, sizeof(timeval));
-memset(_dsp_idle_time, 0, sizeof(_dsp_idle_time));
-memset(_dsp_work_time, 0, sizeof(_dsp_work_time));
+	memset(&_dsp_a, 0, sizeof(timeval));
+	memset(&_dsp_b, 0, sizeof(timeval));
+	memset(_dsp_idle_time, 0, sizeof(_dsp_idle_time));
+	memset(_dsp_work_time, 0, sizeof(_dsp_work_time));
 
-_d = new AlsaAudioSystemPrivate();
-_d->parent(this);
-_d->run_callback( AlsaAudioSystem::run );
+	_d = new AlsaAudioSystemPrivate();
+	_d->parent(this);
+	_d->run_callback( AlsaAudioSystem::run );
 }
 
 AlsaAudioSystem::~AlsaAudioSystem()
 {
-cleanup();
-delete _d;
-_d = 0;
+	cleanup();
+	delete _d;
+	_d = 0;
 }
 
 int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char *err_msg)
