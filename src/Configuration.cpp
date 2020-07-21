@@ -119,7 +119,7 @@ namespace StretchPlayer
 		},
 
 		{
-			"q", // boris here 2: use this option
+			"q", // boris e: use this option
 			{"quiet", 0, 0, 'q'},
 			"off",
 			"suppress most output to console"

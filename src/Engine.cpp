@@ -166,11 +166,16 @@ namespace StretchPlayer
 		return 0;
 	}
 
+	int Engine::process_callback_capture(uint32_t nframes)
+	{
+		// boris here: this callback not using yet
+		// boris here: here we must read data from Argument (oops, it's omited) and write directly into _stretcher.
+	}
+
 	static void apply_gain_to_buffer(float *buf, uint32_t frames, float gain);
 
 	void Engine::_process_playing(uint32_t nframes)
 	{
-		//boris here (fake audio)
 		// MUTEX MUST ALREADY BE LOCKED
 		float *buf_L = 0, *buf_R = 0;
 

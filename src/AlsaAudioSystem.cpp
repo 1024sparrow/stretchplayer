@@ -313,7 +313,16 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
-	//if (config->sound_recording()) { // boris here
+	if (config->sound_recording()) {
+		if((err = snd_pcm_hw_params_set_channels(_record_handle, hw_params_record, 2)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot set channel count for sound recording (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
+		}
+	}
 
 	if((err = snd_pcm_hw_params_set_periods_near(_playback_handle, hw_params_playback, &nfrags, 0)) < 0) {
 		if (err_msg){
@@ -344,7 +353,39 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
+	if (config->sound_recording()) {
+		if((err = snd_pcm_hw_params_set_periods_near(_record_handle, hw_params_record, &nfrags, 0)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot set the period count for sound recording (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
+		}
+
+		if ((err = snd_pcm_hw_params_set_buffer_size(_record_handle, hw_params_record, _period_nframes * nfrags)) < 0){
+			if (err_msg){
+				char tmp[512];
+				sprintf(tmp, "cannot set the buffer size to %i x %i for sound recording (", nfrags, _period_nframes);
+				strcat(err_msg, tmp);
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
+		}
+
+		if((err = snd_pcm_hw_params(_record_handle, hw_params_record)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot set parameters for sound recording (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
+		}
+	}
+
 	snd_pcm_hw_params_free(hw_params_playback);
+	snd_pcm_hw_params_free(hw_params_record);
 
 	/* Tell ALSA to wake us up whenever _period_nframes or more frames
 	 * of playback data can be delivered.  Also, tell ALSA
@@ -393,6 +434,16 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 			strcat(err_msg, ")");
 		}
 		goto init_bail;
+	}
+	if (config->sound_recording()) {
+		if((err = snd_pcm_sw_params(_record_handle, sw_params_playback)) < 0) {
+			if (err_msg){
+				strcat(err_msg, "cannot set software parameters (");
+				strcat(err_msg, snd_strerror(err));
+				strcat(err_msg, ")");
+			}
+			goto init_bail;
+		}
 	}
 
 	size_t data_size;
@@ -461,6 +512,7 @@ int AlsaAudioSystem::set_segment_size_callback(process_callback_t, void*, char*)
 
 int AlsaAudioSystem::activate(char *err_msg)
 {
+	// boris here: if in init() was detected sound_recording option, then we have to start TWO threads: for playback and for capture.
 	assert(!_active);
 	assert(_d);
 	assert(_left);
@@ -600,6 +652,13 @@ void AlsaAudioSystem::_run()
 		err_msg = "Cannot prepare audio interface for use [snd_pcm_prepare()].";
 		str_err = snd_strerror(err);
 		goto run_bail;
+	}
+	if (_record_handle) {
+		if((err = snd_pcm_prepare(_record_handle)) < 0) {
+			err_msg = "Cannot prepare audio interface for use [snd_pcm_prepare()] in case of sound recording.";
+			str_err = snd_strerror(err);
+			goto run_bail;
+		}
 	}
 
 	_stopwatch_init();

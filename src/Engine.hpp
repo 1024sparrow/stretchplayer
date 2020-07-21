@@ -137,6 +137,7 @@ private:
 	}
 
 	int process_callback(uint32_t nframes);
+	int process_callback_capture(uint32_t nframes);
 	int segment_size_callback(uint32_t nframes);
 
 	void _zero_buffers(uint32_t nframes);
