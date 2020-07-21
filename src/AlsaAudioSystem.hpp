@@ -81,6 +81,7 @@ namespace StretchPlayer
 	// ALSA handles
 	bool _active;
 	snd_pcm_t *_playback_handle;
+	snd_pcm_t *_record_handle;
 	float *_left_root, *_right_root;
 	float *_left, *_right;
 	unsigned short *_buf_root, *_buf;

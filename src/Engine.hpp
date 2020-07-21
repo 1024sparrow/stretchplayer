@@ -102,6 +102,12 @@ public:
 		return _gain;
 	}
 
+	void start_recording() {
+	}
+
+	void stop_recording(bool p_reflectChangesInFile) {
+	}
+
 	/**
 	 * Returns estimate of CPU load [0.0, 1.0]
 	 */
@@ -135,7 +141,7 @@ private:
 
 	void _zero_buffers(uint32_t nframes);
 	void _process_playing(uint32_t nframes);
-	bool _load_song_using_libsndfile(const char *filename);
+	bool _load_song_using_libsndfile(const char *p_filename, bool p_readOnly);
 	bool _load_song_using_libmpg123(const char *filename);
 	void _handle_loop_ab();
 

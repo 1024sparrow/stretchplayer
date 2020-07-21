@@ -21,6 +21,7 @@
 #include "AudioSystem.hpp"
 #include "Configuration.hpp"
 #include <sndfile.h>
+#include <sndfile.hh>
 #include <mpg123.h>
 #include <stdexcept>
 #include <cassert>
@@ -300,17 +301,20 @@ namespace StretchPlayer
 	 *
 	 * \return true on success
 	 */
-	bool Engine::_load_song_using_libsndfile(const char *filename)
+	bool Engine::_load_song_using_libsndfile(
+		const char *p_filename,
+		bool p_readOnly = true
+	)
 	{
 		SNDFILE *sf = 0;
 		SF_INFO sf_info;
 		memset(&sf_info, 0, sizeof(sf_info));
 
 		_message("Opening file...");
-		sf = sf_open(filename, SFM_READ, &sf_info);
+		sf = sf_open(p_filename, p_readOnly ? SFM_READ : SFM_RDWR, &sf_info);
 		if( !sf ) {
 			char tmp[1024] = "Error opening file: '";
-			strcat(tmp, filename);
+			strcat(tmp, p_filename);
 			strcat(tmp, "': ");
 			strcat(tmp, sf_strerror(sf));
 			_error(tmp);
@@ -324,7 +328,7 @@ namespace StretchPlayer
 
 		if(sf_info.frames == 0) {
 			char tmp[512] = "Error opening file '";
-			strcat(tmp, filename);
+			strcat(tmp, p_filename);
 			strcat(tmp, "': File is empty");
 			_error(tmp);
 			sf_close(sf);
@@ -474,10 +478,15 @@ namespace StretchPlayer
 		bool ok = false;
 		if (forWriting){
 			// create file
-			ok = _load_song_using_libsndfile(filename);
+			//SndfileHandle file(filename, SFM_RDWR, SF_FORMAT_WAV, 1, 48000);
+			//short buffer[1024];
+			//memset(buffer, 0, sizeof(buffer));
+			//file.write(buffer, 1024);
+
+			ok = _load_song_using_libsndfile(filename, false);
 		}
 		else{
-			ok = _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
+			ok = _load_song_using_libsndfile(filename, true) || _load_song_using_libmpg123(filename);
 		}
 		if (ok && _channelCount > 1 && _config->mono()) {
 			float average = 0; // for mono option enabled and more then one channels

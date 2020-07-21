@@ -191,9 +191,11 @@ int main(int argc, char* argv[])
 		}
 		else if (c == 'b')
 		{
+			_engine->start_recording();
 		}
 		else if (c == 'c')
 		{
+			_engine->stop_recording(true);
 		}
 		else
 		{

@@ -173,9 +173,9 @@ namespace StretchPlayer
 	for(k = 0 ; aas_supported_formats[k] != SND_PCM_FORMAT_UNKNOWN ; ++k) {
 		format = aas_supported_formats[k];
 		if(snd_pcm_hw_params_test_format(_playback_handle, hw_params, format)) {
-		format = SND_PCM_FORMAT_UNKNOWN;
+			format = SND_PCM_FORMAT_UNKNOWN;
 		} else {
-		break;
+			break;
 		}
 	}
 
