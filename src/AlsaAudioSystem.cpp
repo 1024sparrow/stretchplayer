@@ -25,7 +25,6 @@
  */
 
 #include "AlsaAudioSystem.hpp"
-#include "AlsaAudioSystemPrivate.hpp"
 #include "Configuration.hpp"
 #include <cassert>
 #include <cstring>
@@ -88,27 +87,21 @@ AlsaAudioSystem::AlsaAudioSystem() :
 	_right_root(0),
 	_left(0),
 	_right(0),
-	_callback(0),
+	_cbPlayback(0),
+	_cbCapture(0),
 	_callback_arg(0),
 	_dsp_load_pos(0),
-	_dsp_load(0.0f),
-	_d(0)
+	_dsp_load(0.0f)
 {
 	memset(&_dsp_a, 0, sizeof(timeval));
 	memset(&_dsp_b, 0, sizeof(timeval));
 	memset(_dsp_idle_time, 0, sizeof(_dsp_idle_time));
 	memset(_dsp_work_time, 0, sizeof(_dsp_work_time));
-
-	_d = new AlsaAudioSystemPrivate();
-	_d->parent(this);
-	_d->run_callback( AlsaAudioSystem::run );
 }
 
 AlsaAudioSystem::~AlsaAudioSystem()
 {
 	cleanup();
-	delete _d;
-	_d = 0;
 }
 
 int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char *err_msg)
@@ -496,10 +489,16 @@ void AlsaAudioSystem::cleanup()
 	}
 }
 
-int AlsaAudioSystem::set_process_callback(process_callback_t cb, void* arg, char* err_msg)
+int AlsaAudioSystem::set_process_callback(
+	process_callback_t cbPlayback,
+	process_callback_t cbCapture,
+	void* arg,
+	char* err_msg
+)
 {
-	assert(cb);
-	_callback = cb;
+	assert(cbPlayback);
+	_cbPlayback = cbPlayback;
+	_cbCapture = cbCapture;
 	_callback_arg = arg;
 	return 0;
 }
@@ -514,21 +513,22 @@ int AlsaAudioSystem::activate(char *err_msg)
 {
 	// boris here: if in init() was detected sound_recording option, then we have to start TWO threads: for playback and for capture.
 	assert(!_active);
-	assert(_d);
+	// assert(_d); // boris fm
 	assert(_left);
 	assert(_right);
 
 	_active = true;
-	_d->start();
+	_t = std::thread(&AlsaAudioSystem::_run, this);
+	_t.detach();
 
 	return 0;
 }
 
 int AlsaAudioSystem::deactivate(char *err_msg)
 {
-	assert(_d);
 	_active = false;
-	_d->wait();
+	if (_t.joinable())
+		_t.join();
 	return 0;
 }
 
@@ -663,7 +663,7 @@ void AlsaAudioSystem::_run()
 
 	_stopwatch_init();
 	while(_active) {
-		assert(_callback);
+		assert(_cbPlayback);
 
 		_stopwatch_start_idle();
 		if((err = snd_pcm_wait(_playback_handle, 1000)) < 0) {
@@ -691,7 +691,7 @@ void AlsaAudioSystem::_run()
 
 		assert( 0 == ((frames_to_deliver-1)&frames_to_deliver) );  // is power of 2.
 
-		if( _callback(frames_to_deliver, _callback_arg) != 0 ) {
+		if( _cbPlayback(frames_to_deliver, _callback_arg) != 0 ) {
 			err_msg = "Application's audio callback failed.";
 			str_err = 0;
 			goto run_bail;
@@ -731,6 +731,11 @@ void AlsaAudioSystem::_run()
 	cerr << "Aborting audio driver." << endl;
 
 	return;
+}
+
+void AlsaAudioSystem::_runCapture()
+{
+	// boris here
 }
 
 /**

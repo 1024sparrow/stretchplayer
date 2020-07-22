@@ -27,214 +27,229 @@
 namespace StretchPlayer
 {
 	JackAudioSystem::JackAudioSystem() :
-	_client(0),
-	_config(0)
+		_client(0),
+		_config(0)
 	{
-	_port[0] = 0;
-	_port[1] = 0;
+		_port[0] = 0;
+		_port[1] = 0;
 	}
 
 	JackAudioSystem::~JackAudioSystem()
 	{
-	cleanup();
+		cleanup();
 	}
 
 	int JackAudioSystem::init(const char *app_name, Configuration *config, char *err_msg)
 	{
-	const char *name = "StretchPlayer";
+		const char *name = "StretchPlayer";
 
-	if(config == 0) {
-		if (err_msg)
-			strcat(err_msg, "The JackAudioSystem::init() function must have a non-null config parameter.");
-		goto init_bail;
-	}
-	_config = config;
+		if(config == 0) {
+			if (err_msg)
+				strcat(err_msg, "The JackAudioSystem::init() function must have a non-null config parameter.");
+			goto init_bail;
+		}
+		_config = config;
 
-	if(app_name) {
-		name = app_name;
-	}
+		if(app_name) {
+			name = app_name;
+		}
 
-	_client = jack_client_open(name, JackNullOption, 0);
-	if(!_client) {
-		if (err_msg)
-			strcat(err_msg, "Could not set up JACK");
-		goto init_bail;
-	}
+		_client = jack_client_open(name, JackNullOption, 0);
+		if(!_client) {
+			if (err_msg)
+				strcat(err_msg, "Could not set up JACK");
+			goto init_bail;
+		}
 
-	_port[0] = jack_port_register( _client,
-					"left",
-					JACK_DEFAULT_AUDIO_TYPE,
-					JackPortIsOutput,
-					0 );
-	if(!_port[0]) {
-		if (err_msg)
-			strcat(err_msg, "Could not set up left out");
-		goto init_bail;
-	}
+		_port[0] = jack_port_register( _client,
+						"left",
+						JACK_DEFAULT_AUDIO_TYPE,
+						JackPortIsOutput,
+						0 );
+		if(!_port[0]) {
+			if (err_msg)
+				strcat(err_msg, "Could not set up left out");
+			goto init_bail;
+		}
 
-	_port[1] = jack_port_register( _client,
-					"right",
-					JACK_DEFAULT_AUDIO_TYPE,
-					JackPortIsOutput,
-					0 );
-	if(!_port[1]) {
-		if (err_msg)
-			strcat(err_msg, "Could not set up right out");
-		goto init_bail;
-	}
+		_port[1] = jack_port_register(
+			_client,
+			"right",
+			JACK_DEFAULT_AUDIO_TYPE,
+			JackPortIsOutput,
+			0
+		);
+		if(!_port[1]) {
+			if (err_msg)
+				strcat(err_msg, "Could not set up right out");
+			goto init_bail;
+		}
 
-	return 0;
+		return 0;
 
-	init_bail:
-	return 0xDEADBEEF;
+		init_bail:
+		return 0xDEADBEEF;
 	}
 
 	void JackAudioSystem::cleanup()
 	{
-	deactivate();
-	if( _port[0] ) {
-		assert(_client);
-		jack_port_unregister(_client, _port[0]);
-		_port[0] = 0;
-	}
-	if( _port[1] ) {
-		assert(_client);
-		jack_port_unregister(_client, _port[1]);
-		_port[1] = 0;
-	}
-	if(_client) {
-		jack_client_close(_client);
-		_client = 0;
-	}
+		deactivate();
+		if( _port[0] ) {
+			assert(_client);
+			jack_port_unregister(_client, _port[0]);
+			_port[0] = 0;
+		}
+		if( _port[1] ) {
+			assert(_client);
+			jack_port_unregister(_client, _port[1]);
+			_port[1] = 0;
+		}
+		if(_client) {
+			jack_client_close(_client);
+			_client = 0;
+		}
 	}
 
-	int JackAudioSystem::set_process_callback(process_callback_t cb, void* arg, char* err_msg)
+	int JackAudioSystem::set_process_callback(
+		process_callback_t cbPlayback,
+		process_callback_t cbCapture,
+		void* arg,
+		char* err_msg
+	)
 	{
-	assert(_client);
+		assert(_client);
 
-	int rv = jack_set_process_callback( _client,
-						cb,
-						arg );
-	if(rv && err_msg) {
-		strcat(err_msg, "Could not set up jack callback.");
-	}
-	return rv;
+		int rv = jack_set_process_callback( _client,
+							cbPlayback,
+							arg );
+		if(rv && err_msg) {
+			strcat(err_msg, "Could not set up jack callback.");
+		}
+		if (cbCapture && err_msg) {
+			strcat(err_msg, "Can not set capture callback: not realized for JACK interface.");
+			return 1;
+		}
+		return rv;
 	}
 
-	int JackAudioSystem::set_segment_size_callback(segment_size_callback_t cb, void* arg, char* err_msg)
+	int JackAudioSystem::set_segment_size_callback(
+		segment_size_callback_t cb,
+		void* arg,
+		char* err_msg
+	)
 	{
-	assert(_client);
+		assert(_client);
 
-	int rv = jack_set_buffer_size_callback( _client,
-						cb,
-						arg );
-	if(rv && err_msg) {
-		strcat(err_msg, "Could not set up jack callback.");
-	}
-	return rv;
+		int rv = jack_set_buffer_size_callback( _client, cb, arg );
+		if(rv && err_msg) {
+			strcat(err_msg, "Could not set up jack callback.");
+		}
+		return rv;
 	}
 
 	int JackAudioSystem::activate(char *err_msg)
 	{
-	assert(_client);
-	assert(_port[0]);
-	assert(_port[1]);
-	int rv = 0;
+		assert(_client);
+		assert(_port[0]);
+		assert(_port[1]);
+		int rv = 0;
 
-	jack_activate(_client);
+		jack_activate(_client);
 
-	if( _config->autoconnect() ) {
-		// Autoconnection to first two ports we find.
-		const char** ports = jack_get_ports( _client,
-						 0,
-						 JACK_DEFAULT_AUDIO_TYPE,
-						 JackPortIsInput
-		);
-		int k;
-		for( k=0 ; ports && ports[k] != 0 ; ++k ) {
-		if(k==0) {
-			rv = jack_connect( _client,
-					   jack_port_name(_port[0]),
-					   ports[k] );
-		} else if (k==1) {
-			rv = jack_connect( _client,
-					   jack_port_name(_port[1]),
-					   ports[k] );
-		} else {
-			break;
+		if( _config->autoconnect() ) {
+			// Autoconnection to first two ports we find.
+			const char** ports = jack_get_ports( _client,
+							 0,
+							 JACK_DEFAULT_AUDIO_TYPE,
+							 JackPortIsInput
+			);
+			int k;
+			for( k=0 ; ports && ports[k] != 0 ; ++k ) {
+				if(k==0) {
+					rv = jack_connect( _client, jack_port_name(_port[0]), ports[k] );
+				} else if (k==1) {
+					rv = jack_connect( _client, jack_port_name(_port[1]), ports[k] );
+				} else {
+					break;
+				}
+				if( rv && err_msg ) {
+					strcat(err_msg, "Could not connect output ports");
+				}
+			}
+			if(k==0 && err_msg) {
+				strcat(err_msg, "There were no output ports to connect to.");
+				rv = 1;
+			}
+			if(ports) {
+				free(ports);
+			}
 		}
-		if( rv && err_msg ) {
-			strcat(err_msg, "Could not connect output ports");
-		}
-		}
-		if(k==0 && err_msg) {
-		strcat(err_msg, "There were no output ports to connect to.");
-		rv = 1;
-		}
-		if(ports) {
-		free(ports);
-		}
-	}
-	return rv;
+		return rv;
 	}
 
 	int JackAudioSystem::deactivate(char *err_msg)
 	{
-	int rv = 0;
-	if(_client) {
-		rv = jack_deactivate(_client);
-	}
-	return rv;
+		int rv = 0;
+		if(_client) {
+			rv = jack_deactivate(_client);
+		}
+		return rv;
 	}
 
 	AudioSystem::sample_t* JackAudioSystem::output_buffer(int index)
 	{
-	jack_nframes_t nframes = output_buffer_size(index);
+		jack_nframes_t nframes = output_buffer_size(index);
 
-	if(index == 0) {
-		assert(_port[0]);
-		return static_cast<float*>( jack_port_get_buffer(_port[0], nframes) );
-	}else if(index == 1) {
-		assert(_port[1]);
-		return static_cast<float*>( jack_port_get_buffer(_port[1], nframes) );
-	}
-	return 0;
+		if(index == 0) {
+			assert(_port[0]);
+			return static_cast<float*>( jack_port_get_buffer(_port[0], nframes) );
+		}else if(index == 1) {
+			assert(_port[1]);
+			return static_cast<float*>( jack_port_get_buffer(_port[1], nframes) );
+		}
+		return 0;
 	}
 
 	uint32_t JackAudioSystem::output_buffer_size(int /*index*/)
 	{
-	if( !_client ) return 0;
-	return jack_get_buffer_size(_client);
+		if( !_client )
+			return 0;
+		return jack_get_buffer_size(_client);
 	}
 
 	uint32_t JackAudioSystem::sample_rate()
 	{
-	if( !_client ) return 0;
-	return jack_get_sample_rate(_client);
+		if( !_client )
+			return 0;
+		return jack_get_sample_rate(_client);
 	}
 
 	float JackAudioSystem::dsp_load()
 	{
-	if( !_client )  return -1;
-	return jack_cpu_load(_client)/100.0;
+		if( !_client )
+			return -1;
+		return jack_cpu_load(_client)/100.0;
 	}
 
 	uint32_t JackAudioSystem::time_stamp()
 	{
-	if( !_client ) return 0;
-	return jack_frame_time(_client);
+		if( !_client )
+			return 0;
+		return jack_frame_time(_client);
 	}
 
 	uint32_t JackAudioSystem::segment_start_time_stamp()
 	{
-	if( !_client ) return 0;
-	return jack_last_frame_time(_client);
+		if( !_client )
+			return 0;
+		return jack_last_frame_time(_client);
 	}
 
 	uint32_t JackAudioSystem::current_segment_size()
 	{
-	if( !_client ) return 0;
-	return jack_get_buffer_size(_client);
+		if( !_client )
+			return 0;
+		return jack_get_buffer_size(_client);
 	}
 
 } // namespace StretchPlayer

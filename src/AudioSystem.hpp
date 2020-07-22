@@ -77,13 +77,22 @@ namespace StretchPlayer
 	 *
 	 * \return 0 on success, otherwise non-zero.
 	 */
-	virtual int set_process_callback(process_callback_t cb, void* arg, char* err_msg = 0) = 0;
+	virtual int set_process_callback(
+		process_callback_t cbPlayback,
+		process_callback_t cbCapture,
+		void* arg,
+		char* err_msg = 0
+	) = 0;
 
 
 	/**
 	 * Set the segment size change callback function
 	 */
-	virtual int set_segment_size_callback(segment_size_callback_t cb, void* arg, char* err_msg = 0) = 0;
+	virtual int set_segment_size_callback(
+		segment_size_callback_t cb,
+		void* arg,
+		char* err_msg = 0
+	) = 0;
 
 	/**
 	 * Activate the driver (may start processing audio).

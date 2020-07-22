@@ -81,7 +81,6 @@ ENDIF( JACK_FOUND )
 IF( ALSA_FOUND )
   LIST(APPEND sp_cpp AlsaAudioSystem.cpp)
   LIST(APPEND sp_hpp AlsaAudioSystem.hpp)
-  LIST(APPEND sp_hpp AlsaAudioSystemPrivate.hpp)
 ENDIF( ALSA_FOUND )
 
 LIST(APPEND sp_cpp FakeAudioSystem.cpp)
