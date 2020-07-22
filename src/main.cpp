@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 #   7 - set frequency shift (number from -12 to 12)
 #   8 - set volume (in percents)
 #   9 - set right channel position ahead of left. Parameter: shift (in seconds)
-#   b - start recording. Parameters: start position, end position(is not pointed, to end of file). Recorded fragment will be inserted instead of pointed interval. Limit: 30 minuts (max latency if still not stoped).
+#   b - start recording. Parameters: start position, end position(if not pointed, then to end of file). Recorded fragment will be inserted instead of pointed interval. Limit: 30 minuts (max latency if still not stoped).
 #   c - stop recording. Parameter: if apply recorded fragment (1 - apply, 0 - undo changes)
 #
 # Messages for user:
@@ -110,6 +110,9 @@ int main(int argc, char* argv[])
 #   5 - current playing position (in milliseconds)
 #   6 - playing speed. Appears as response for commands 2, 3, and 6.
 #   7 - frequency shift (number from -12 to 12). Appears as response for commands 2, 3 and 7.
+#
+# And also:
+#   Как писать в случае замедленного воспроизведения - писать тоже замедленно. Т.е. при нормальной скорости воспроизведения такой записи, она будет ускоренной.
 ##################################
 )");
 			fflush(stdout);

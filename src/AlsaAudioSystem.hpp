@@ -96,7 +96,7 @@ namespace StretchPlayer
 	process_callback_t _cbPlayback, _cbCapture;
 	void *_callback_arg;
 
-	// DSP Load estimation
+	// DSP Load estimation (playback only)
 	enum { DSP_AVG_SIZE = 32 };
 	int _dsp_load_pos;
 	timeval _dsp_a, _dsp_b;
@@ -104,8 +104,7 @@ namespace StretchPlayer
 	unsigned long _dsp_work_time[DSP_AVG_SIZE];
 	float _dsp_load;
 
-	// Private object
-	std::thread _t;
+	std::thread _tPlayback, _tCapture;
 
 	};
 

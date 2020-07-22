@@ -513,13 +513,17 @@ int AlsaAudioSystem::activate(char *err_msg)
 {
 	// boris here: if in init() was detected sound_recording option, then we have to start TWO threads: for playback and for capture.
 	assert(!_active);
-	// assert(_d); // boris fm
 	assert(_left);
 	assert(_right);
+	assert(_playback_handle);
 
 	_active = true;
-	_t = std::thread(&AlsaAudioSystem::_run, this);
-	_t.detach();
+	_tPlayback = std::thread(&AlsaAudioSystem::_run, this);
+	_tPlayback.detach();
+	if (_record_handle) {
+		_tCapture = std::thread(&AlsaAudioSystem::_runCapture, this);
+		_tCapture.detach();
+	}
 
 	return 0;
 }
@@ -527,8 +531,10 @@ int AlsaAudioSystem::activate(char *err_msg)
 int AlsaAudioSystem::deactivate(char *err_msg)
 {
 	_active = false;
-	if (_t.joinable())
-		_t.join();
+	if (_tCapture.joinable())
+		_tCapture.join();
+	if (_tPlayback.joinable())
+		_tPlayback.join();
 	return 0;
 }
 
@@ -653,13 +659,6 @@ void AlsaAudioSystem::_run()
 		str_err = snd_strerror(err);
 		goto run_bail;
 	}
-	if (_record_handle) {
-		if((err = snd_pcm_prepare(_record_handle)) < 0) {
-			err_msg = "Cannot prepare audio interface for use [snd_pcm_prepare()] in case of sound recording.";
-			str_err = snd_strerror(err);
-			goto run_bail;
-		}
-	}
 
 	_stopwatch_init();
 	while(_active) {
@@ -736,6 +735,94 @@ void AlsaAudioSystem::_run()
 void AlsaAudioSystem::_runCapture()
 {
 	// boris here
+	printf("############### capture starting ############\n");
+	int err;
+	snd_pcm_sframes_t frames_to_deliver;
+	uint32_t f;
+	const char *err_msg, *str_err;
+	const int misc_msg_size = 256;
+	char misc_msg[misc_msg_size] = "";
+
+	assert(_active);
+
+	// Set RT priority
+	sched_param thread_sched_param;
+	thread_sched_param.sched_priority = 80;
+	pthread_setschedparam( pthread_self(), SCHED_FIFO, &thread_sched_param );
+
+	err = 0;
+
+	/* the interface will interrupt the kernel every
+	 * _period_nframes frames, and ALSA will wake up this program
+	 * very soon after that.
+	 */
+	if((err = snd_pcm_prepare(_record_handle)) < 0) {
+		err_msg = "Cannot prepare audio interface for use [snd_pcm_prepare()] in case of sound recording.";
+		str_err = snd_strerror(err);
+		goto run_bail;
+	}
+
+	while(_active) {
+		assert(_cbCapture);
+		if((err = snd_pcm_wait(_record_handle, 1000)) < 0) {
+			err_msg = "Audio poll failed [snd_pcm_wait()].";
+			str_err = strerror(errno);
+			goto run_bail;
+		}
+		if((frames_to_deliver = snd_pcm_avail_update(_record_handle)) < 0) {
+			if(frames_to_deliver == -EPIPE) {
+				/* An XRUN Occurred.  Ignoring. */
+			} else {
+				err_msg = "Unknown ALSA snd_pcm_avail_update return value [snd_pcm_avail_update()].";
+				snprintf(misc_msg, misc_msg_size, "%ld", frames_to_deliver);
+				str_err = misc_msg;
+				goto run_bail;
+			}
+		}
+		printf("####################### frames to deliver: %li ##\n", frames_to_deliver);
+		/*if(frames_to_deliver < _period_nframes)
+			continue;
+		frames_to_deliver = frames_to_deliver > _period_nframes ? _period_nframes : frames_to_deliver;
+		assert( 0 == ((frames_to_deliver-1)&frames_to_deliver) );  // is power of 2.
+		if( _cbCapture(frames_to_deliver, _callback_arg) != 0 ) {
+			err_msg = "Application's audio callback failed.";
+			str_err = 0;
+			goto run_bail;
+		}
+
+		_convert_to_output(frames_to_deliver);*/
+
+		/*if ((err = snd_pcm_drain(_playback_handle)) < 0)
+		{
+			err_msg = "1234";
+			str_err = snd_strerror(err);
+			goto run_bail;
+		}*/
+
+		if((err = snd_pcm_readi(_record_handle, _buf, frames_to_deliver)) < 0) {
+			err_msg = "Write to audio card failed [snd_pcm_writei()].";
+			str_err = snd_strerror(err);
+			goto run_bail;
+		}
+		printf("############## read data length: %i ##\n", err);
+	}
+
+	_active = false;
+	return;
+
+	run_bail:
+
+	_active = false; // boris e: остановить также и второй поток...
+	thread_sched_param.sched_priority = 0;
+	pthread_setschedparam( pthread_self(), SCHED_OTHER, &thread_sched_param );
+
+	cerr << "ERROR: " << err_msg;
+	if(str_err)
+		cerr << " (" << str_err << ")";
+	cerr << endl;
+	cerr << "Aborting audio driver (capture thread)." << endl;
+
+	return;
 }
 
 /**
