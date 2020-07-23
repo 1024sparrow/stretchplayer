@@ -204,6 +204,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 	}
 
+	// set to _playback_handle and to _record_handle the same format
 	for(k = 0 ; aas_supported_formats[k] != SND_PCM_FORMAT_UNKNOWN ; ++k) {
 		format = aas_supported_formats[k];
 		if(snd_pcm_hw_params_test_format(_playback_handle, hw_params_playback, format)) {
@@ -687,6 +688,7 @@ void AlsaAudioSystem::_run()
 			continue;
 
 		frames_to_deliver = frames_to_deliver > _period_nframes ? _period_nframes : frames_to_deliver;
+		//printf("*********************** frames to deliver: %li **\n", frames_to_deliver); // 1024
 
 		assert( 0 == ((frames_to_deliver-1)&frames_to_deliver) );  // is power of 2.
 
@@ -712,14 +714,11 @@ void AlsaAudioSystem::_run()
 		}
 
 	}
-
-	_active = false;
-
 	return;
 
 	run_bail:
 
-	_active = false;
+	_active = false; // boris e: остановить также и второй поток...
 	thread_sched_param.sched_priority = 0;
 	pthread_setschedparam( pthread_self(), SCHED_OTHER, &thread_sched_param );
 
@@ -734,10 +733,8 @@ void AlsaAudioSystem::_run()
 
 void AlsaAudioSystem::_runCapture()
 {
-	// boris here
 	printf("############### capture starting ############\n");
 	int err;
-	snd_pcm_sframes_t frames_to_deliver;
 	uint32_t f;
 	const char *err_msg, *str_err;
 	const int misc_msg_size = 256;
@@ -769,45 +766,16 @@ void AlsaAudioSystem::_runCapture()
 			str_err = strerror(errno);
 			goto run_bail;
 		}
-		if((frames_to_deliver = snd_pcm_avail_update(_record_handle)) < 0) {
-			if(frames_to_deliver == -EPIPE) {
-				/* An XRUN Occurred.  Ignoring. */
-			} else {
-				err_msg = "Unknown ALSA snd_pcm_avail_update return value [snd_pcm_avail_update()].";
-				snprintf(misc_msg, misc_msg_size, "%ld", frames_to_deliver);
-				str_err = misc_msg;
-				goto run_bail;
-			}
-		}
-		printf("####################### frames to deliver: %li ##\n", frames_to_deliver);
-		/*if(frames_to_deliver < _period_nframes)
-			continue;
-		frames_to_deliver = frames_to_deliver > _period_nframes ? _period_nframes : frames_to_deliver;
-		assert( 0 == ((frames_to_deliver-1)&frames_to_deliver) );  // is power of 2.
-		if( _cbCapture(frames_to_deliver, _callback_arg) != 0 ) {
-			err_msg = "Application's audio callback failed.";
-			str_err = 0;
-			goto run_bail;
-		}
 
-		_convert_to_output(frames_to_deliver);*/
+		//_convert_to_output(frames_to_deliver);
 
-		/*if ((err = snd_pcm_drain(_playback_handle)) < 0)
-		{
-			err_msg = "1234";
-			str_err = snd_strerror(err);
-			goto run_bail;
-		}*/
-
-		if((err = snd_pcm_readi(_record_handle, _buf, frames_to_deliver)) < 0) {
+		if((err = snd_pcm_readi(_record_handle, _buf, _period_nframes)) < 0) {
 			err_msg = "Write to audio card failed [snd_pcm_writei()].";
 			str_err = snd_strerror(err);
 			goto run_bail;
 		}
-		printf("############## read data length: %i ##\n", err);
+		printf("############## read data length: %i %i ##\n", err, _buf[0]);
 	}
-
-	_active = false;
 	return;
 
 	run_bail:
