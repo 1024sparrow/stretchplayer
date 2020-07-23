@@ -88,6 +88,7 @@ AlsaAudioSystem::AlsaAudioSystem() :
 	_right_root(0),
 	_left(0),
 	_right(0),
+	_capturedBuffer(0),
 	_cbPlayback(0),
 	_cbCapture(0),
 	_callback_arg(0),
@@ -309,7 +310,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 	if (config->sound_recording()) {
-		if((err = snd_pcm_hw_params_set_channels(_record_handle, hw_params_record, 2)) < 0) {
+		if((err = snd_pcm_hw_params_set_channels(_record_handle, hw_params_record, 1)) < 0) {
 			if (err_msg){
 				strcat(err_msg, "cannot set channel count for sound recording (");
 				strcat(err_msg, snd_strerror(err));
@@ -452,16 +453,24 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 	}
 
 	_buf = _buf_root = new unsigned short[_period_nframes * _channels * data_size + 16];
+	_buf_capture = _buf_capture_root = new unsigned short[_period_nframes * data_size + 16];
 	_left = _left_root = new float[_period_nframes + 4];
 	_right = _right_root = new float[_period_nframes + 4];
+	if (config->sound_recording()) {
+		_capturedBuffer = _capturedBuffer_root = new float[_period_nframes + 4];
+		assert(_capturedBuffer);
+	}
 
 	assert(_buf);
+	assert(_buf_capture);
 	assert(_left);
 	assert(_right);
 
 	while( not_aligned_16(_buf) ) ++_buf;
+	while( not_aligned_16(_buf_capture) ) ++_buf_capture;
 	while( not_aligned_16(_left) ) ++_left;
 	while( not_aligned_16(_right) ) ++_right;
+	while( not_aligned_16(_capturedBuffer) ) ++_capturedBuffer;
 
 	return 0;
 
@@ -473,6 +482,10 @@ init_bail:
 void AlsaAudioSystem::cleanup()
 {
 	deactivate();
+	if (_capturedBuffer_root) {
+		delete [] _capturedBuffer_root;
+		_capturedBuffer = _capturedBuffer_root = 0;
+	}
 	if(_right_root) {
 		delete [] _right_root;
 		_right = _right_root = 0;
@@ -484,6 +497,10 @@ void AlsaAudioSystem::cleanup()
 	if(_buf_root) {
 		delete [] _buf_root;
 		_buf = _buf_root = 0;
+	}
+	if (_buf_capture_root) {
+		delete [] _buf_capture_root;
+		_buf_capture = _buf_capture_root = 0;
 	}
 	if(_playback_handle) {
 		snd_pcm_close(_playback_handle);
@@ -524,6 +541,7 @@ int AlsaAudioSystem::activate(char *err_msg)
 	_tPlayback = std::thread(&AlsaAudioSystem::_run, this);
 	_tPlayback.detach();
 	if (_record_handle) {
+		assert(_capturedBuffer);
 		_capturing = true;
 		_tCapture = std::thread(&AlsaAudioSystem::_runCapture, this);
 		_tCapture.detach();
@@ -535,6 +553,7 @@ int AlsaAudioSystem::activate(char *err_msg)
 int AlsaAudioSystem::deactivate(char *err_msg)
 {
 	_active = false;
+	_capturing = false;
 	if (_tCapture.joinable())
 		_tCapture.join();
 	if (_tPlayback.joinable())
@@ -552,6 +571,10 @@ AudioSystem::sample_t* AlsaAudioSystem::output_buffer(int index)
 		return _right;
 	}
 	return 0;
+}
+
+AudioSystem::sample_t* AlsaAudioSystem::input_buffer(){
+	return _capturedBuffer;
 }
 
 uint32_t AlsaAudioSystem::output_buffer_size(int /*index*/)
@@ -771,12 +794,13 @@ void AlsaAudioSystem::_runCapture()
 		}
 		//_convert_to_output(frames_to_deliver);
 
-		if((err = snd_pcm_readi(_record_handle, _buf, _period_nframes)) < 0) {
+		if((err = snd_pcm_readi(_record_handle, _buf_capture, _period_nframes)) < 0) {
 			err_msg = "Write to audio card failed [snd_pcm_writei()].";
 			str_err = snd_strerror(err);
 			goto run_bail;
 		}
-		printf("############## read data length: %i %i ##\n", err, _buf[0]);
+		printf("############## read data length: %i %i ##\n", err, _buf_capture[0]);
+		_convert_from_input(_period_nframes);
 		if( _cbCapture(_period_nframes, _callback_arg) != 0 ) {
 			err_msg = "Application's audio callback (capture) failed.";
 			str_err = 0;
@@ -815,24 +839,25 @@ void AlsaAudioSystem::_convert_to_output(uint32_t nframes)
 
 void AlsaAudioSystem::_convert_to_output_int(uint32_t nframes)
 {
+	printf("void AlsaAudioSystem::_convert_to_output_int(uint32_t nframes)\n");
 	switch(_bits) {
 	case 16: {
 		bams_sample_s16le_t *dst = (bams_sample_s16le_t*)_buf;
 	#if __BYTE_ORDER == __LITTLE_ENDIAN
 		if(_little_endian) {
-		bams_copy_s16le_floatle(dst, 2, &_left[0], 1, nframes);
-		bams_copy_s16le_floatle(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_s16le_floatle(dst, 2, &_left[0], 1, nframes);
+			bams_copy_s16le_floatle(dst+1, 2, &_right[0], 1, nframes);
 		} else {
-		bams_copy_s16be_floatle(dst, 2, &_left[0], 1, nframes);
-		bams_copy_s16be_floatle(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_s16be_floatle(dst, 2, &_left[0], 1, nframes);
+			bams_copy_s16be_floatle(dst+1, 2, &_right[0], 1, nframes);
 		}
 	#else
 		if(_little_endian) {
-		bams_copy_s16le_floatbe(dst, 2, &_left[0], 1, nframes);
-		bams_copy_s16le_floatbe(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_s16le_floatbe(dst, 2, &_left[0], 1, nframes);
+			bams_copy_s16le_floatbe(dst+1, 2, &_right[0], 1, nframes);
 		} else {
-		bams_copy_s16be_floatbe(dst, 2, &_left[0], 1, nframes);
-		bams_copy_s16be_floatbe(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_s16be_floatbe(dst, 2, &_left[0], 1, nframes);
+			bams_copy_s16be_floatbe(dst+1, 2, &_right[0], 1, nframes);
 		}
 	#endif
 	}   break;
@@ -851,19 +876,19 @@ void AlsaAudioSystem::_convert_to_output_uint(uint32_t nframes)
 		bams_sample_u16le_t *dst = (bams_sample_u16le_t*)_buf;
 	#if __BYTE_ORDER == __LITTLE_ENDIAN
 		if(_little_endian) {
-		bams_copy_u16le_floatle(dst, 2, &_left[0], 1, nframes);
-		bams_copy_u16le_floatle(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_u16le_floatle(dst, 2, &_left[0], 1, nframes);
+			bams_copy_u16le_floatle(dst+1, 2, &_right[0], 1, nframes);
 		} else {
-		bams_copy_u16be_floatle(dst, 2, &_left[0], 1, nframes);
-		bams_copy_u16be_floatle(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_u16be_floatle(dst, 2, &_left[0], 1, nframes);
+			bams_copy_u16be_floatle(dst+1, 2, &_right[0], 1, nframes);
 		}
 	#else
 		if(_little_endian) {
-		bams_copy_u16le_floatbe(dst, 2, &_left[0], 1, nframes);
-		bams_copy_u16le_floatbe(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_u16le_floatbe(dst, 2, &_left[0], 1, nframes);
+			bams_copy_u16le_floatbe(dst+1, 2, &_right[0], 1, nframes);
 		} else {
-		bams_copy_u16be_floatbe(dst, 2, &_left[0], 1, nframes);
-		bams_copy_u16be_floatbe(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_u16be_floatbe(dst, 2, &_left[0], 1, nframes);
+			bams_copy_u16be_floatbe(dst+1, 2, &_right[0], 1, nframes);
 		}
 	#endif
 	}   break;
@@ -899,6 +924,47 @@ void AlsaAudioSystem::_convert_to_output_float(uint32_t nframes)
 		bams_byte_reorder_in_place(_buf, 4, 1, 2*nframes);
 	}
 	#endif
+}
+
+void AlsaAudioSystem::_convert_from_input(uint32_t nframes)
+{
+	switch(_type) {
+	case INT: _convert_from_input_int(nframes); break;
+	case UINT: _convert_from_input_uint(nframes); break;
+	case FLOAT: _convert_from_input_float(nframes); break;
+	default: assert(false);
+	}
+}
+
+void AlsaAudioSystem::_convert_from_input_int(uint32_t nframes)
+{
+	if (_bits == 16) {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+		if(_little_endian) {
+			printf("1111\n");
+			// boris here
+//			bams_copy_s16le_floatle(dst, 2, &_left[0], 1, nframes);
+//			bams_copy_s16le_floatle(dst+1, 2, &_right[0], 1, nframes);
+		} else {
+			// not implemented
+		}
+#else
+		// not implemented
+#endif
+	}
+	else {
+		assert(false);
+	}
+}
+
+void AlsaAudioSystem::_convert_from_input_uint(uint32_t nframes)
+{
+	// not implemented
+}
+
+void AlsaAudioSystem::_convert_from_input_float(uint32_t nframes)
+{
+	// not implemented
 }
 
 } // namespace StretchPlayer

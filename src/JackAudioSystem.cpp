@@ -210,6 +210,10 @@ namespace StretchPlayer
 		return 0;
 	}
 
+	AudioSystem::sample_t* JackAudioSystem::input_buffer(){
+		return 0;
+	}
+
 	uint32_t JackAudioSystem::output_buffer_size(int /*index*/)
 	{
 		if( !_client )

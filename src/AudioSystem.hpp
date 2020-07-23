@@ -119,6 +119,8 @@ namespace StretchPlayer
 	 */
 	virtual sample_t* output_buffer(int index) = 0;
 
+	virtual sample_t* input_buffer() = 0;
+
 	/**
 	 * Returns the size of the output buffer. [RT SAFE]
 	 */

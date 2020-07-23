@@ -176,7 +176,7 @@ int Engine::process_callback_capture(uint32_t nframes)
 	// boris here: this callback not using yet
 	// boris here: here we must read data from Argument (oops, it's omited) and write directly into _stretcher.
 
-	return 1;
+	return 0; // boris stub
 }
 
 static void apply_gain_to_buffer(float *buf, uint32_t frames, float gain);

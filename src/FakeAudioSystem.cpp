@@ -69,6 +69,10 @@ namespace StretchPlayer
 		return 0;
 	}
 
+	AudioSystem::sample_t* FakeAudioSystem::input_buffer(){
+		return 0;
+	}
+
 	uint32_t FakeAudioSystem::output_buffer_size(int index){
 		return _period_nframes;
 	}

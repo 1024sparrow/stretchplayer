@@ -56,6 +56,7 @@ namespace StretchPlayer
 	int activate(char *err_msg = 0) override;
 	int deactivate(char *err_msg = 0) override;
 	sample_t* output_buffer(int index) override;
+	sample_t* input_buffer() override;
 	uint32_t output_buffer_size(int index) override;
 	uint32_t sample_rate() override;
 	float dsp_load() override;
@@ -70,6 +71,10 @@ namespace StretchPlayer
 	void _convert_to_output_int(uint32_t nframes);
 	void _convert_to_output_uint(uint32_t nframes);
 	void _convert_to_output_float(uint32_t nframes);
+	void _convert_from_input(uint32_t nframes);
+	void _convert_from_input_int(uint32_t nframes);
+	void _convert_from_input_uint(uint32_t nframes);
+	void _convert_from_input_float(uint32_t nframes);
 
 	void _stopwatch_init();
 	void _stopwatch_start_idle();
@@ -90,9 +95,9 @@ namespace StretchPlayer
 	bool _capturing;
 	snd_pcm_t *_playback_handle;
 	snd_pcm_t *_record_handle;
-	float *_left_root, *_right_root;
-	float *_left, *_right;
-	unsigned short *_buf_root, *_buf;
+	float *_left_root, *_right_root, *_capturedBuffer_root;
+	float *_left, *_right, *_capturedBuffer;
+	unsigned short *_buf_root, *_buf, *_buf_capture_root, *_buf_capture;
 
 	process_callback_t _cbPlayback, _cbCapture;
 	void *_callback_arg;

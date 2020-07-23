@@ -57,6 +57,7 @@ namespace StretchPlayer
 	int activate(char *err_msg = 0) override;
 	int deactivate(char *err_msg = 0) override;
 	sample_t* output_buffer(int index) override;
+	sample_t* input_buffer() override;
 	uint32_t output_buffer_size(int index) override;
 	uint32_t sample_rate() override;
 	float dsp_load() override;
