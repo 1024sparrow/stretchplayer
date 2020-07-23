@@ -97,21 +97,29 @@ typedef  float bams_sample_floatbe_t;
 
 /* Macro for generating function prototypes
  */
-#define BAMS_COPY(d, s)				    \
-	void bams_copy_ ## d ## _ ## s(			    \
-		bams_sample_ ## d ## _t *dst,		    \
-		int dest_stride,		    \
-		bams_sample_ ## s ## _t *src,		    \
-		int src_stride,			    \
-		unsigned long count		    \
-		)
-
+#define BAMS_COPY(d, s)\
+	void bams_copy_ ## d ## _ ## s(\
+		bams_sample_ ## d ## _t *dst,\
+		int dest_stride,\
+		bams_sample_ ## s ## _t *src,\
+		int src_stride,\
+		unsigned long count\
+	);\
+	void bams_copy_ ## s ## _ ## d(\
+		bams_sample_ ## s ## _t *dst,\
+		int dest_stride,\
+		bams_sample_ ## d ## _t *src,\
+		int src_stride,\
+		unsigned long count\
+	)
+// stride - шаг
 
 /* Function prototypes
  *
  * N.B. DO NOT USE src_stride != 1.  It is currently unsupported, but
  * here for future use.
  */
+// copy from SECOND type from FIRST type
 BAMS_COPY(s16le, floatle);
 BAMS_COPY(s16be, floatle);
 BAMS_COPY(s16le, floatbe);

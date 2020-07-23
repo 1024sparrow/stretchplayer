@@ -146,6 +146,22 @@ bams_copy_s16le_floatle(
 }
 
 void
+bams_copy_floatle_s16le(
+	bams_sample_floatle_t *dst,
+	int dst_stride,
+	bams_sample_s16le_t *src,
+	int src_stride,
+	unsigned long count
+){
+	assert(src_stride == 1);
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	sample_move_sS_d16(dst, src, count, dst_stride * sizeof(bams_sample_s16le_t), 0);
+#else
+	// not implemented
+#endif
+}
+
+void
 bams_copy_s16be_floatle(
 	bams_sample_s16be_t *dst,
 	int dst_stride,

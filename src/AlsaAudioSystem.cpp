@@ -310,7 +310,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 	if (config->sound_recording()) {
-		if((err = snd_pcm_hw_params_set_channels(_record_handle, hw_params_record, 1)) < 0) {
+		if((err = snd_pcm_hw_params_set_channels(_record_handle, hw_params_record, 2)) < 0) { // boris e: 1 channel!
 			if (err_msg){
 				strcat(err_msg, "cannot set channel count for sound recording (");
 				strcat(err_msg, snd_strerror(err));
@@ -939,12 +939,10 @@ void AlsaAudioSystem::_convert_from_input(uint32_t nframes)
 void AlsaAudioSystem::_convert_from_input_int(uint32_t nframes)
 {
 	if (_bits == 16) {
+		bams_sample_s16le_t *tmp = (bams_sample_s16le_t*)_buf_capture;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 		if(_little_endian) {
-			printf("1111\n");
-			// boris here
-//			bams_copy_s16le_floatle(dst, 2, &_left[0], 1, nframes);
-//			bams_copy_s16le_floatle(dst+1, 2, &_right[0], 1, nframes);
+			bams_copy_floatle_s16le(_capturedBuffer, 1, tmp, 1, nframes);
 		} else {
 			// not implemented
 		}

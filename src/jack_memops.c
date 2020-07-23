@@ -104,6 +104,20 @@
 		(d) = f_round ((s) * SAMPLE_16BIT_SCALING);\
 	}
 
+//int16_t float_16(const jack_default_audio_sample_t &p)
+//{
+//	if (p <= NORMALIZED_FLOAT_MIN)
+//		return SAMPLE_16BIT_MIN;
+//	if (p >= NORMALIZED_FLOAT_MAX)
+//		return SAMPLE_16BIT_MAX;
+//	return lrintf(p * SAMPLE_16BIT_SCALING);
+//}
+
+void de_float_16(float *s, int16_t *d)
+{
+	*s = (float)*d / SAMPLE_16BIT_SCALING;
+}
+
 /* call this when "s" has already been scaled (e.g. when dithering)
  */
 
@@ -407,7 +421,16 @@ void sample_move_d16_sSs (char *dst,  jack_default_audio_sample_t *src, unsigned
 void sample_move_d16_sS (char *dst,  jack_default_audio_sample_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
 {
 	while (nsamples--) {
-		float_16 (*src, *((int16_t*) dst));
+		float_16(*src, *((int16_t*) dst));
+		dst += dst_skip;
+		src++;
+	}
+}
+
+void sample_move_sS_d16(jack_default_audio_sample_t *dst, int16_t *src, unsigned long nsamples, unsigned long dst_skip, dither_state_t *state)
+{
+	while (nsamples--) {
+		de_float_16(dst, src);
 		dst += dst_skip;
 		src++;
 	}
