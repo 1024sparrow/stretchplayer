@@ -81,6 +81,7 @@ AlsaAudioSystem::AlsaAudioSystem() :
 	_sample_rate(44100),
 	_period_nframes(512),
 	_active(false),
+	_capturing(false),
 	_playback_handle(0),
 	_record_handle(0),
 	_left_root(0),
@@ -514,6 +515,7 @@ int AlsaAudioSystem::activate(char *err_msg)
 {
 	// boris here: if in init() was detected sound_recording option, then we have to start TWO threads: for playback and for capture.
 	assert(!_active);
+	assert(!_capturing);
 	assert(_left);
 	assert(_right);
 	assert(_playback_handle);
@@ -522,6 +524,7 @@ int AlsaAudioSystem::activate(char *err_msg)
 	_tPlayback = std::thread(&AlsaAudioSystem::_run, this);
 	_tPlayback.detach();
 	if (_record_handle) {
+		_capturing = true;
 		_tCapture = std::thread(&AlsaAudioSystem::_runCapture, this);
 		_tCapture.detach();
 	}
@@ -740,7 +743,7 @@ void AlsaAudioSystem::_runCapture()
 	const int misc_msg_size = 256;
 	char misc_msg[misc_msg_size] = "";
 
-	assert(_active);
+	assert(_capturing);
 
 	// Set RT priority
 	sched_param thread_sched_param;
@@ -759,14 +762,13 @@ void AlsaAudioSystem::_runCapture()
 		goto run_bail;
 	}
 
-	while(_active) {
+	while(_capturing) {
 		assert(_cbCapture);
 		if((err = snd_pcm_wait(_record_handle, 1000)) < 0) {
 			err_msg = "Audio poll failed [snd_pcm_wait()].";
 			str_err = strerror(errno);
 			goto run_bail;
 		}
-
 		//_convert_to_output(frames_to_deliver);
 
 		if((err = snd_pcm_readi(_record_handle, _buf, _period_nframes)) < 0) {
@@ -775,12 +777,17 @@ void AlsaAudioSystem::_runCapture()
 			goto run_bail;
 		}
 		printf("############## read data length: %i %i ##\n", err, _buf[0]);
+		if( _cbCapture(_period_nframes, _callback_arg) != 0 ) {
+			err_msg = "Application's audio callback (capture) failed.";
+			str_err = 0;
+			goto run_bail;
+		}
 	}
 	return;
 
 	run_bail:
 
-	_active = false; // boris e: остановить также и второй поток...
+	_capturing = false;
 	thread_sched_param.sched_priority = 0;
 	pthread_setschedparam( pthread_self(), SCHED_OTHER, &thread_sched_param );
 
