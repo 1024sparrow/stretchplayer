@@ -142,13 +142,15 @@ int Engine::process_callback(uint32_t nframes)
 	try {
 		locked = _audio_lock.try_lock();
 		if(_state_changed) {
-		_state_changed = false;
-		_stretcher.reset();
-		float left[64], right[64];
-		while( _stretcher.available_read() > 0 )
-			_stretcher.read_audio(left, right, 64);
-		assert( 0 == _stretcher.available_read() );
-		_position = _output_position;
+			_state_changed = false;
+			_stretcher.reset();
+			float left[64], right[64];
+			while( _stretcher.available_read() > 0 ) {
+				_stretcher.read_audio(left, right, 64);
+			}
+			assert( 0 == _stretcher.available_read() );
+			_position = _output_position;
+			_state_changed = false;
 		}
 		if(locked) {
 			if(_playing) {
@@ -175,6 +177,30 @@ int Engine::process_callback_capture(uint32_t nframes)
 {
 	// boris here: this callback not using yet
 	// boris here: here we must read data from Argument (oops, it's omited) and write directly into _stretcher.
+
+	bool locked = false;
+
+	try {
+		locked = _audio_lock.try_lock();
+		if (_state_changed) {
+			_state_changed = false;
+			_stretcher.reset();
+			float left[64], right[64];
+			while( _stretcher.available_read() > 0 ) {
+				_stretcher.read_audio(left, right, 64);
+			}
+			assert( 0 == _stretcher.available_read() );
+			_position = _output_position;
+			_state_changed = false;
+		}
+		if (locked) {
+			//
+		}
+	} catch (...) {
+	}
+
+	if (locked)
+		_audio_lock.unlock();
 
 	return 0; // boris stub
 }
