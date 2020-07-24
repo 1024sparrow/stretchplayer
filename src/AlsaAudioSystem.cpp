@@ -839,7 +839,7 @@ void AlsaAudioSystem::_convert_to_output(uint32_t nframes)
 
 void AlsaAudioSystem::_convert_to_output_int(uint32_t nframes)
 {
-	printf("void AlsaAudioSystem::_convert_to_output_int(uint32_t nframes)\n");
+	//printf("void AlsaAudioSystem::_convert_to_output_int(uint32_t nframes)\n");
 	switch(_bits) {
 	case 16: {
 		bams_sample_s16le_t *dst = (bams_sample_s16le_t*)_buf;
