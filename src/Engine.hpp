@@ -164,7 +164,7 @@ private:
 	void _unsubscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
 
 	Configuration *_config;
-	bool _playing;
+	bool _playing, _capturing{false};
 	bool _hit_end;
 	bool _state_changed;
 	mutable std::mutex _audio_lock;

@@ -150,7 +150,6 @@ int Engine::process_callback(uint32_t nframes)
 			}
 			assert( 0 == _stretcher.available_read() );
 			_position = _output_position;
-			_state_changed = false;
 		}
 		if(locked) {
 			if(_playing) {
@@ -176,11 +175,13 @@ int Engine::process_callback(uint32_t nframes)
 int Engine::process_callback_capture(uint32_t nframes)
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
-	for (int i = 0 ; i < nframes ; ++i)
+	if (_capturing)
 	{
-		_captured.push_back(_audio_system->input_buffer()[i]);
+		for (int i = 0 ; i < nframes ; ++i)
+		{
+			_captured.push_back(_audio_system->input_buffer()[i]);
+		}
 	}
-
 	return 0;
 }
 
@@ -211,8 +212,7 @@ void Engine::_process_playing(uint32_t nframes)
 	int32_t write_space, written, input_frames;
 	write_space = _stretcher.available_write();
 	written = _stretcher.written();
-	if(written < _stretcher.feed_block_min()
-	   && write_space >= _stretcher.feed_block_max() ) {
+	if(written < _stretcher.feed_block_min() && write_space >= _stretcher.feed_block_max() ) {
 		input_frames = _stretcher.feed_block_max();
 	} else {
 		input_frames = 0;
@@ -235,8 +235,8 @@ void Engine::_process_playing(uint32_t nframes)
 		}
 		}
 		if( _position + feed > _left.size() ) {
-		feed = _left.size() - _position;
-		input_frames = feed;
+			feed = _left.size() - _position;
+			input_frames = feed;
 		}
 		if (_shift) {
 			float *cand = &_null[0];
@@ -616,6 +616,8 @@ void Engine::start_recording(const unsigned long &startPos) {
 		puts("0recording unavailable");
 		return;
 	}
+
+	// not implemented
 }
 
 void Engine::start_recording(
@@ -626,6 +628,17 @@ void Engine::start_recording(
 	{
 		puts("0recording unavailable");
 		return;
+	}
+
+	std::lock_guard<std::mutex> lk(_audio_lock);
+	if (_capturing)
+	{
+		puts("0already recording");
+		return;
+	}
+	else
+	{
+		_capturing = true;
 	}
 }
 
