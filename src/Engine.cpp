@@ -186,10 +186,10 @@ void Engine::_process_playing(uint32_t nframes)
 	//boris here:
 
 	// MUTEX MUST ALREADY BE LOCKED
-	float *buf_L = 0, *buf_R = 0;
-
-	buf_L = _audio_system->output_buffer(0);
-	buf_R = _audio_system->output_buffer(1);
+	float
+		*buf_L = _audio_system->output_buffer(0),
+		*buf_R = _audio_system->output_buffer(1)
+	;
 
 	uint32_t srate = _audio_system->sample_rate();
 	float time_ratio = srate / _sample_rate / _stretch;
@@ -249,7 +249,12 @@ void Engine::_process_playing(uint32_t nframes)
 	read_space = _stretcher.available_read();
 
 	if( read_space >= nframes ) {
-		_stretcher.read_audio(buf_L, buf_R, nframes);
+		//_stretcher.read_audio(buf_L, buf_R, nframes); // commented for debug
+
+		{ // boris debug
+			memcpy(buf_L, _captured, nframes * sizeof(float));
+			memcpy(buf_R, _captured, nframes * sizeof(float));
+		} // boris debug
 	} else if ( (read_space > 0) && _hit_end ) {
 		_zero_buffers(nframes);
 		_stretcher.read_audio(buf_L, buf_R, read_space);
@@ -271,8 +276,8 @@ void Engine::_process_playing(uint32_t nframes)
 	if(nframes & 0xf) {  // nframes < 16
 		unsigned f = nframes;
 		while(f--) {
-		(*buf_L++) *= _gain;
-		(*buf_R++) *= _gain;
+			(*buf_L++) *= _gain;
+			(*buf_R++) *= _gain;
 		}
 	} else {
 		apply_gain_to_buffer(buf_L, nframes, _gain);
