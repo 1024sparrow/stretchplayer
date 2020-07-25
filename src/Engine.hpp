@@ -50,10 +50,6 @@ public:
 	bool playing() {
 		return _playing;
 	}
-	void loop_ab();
-	bool looping() {
-		return _loop_b > _loop_a;
-	}
 
 	float get_position(); // in seconds
 	float get_length();   // in seconds
@@ -149,7 +145,6 @@ private:
 	void _process_playing(uint32_t nframes);
 	bool _load_song_using_libsndfile(const char *p_filename, bool p_readOnly);
 	bool _load_song_using_libmpg123(const char *filename);
-	void _handle_loop_ab();
 
 	typedef std::set<EngineMessageCallback*> callback_seq_t;
 
@@ -176,9 +171,6 @@ private:
 	;
 	int _channelCount; // 1 for mono, 2 for stereo
 	unsigned long _position;
-	unsigned long _loop_a; // boris dm (ab-looping must be on client)
-	unsigned long _loop_b; // boris dm
-	std::atomic<int> _loop_ab_pressed;
 	float _sample_rate;
 	float _stretch;
 	int _shift;

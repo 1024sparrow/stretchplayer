@@ -43,8 +43,6 @@ Engine::Engine(Configuration *config)
 	, _hit_end(false)
 	, _state_changed(false)
 	, _position(0)
-	, _loop_a(0)
-	, _loop_b(0)
 	, _sample_rate(48000.0)
 	, _stretch(1.0)
 	, _shift(0)
@@ -135,10 +133,6 @@ int Engine::process_callback(uint32_t nframes)
 {
 	bool locked = false;
 
-	if( _loop_ab_pressed > 0 ) {
-		_handle_loop_ab();
-	}
-
 	try {
 		locked = _audio_lock.try_lock();
 		if(_state_changed) {
@@ -222,18 +216,6 @@ void Engine::_process_playing(uint32_t nframes)
 	int shiftInFrames = _shift * _sample_rate;
 	while( input_frames > 0 ) {
 		feed = input_frames;
-		if( looping() && ((_position + feed) >= _loop_b) ) {
-		if( _position >= _loop_b ) {
-			_position = _loop_a;
-			if( _loop_a + feed > _loop_b ) {
-			assert(_loop_b > _loop_a );
-			feed = _loop_b - _loop_a;
-			}
-		} else {
-			assert( _loop_b >= _position );
-			feed = _loop_b - _position;
-		}
-		}
 		if( _position + feed > _left.size() ) {
 			feed = _left.size() - _position;
 			input_frames = feed;
@@ -260,9 +242,6 @@ void Engine::_process_playing(uint32_t nframes)
 		_position += feed;
 		assert( input_frames >= feed );
 		input_frames -= feed;
-		if( looping() && _position >= _loop_b ) {
-		_position = _loop_a;
-		}
 	}
 
 	// Pull generated data off the stretcher
@@ -554,43 +533,6 @@ float Engine::get_position()
 		return float(_output_position) / _sample_rate;
 	}
 	return 0;
-}
-
-void Engine::loop_ab()
-{
-	_loop_ab_pressed.fetch_add(1, std::memory_order_relaxed);
-}
-
-void Engine::_handle_loop_ab()
-{
-	while( _loop_ab_pressed > 0 ) {
-		uint32_t pos, lat;
-		uint32_t pressed_frame, seg_frame;
-
-		assert( _stretcher.time_ratio() > 0 );
-		pos = _output_position;
-
-		if(pos > lat) pos -= lat;
-
-		if( _loop_b > _loop_a ) {
-			_loop_b = 0;
-			_loop_a = 0;
-		} else if( _loop_a == 0 ) {
-			_loop_a = pos;
-			if(pos == 0) {
-				_loop_a = 1;
-			}
-		} else if( _loop_a != 0 ) {
-			if( pos > _loop_a ) {
-				_loop_b = pos;
-			} else {
-				_loop_a = pos;
-			}
-		} else {
-			assert(false);  // invalid state
-		}
-		_loop_ab_pressed.fetch_add(-1, std::memory_order_seq_cst);
-	}
 }
 
 float Engine::get_length()
