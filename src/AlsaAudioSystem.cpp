@@ -530,7 +530,6 @@ int AlsaAudioSystem::set_segment_size_callback(process_callback_t, void*, char*)
 
 int AlsaAudioSystem::activate(char *err_msg)
 {
-	// boris here: if in init() was detected sound_recording option, then we have to start TWO threads: for playback and for capture.
 	assert(!_active);
 	assert(!_capturing);
 	assert(_left);

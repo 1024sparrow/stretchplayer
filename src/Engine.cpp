@@ -175,40 +175,21 @@ int Engine::process_callback(uint32_t nframes)
 
 int Engine::process_callback_capture(uint32_t nframes)
 {
-	// boris here: this callback not using yet
-	// boris here: here we must read data from Argument (oops, it's omited) and write directly into _stretcher.
-
-	bool locked = false;
-
-	try {
-		locked = _audio_lock.try_lock();
-		if (_state_changed) {
-			_state_changed = false;
-			_stretcher.reset();
-			float left[64], right[64];
-			while( _stretcher.available_read() > 0 ) {
-				_stretcher.read_audio(left, right, 64);
-			}
-			assert( 0 == _stretcher.available_read() );
-			_position = _output_position;
-			_state_changed = false;
-		}
-		if (locked) {
-			//
-		}
-	} catch (...) {
+	std::lock_guard<std::mutex> lk(_audio_lock);
+	for (int i = 0 ; i < nframes ; ++i)
+	{
+		_captured.push_back(_audio_system->input_buffer()[i]);
 	}
 
-	if (locked)
-		_audio_lock.unlock();
-
-	return 0; // boris stub
+	return 0;
 }
 
 static void apply_gain_to_buffer(float *buf, uint32_t frames, float gain);
 
 void Engine::_process_playing(uint32_t nframes)
 {
+	//boris here:
+
 	// MUTEX MUST ALREADY BE LOCKED
 	float *buf_L = 0, *buf_R = 0;
 
@@ -627,6 +608,40 @@ void Engine::locate(double secs)
 	_output_position = _position = pos;
 	_state_changed = true;
 	_stretcher.reset();
+}
+
+void Engine::start_recording(const unsigned long &startPos) {
+	if (!_config->sound_recording())
+	{
+		puts("0recording unavailable");
+		return;
+	}
+}
+
+void Engine::start_recording(
+	const unsigned long &startPos,
+	const unsigned long &stopPos
+) {
+	if (!_config->sound_recording())
+	{
+		puts("0recording unavailable");
+		return;
+	}
+}
+
+void Engine::stop_recording(bool p_reflectChangesInFile) {
+	if (!_config->sound_recording())
+	{
+		puts("0recording unavailable");
+		return;
+	}
+
+	std::lock_guard<std::mutex> lk(_audio_lock);
+	if (p_reflectChangesInFile) {
+		// boris here: insert _captured into _left and _right
+	}
+
+	_captured.clear();
 }
 
 void Engine::_dispatch_message(const Engine::callback_seq_t& seq, const char *msg) const

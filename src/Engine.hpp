@@ -59,32 +59,32 @@ public:
 	float get_length();   // in seconds
 	void locate(double secs);
 	float get_stretch() {
-	return _stretch;
+		return _stretch;
 	}
 	void set_stretch(float str) {
-	if(str > 0.2499 && str < 1.2501) {  /* would be 'if(str >= 0.25 && str <= 1.25)', but floating point is tricky... */
-		_stretch = str;
-		//_state_changed = true;
-	}
+		if(str > 0.2499 && str < 1.2501) {  /* would be 'if(str >= 0.25 && str <= 1.25)', but floating point is tricky... */
+			_stretch = str;
+			//_state_changed = true;
+		}
 	}
 	int get_shift() {
-	return _shift;
+		return _shift;
 	}
 	void set_shift(int p_shift) {
 		_shift = p_shift;
 	}
 	int get_pitch() {
-	return _pitch;
+		return _pitch;
 	}
 	void set_pitch(int pit) {
-	if(pit < -12) {
-		_pitch = -12;
-	} else if (pit > 12) {
-		_pitch = 12;
-	} else {
-		_pitch = pit;
-	}
-	//_state_changed = true;
+		if(pit < -12) {
+			_pitch = -12;
+		} else if (pit > 12) {
+			_pitch = 12;
+		} else {
+			_pitch = pit;
+		}
+		//_state_changed = true;
 	}
 
 	/**
@@ -102,14 +102,12 @@ public:
 		return _gain;
 	}
 
-	void start_recording(const unsigned long &startPos) {
-	}
-
-	void start_recording(const unsigned long &startPos, const unsigned long &stopPos) {
-	}
-
-	void stop_recording(bool p_reflectChangesInFile) {
-	}
+	void start_recording(const unsigned long &startPos);
+	void start_recording(
+		const unsigned long &startPos,
+		const unsigned long &stopPos
+	);
+	void stop_recording(bool p_reflectChangesInFile);
 
 	/**
 	 * Returns estimate of CPU load [0.0, 1.0]
@@ -170,13 +168,16 @@ private:
 	bool _hit_end;
 	bool _state_changed;
 	mutable std::mutex _audio_lock;
-	std::vector<float> _left; // input data: candidate to push into stretcher
-	std::vector<float> _right; // input data: candidate to push into stretcher
-	std::vector<float> _null;
+	std::vector<float> // input data: candidate to push into stretcher
+		_left,
+		_right,
+		_null,
+		_captured
+	;
 	int _channelCount; // 1 for mono, 2 for stereo
 	unsigned long _position;
-	unsigned long _loop_a;
-	unsigned long _loop_b;
+	unsigned long _loop_a; // boris dm (ab-looping must be on client)
+	unsigned long _loop_b; // boris dm
 	std::atomic<int> _loop_ab_pressed;
 	float _sample_rate;
 	float _stretch;
