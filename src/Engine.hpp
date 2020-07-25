@@ -102,7 +102,10 @@ public:
 		return _gain;
 	}
 
-	void start_recording() {
+	void start_recording(const double &startPos) {
+	}
+
+	void start_recording(const unsigned long &startPos, const unsigned long &stopPos) {
 	}
 
 	void stop_recording(bool p_reflectChangesInFile) {

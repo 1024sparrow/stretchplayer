@@ -193,7 +193,36 @@ int main(int argc, char* argv[])
 		}
 		else if (c == 'b')
 		{
-			_engine->start_recording();
+			char *tmpContext, *tmpString;
+			if (tmpString = strtok_r(paramString, "	 ", &tmpContext))
+			{
+				unsigned long recordStartPos = strtoul(tmpString, 0, 10);
+				if (recordStartPos >= 0)
+				{
+					if (tmpString = strtok_r(nullptr, "	 ", &tmpContext))
+					{
+						unsigned long recordStopPos = strtoul(tmpString, 0, 10);
+						if (recordStopPos >= recordStartPos)
+						{
+							_engine->start_recording(recordStartPos, recordStopPos);
+						}
+						else
+							puts("0incorrect argument: record stop position can not be less then record start position");
+					}
+					else
+					{
+						_engine->start_recording(recordStartPos);
+					}
+				}
+				else
+				{
+					puts("0incorrect argument: negative record start position");
+				}
+			}
+			else
+			{
+				puts("0please point millisecond of record start position");
+			}
 		}
 		else if (c == 'c')
 		{
@@ -201,8 +230,7 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			printf("0=============: %c\n", c);
-			printf("0else: \"%s\"\n", paramString);
+			printf("0not supported command: %c. Passed with argument \"%s\"\n", c, paramString);
 		}
 	}
 	return 0;
