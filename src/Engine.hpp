@@ -170,7 +170,7 @@ private:
 		_captured
 	;
 	int _channelCount; // 1 for mono, 2 for stereo
-	unsigned long _position;
+	unsigned long _position, _startRecordPosition{0}, _endRecordPosition{0};
 	float _sample_rate;
 	float _stretch;
 	int _shift;

@@ -559,7 +559,18 @@ void Engine::start_recording(const unsigned long &startPos) {
 		return;
 	}
 
-	// not implemented
+	if (_capturing)
+	{
+		puts("0already recording");
+		return;
+	}
+	else
+	{
+		std::lock_guard<std::mutex> lk(_audio_lock);
+		_capturing = true;
+		_startRecordPosition = startPos * _sample_rate / 1000;
+		_endRecordPosition = _left.size();
+	}
 }
 
 void Engine::start_recording(
@@ -572,7 +583,6 @@ void Engine::start_recording(
 		return;
 	}
 
-	std::lock_guard<std::mutex> lk(_audio_lock);
 	if (_capturing)
 	{
 		puts("0already recording");
@@ -580,7 +590,10 @@ void Engine::start_recording(
 	}
 	else
 	{
+		std::lock_guard<std::mutex> lk(_audio_lock);
 		_capturing = true;
+		_startRecordPosition = startPos * _sample_rate / 1000;
+		_endRecordPosition = stopPos * _sample_rate / 1000;
 	}
 }
 
