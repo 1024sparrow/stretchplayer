@@ -102,7 +102,7 @@ public:
 		return _gain;
 	}
 
-	void start_recording(const double &startPos) {
+	void start_recording(const unsigned long &startPos) {
 	}
 
 	void start_recording(const unsigned long &startPos, const unsigned long &stopPos) {
