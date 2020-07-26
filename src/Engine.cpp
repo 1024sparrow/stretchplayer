@@ -195,7 +195,7 @@ void Engine::_process_playing(uint32_t nframes)
 	float time_ratio = srate / _sample_rate / _stretch;
 
 	_stretcher.time_ratio( time_ratio );
-	_stretcher.pitch_scale( ::pow(2.0, double(_pitch)/12.0) * _sample_rate / srate );
+	_stretcher.pitch_scale( ::pow(2.0, double( _pitch )/12.0) * _sample_rate / srate );
 
 	uint32_t frame;
 	uint32_t reqd, gend, zeros, feed;
@@ -227,7 +227,7 @@ void Engine::_process_playing(uint32_t nframes)
 			}
 		}
 
-		if (_capturing && _position >= _startRecordPosition) {
+		if (_capturing && (_position >= _startRecordPosition)) {
 			if (_shift) {
 				// not implemented
 			}
