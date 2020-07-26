@@ -216,35 +216,46 @@ void Engine::_process_playing(uint32_t nframes)
 	int shiftInFrames = _shift * _sample_rate;
 	while( input_frames > 0 ) {
 		feed = input_frames;
-		if( _position + feed > _left.size() ) {
+		if ( _position + feed > _left.size() ) {
 			feed = _left.size() - _position;
 			input_frames = feed;
 		}
-
 		if (_capturing) {
-			_startRecordPosition;
-			_endRecordPosition;
+			if (_position + feed < _startRecordPosition) {
+				feed = _startRecordPosition - _position;
+				input_frames = feed;
+			}
 		}
 
-		if (_shift) {
-			float *cand = &_null[0];
-			if (_shift > 0) {
-				// actual position at the left channel
-				if (_left.size() > (_position + shiftInFrames))
-					cand = &_right[_position + shiftInFrames];
-
-				_stretcher.write_audio( &_left[_position], cand, feed );
+		if (_capturing && _position >= _startRecordPosition) {
+			if (_shift) {
+				// not implemented
 			}
 			else {
-				// actual position at the right channel
-				if (_left.size() > (_position - shiftInFrames))
-					cand = &_left[_position - shiftInFrames];
-				_stretcher.write_audio( cand, &_right[_position], feed );
+				_stretcher.write_audio( &_captured[_position], &_captured[_position], feed );
 			}
 		}
 		else {
-			//_stretcher.write_audio( &_left[_position], &_right[_position], feed );
-			_stretcher.write_audio( &_captured[_position], &_captured[_position], feed );
+			if (_shift) {
+				float *cand = &_null[0];
+				if (_shift > 0) {
+					// actual position at the left channel
+					if (_left.size() > (_position + shiftInFrames))
+						cand = &_right[_position + shiftInFrames];
+
+					_stretcher.write_audio( &_left[_position], cand, feed );
+				}
+				else {
+					// actual position at the right channel
+					if (_left.size() > (_position - shiftInFrames))
+						cand = &_left[_position - shiftInFrames];
+					_stretcher.write_audio( cand, &_right[_position], feed );
+				}
+			}
+			else {
+				_stretcher.write_audio( &_left[_position], &_right[_position], feed );
+				//_stretcher.write_audio( &_captured[_position], &_captured[_position], feed );
+			}
 		}
 		_position += feed;
 		assert( input_frames >= feed );
@@ -618,6 +629,7 @@ void Engine::stop_recording(bool p_reflectChangesInFile) {
 	}
 
 	_captured.clear();
+	_capturing = false;
 }
 
 void Engine::_dispatch_message(const Engine::callback_seq_t& seq, const char *msg) const
