@@ -168,7 +168,7 @@ int Engine::process_callback(uint32_t nframes)
 
 int Engine::process_callback_capture(uint32_t nframes)
 {
-	std::lock_guard<std::mutex> lk(_audio_lock);
+	//std::lock_guard<std::mutex> lk(_audio_lock);
 	if (_capturing)
 	{
 		for (int i = 0 ; i < nframes ; ++i)
@@ -220,6 +220,12 @@ void Engine::_process_playing(uint32_t nframes)
 			feed = _left.size() - _position;
 			input_frames = feed;
 		}
+
+		if (_capturing) {
+			_startRecordPosition;
+			_endRecordPosition;
+		}
+
 		if (_shift) {
 			float *cand = &_null[0];
 			if (_shift > 0) {
@@ -237,7 +243,8 @@ void Engine::_process_playing(uint32_t nframes)
 			}
 		}
 		else {
-			_stretcher.write_audio( &_left[_position], &_right[_position], feed );
+			//_stretcher.write_audio( &_left[_position], &_right[_position], feed );
+			_stretcher.write_audio( &_captured[_position], &_captured[_position], feed );
 		}
 		_position += feed;
 		assert( input_frames >= feed );
@@ -249,12 +256,8 @@ void Engine::_process_playing(uint32_t nframes)
 	read_space = _stretcher.available_read();
 
 	if( read_space >= nframes ) {
-		//_stretcher.read_audio(buf_L, buf_R, nframes); // commented for debug
+		_stretcher.read_audio(buf_L, buf_R, nframes);
 
-		{ // boris debug
-			memcpy(buf_L, _captured, nframes * sizeof(float));
-			memcpy(buf_R, _captured, nframes * sizeof(float));
-		} // boris debug
 	} else if ( (read_space > 0) && _hit_end ) {
 		_zero_buffers(nframes);
 		_stretcher.read_audio(buf_L, buf_R, read_space);

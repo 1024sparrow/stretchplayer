@@ -453,7 +453,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 	}
 
 	_buf = _buf_root = new unsigned short[_period_nframes * _channels * data_size + 16];
-	_buf_capture = _buf_capture_root = new unsigned short[_period_nframes * data_size + 16];
+	_buf_capture = _buf_capture_root = new unsigned short[_period_nframes * _channels * data_size + 16]; // boris e: _channels must to not be
 	_left = _left_root = new float[_period_nframes + 4];
 	_right = _right_root = new float[_period_nframes + 4];
 	if (config->sound_recording()) {
@@ -786,8 +786,9 @@ void AlsaAudioSystem::_runCapture()
 
 	while(_capturing) {
 		assert(_cbCapture);
+		//if((err = snd_pcm_wait(_record_handle, 1000)) != _period_nframes) {
 		if((err = snd_pcm_wait(_record_handle, 1000)) < 0) {
-			err_msg = "Audio poll failed [snd_pcm_wait()].";
+			err_msg = "Audio poll failed (capturing) [snd_pcm_wait()].";
 			str_err = strerror(errno);
 			goto run_bail;
 		}
@@ -798,7 +799,7 @@ void AlsaAudioSystem::_runCapture()
 			str_err = snd_strerror(err);
 			goto run_bail;
 		}
-		printf("############## read data length: %i %i ##\n", err, _buf_capture[0]);
+		//printf("############## read data length: %i %i ##\n", err, _buf_capture[0]);
 		_convert_from_input(_period_nframes);
 		if( _cbCapture(_period_nframes, _callback_arg) != 0 ) {
 			err_msg = "Application's audio callback (capture) failed.";
@@ -943,13 +944,16 @@ void AlsaAudioSystem::_convert_from_input_int(uint32_t nframes)
 		if(_little_endian) {
 			bams_copy_floatle_s16le(_capturedBuffer, 1, tmp, 1, nframes);
 		} else {
+			printf("not implemented\n");
 			// not implemented
 		}
 #else
 		// not implemented
+		printf("not implemented\n");
 #endif
 	}
 	else {
+		printf("not implemented\n");
 		assert(false);
 	}
 }
@@ -957,11 +961,13 @@ void AlsaAudioSystem::_convert_from_input_int(uint32_t nframes)
 void AlsaAudioSystem::_convert_from_input_uint(uint32_t nframes)
 {
 	// not implemented
+	printf("not implemented\n");
 }
 
 void AlsaAudioSystem::_convert_from_input_float(uint32_t nframes)
 {
 	// not implemented
+	printf("not implemented\n");
 }
 
 } // namespace StretchPlayer
