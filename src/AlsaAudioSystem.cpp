@@ -942,7 +942,7 @@ void AlsaAudioSystem::_convert_from_input_int(uint32_t nframes)
 		bams_sample_s16le_t *tmp = (bams_sample_s16le_t*)_buf_capture;
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 		if(_little_endian) {
-			bams_copy_floatle_s16le(_capturedBuffer, 1, tmp, 1, nframes);
+			bams_copy_floatle_s16le(_capturedBuffer, 2, tmp, 1, nframes);
 		} else {
 			printf("not implemented\n");
 			// not implemented

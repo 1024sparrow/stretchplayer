@@ -431,8 +431,8 @@ void sample_move_sS_d16(jack_default_audio_sample_t *dst, int16_t *src, unsigned
 {
 	while (nsamples--) {
 		de_float_16(dst, src);
-		dst += dst_skip;
-		src++;
+		dst ++;
+		src+= dst_skip;
 	}
 }
 
