@@ -172,7 +172,9 @@ int Engine::process_callback_capture(uint32_t nframes)
 		for (int i = 0 ; i < nframes ; ++i)
 		{
 			_left2.push_back(_audio_system->input_buffer()[i]);
-			_left2.push_back(_audio_system->input_buffer()[i]);
+			_right2.push_back(_audio_system->input_buffer()[i]);
+			if (_position >= _startRecordPosition && _position < _endRecordPosition)
+				_position = _left.size();
 		}
 	}
 	return 0;
