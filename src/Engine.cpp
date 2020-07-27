@@ -39,10 +39,8 @@ namespace StretchPlayer
 
 Engine::Engine(Configuration *config)
 	: _config(config)
-	, _playing(false)
 	, _hit_end(false)
 	, _state_changed(false)
-	, _position(0)
 	, _sample_rate(48000.0)
 	, _stretch(1.0)
 	, _shift(0)
@@ -173,7 +171,8 @@ int Engine::process_callback_capture(uint32_t nframes)
 	{
 		for (int i = 0 ; i < nframes ; ++i)
 		{
-			_captured.push_back(_audio_system->input_buffer()[i]);
+			_left2.push_back(_audio_system->input_buffer()[i]);
+			_left2.push_back(_audio_system->input_buffer()[i]);
 		}
 	}
 	return 0;
@@ -212,50 +211,49 @@ void Engine::_process_playing(uint32_t nframes)
 		input_frames = 0;
 	}
 
+	if (_capturing) {
+		if (_position > _startRecordPosition && _position < _endRecordPosition) {
+			_position = _startRecordPosition;
+		}
+	}
+
 	// Push data into the stretcher, observing A/B loop points
 	int shiftInFrames = _shift * _sample_rate;
 	while( input_frames > 0 ) {
 		feed = input_frames;
-		if ( _position + feed > _left.size() ) {
-			feed = _left.size() - _position;
+
+		std::vector<float>
+			&left = _capturing ? (_position > _startRecordPosition ? _left3 : _left2) : _left,
+			&right = _capturing ? (_position > _startRecordPosition ? _right3 : _right2) : _right
+		;
+		size_t position = _position;
+		if (_capturing)
+			position += _startRecordPosition;
+
+		if ( position + feed > left.size() ) {
+			feed = left.size() - position;
 			input_frames = feed;
 		}
-		if (_capturing) {
-			if (_position + feed < _startRecordPosition) {
-				feed = _startRecordPosition - _position;
-				input_frames = feed;
-			}
-		}
 
-		if (_capturing && (_position >= _startRecordPosition)) {
-			if (_shift) {
-				// not implemented
+		if (_shift) {
+			float *cand = &_null[0];
+			if (_shift > 0) {
+				// actual position at the left channel
+				if (left.size() > (position + shiftInFrames))
+					cand = &right[position + shiftInFrames];
+
+				_stretcher.write_audio( &left[position], cand, feed );
 			}
 			else {
-				_stretcher.write_audio( &_captured[_position], &_captured[_position], feed );
+				// actual position at the right channel
+				if (left.size() > (position - shiftInFrames))
+					cand = &left[position - shiftInFrames];
+				_stretcher.write_audio( cand, &right[position], feed );
 			}
 		}
 		else {
-			if (_shift) {
-				float *cand = &_null[0];
-				if (_shift > 0) {
-					// actual position at the left channel
-					if (_left.size() > (_position + shiftInFrames))
-						cand = &_right[_position + shiftInFrames];
-
-					_stretcher.write_audio( &_left[_position], cand, feed );
-				}
-				else {
-					// actual position at the right channel
-					if (_left.size() > (_position - shiftInFrames))
-						cand = &_left[_position - shiftInFrames];
-					_stretcher.write_audio( cand, &_right[_position], feed );
-				}
-			}
-			else {
-				_stretcher.write_audio( &_left[_position], &_right[_position], feed );
-				//_stretcher.write_audio( &_captured[_position], &_captured[_position], feed );
-			}
+			_stretcher.write_audio( &left[position], &right[position], feed );
+			//_stretcher.write_audio( &_captured[_position], &_captured[_position], feed );
 		}
 		_position += feed;
 		assert( input_frames >= feed );
@@ -586,6 +584,10 @@ void Engine::start_recording(const unsigned long &startPos) {
 	else
 	{
 		std::lock_guard<std::mutex> lk(_audio_lock);
+		_left2 = std::vector<float>(_left.begin(), _left.begin() + _startRecordPosition);
+		_right2 = std::vector<float>(_right.begin(), _right.begin() + _startRecordPosition);
+		_left3 = std::vector<float>(_left.begin() + _endRecordPosition, _left.end());
+		_right3 = std::vector<float>(_right.begin() + _endRecordPosition, _right.end());
 		_capturing = true;
 		_startRecordPosition = startPos * _sample_rate / 1000;
 		_endRecordPosition = _left.size();
@@ -610,6 +612,10 @@ void Engine::start_recording(
 	else
 	{
 		std::lock_guard<std::mutex> lk(_audio_lock);
+		_left2 = std::vector<float>(_left.begin(), _left.begin() + _startRecordPosition);
+		_right2 = std::vector<float>(_right.begin(), _right.begin() + _startRecordPosition);
+		_left3 = std::vector<float>(_left.begin() + _endRecordPosition, _left.end());
+		_right3 = std::vector<float>(_right.begin() + _endRecordPosition, _right.end());
 		_capturing = true;
 		_startRecordPosition = startPos * _sample_rate / 1000;
 		_endRecordPosition = stopPos * _sample_rate / 1000;
@@ -625,7 +631,10 @@ void Engine::stop_recording(bool p_reflectChangesInFile) {
 
 	std::lock_guard<std::mutex> lk(_audio_lock);
 	if (p_reflectChangesInFile) {
-		// boris here: insert _captured into _left and _right
+		_left = _left2;
+		_right = _right2;
+		_left.insert(_left.end(), _left3.begin(), _left3.end());
+		_right.insert(_right.end(), _right3.begin(), _right3.end());
 	}
 
 	_captured.clear();

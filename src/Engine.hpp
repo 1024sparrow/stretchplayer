@@ -159,18 +159,23 @@ private:
 	void _unsubscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
 
 	Configuration *_config;
-	bool _playing, _capturing{false};
+	bool _playing{false}, _capturing{false};
 	bool _hit_end;
 	bool _state_changed;
 	mutable std::mutex _audio_lock;
 	std::vector<float> // input data: candidate to push into stretcher
-		_left,
-		_right,
+		_left, _right,
+		_left2, _right2, // before captured with captured appended
+		_left3, _right3, // not modified part (tail)
 		_null,
 		_captured
 	;
 	int _channelCount; // 1 for mono, 2 for stereo
-	unsigned long _position, _startRecordPosition{0}, _endRecordPosition{0};
+	size_t
+		_position{0}, // for time of capturing this is recorded frame count
+		_startRecordPosition{0},
+		_endRecordPosition{0}
+	;
 	float _sample_rate;
 	float _stretch;
 	int _shift;
