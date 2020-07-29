@@ -167,8 +167,7 @@ private:
 		_left, _right,
 		_left2, _right2, // before captured with captured appended
 		_left3, _right3, // not modified part (tail)
-		_null,
-		_captured
+		_null
 	;
 	int _channelCount; // 1 for mono, 2 for stereo
 	size_t

@@ -173,8 +173,8 @@ int Engine::process_callback_capture(uint32_t nframes)
 		{
 			_left2.push_back(_audio_system->input_buffer()[i]);
 			_right2.push_back(_audio_system->input_buffer()[i]);
-			if (_position >= _startRecordPosition && _position < _endRecordPosition)
-				_position = _left.size();
+//			if (_position >= _startRecordPosition && _position < _endRecordPosition)
+//				_position = _left.size();
 		}
 	}
 	return 0;
@@ -185,6 +185,10 @@ static void apply_gain_to_buffer(float *buf, uint32_t frames, float gain);
 void Engine::_process_playing(uint32_t nframes)
 {
 	//boris here:
+	//  * Падает, если врубаем запись (где-то в нвчале), в то время как сейчас играет (где-то уже после начала записи)
+	//  * Сохранение результата записи в файл (отдельная функция API), а также запрос изменённости файла (отдельная функция API)
+	//Далее:
+	//  FakeAudioDevice (впоследствии будет переименовано в PipefilesAudioDevice) - запись и чтение в pipe-файлы. Отлаживаться в связке с WebSsh (там надо воспроизводить звук, считанный сервером с указанных при запуске pipe-файлов (при запуске указывается шаблон, по которому для каждого пользователя и каждого IP цели вычисляются имена для pipe-файлов)).
 
 	// MUTEX MUST ALREADY BE LOCKED
 	float
@@ -213,11 +217,11 @@ void Engine::_process_playing(uint32_t nframes)
 		input_frames = 0;
 	}
 
-	if (_capturing) {
-		if (_position > _startRecordPosition && _position < _endRecordPosition) {
-			_position = _startRecordPosition;
-		}
-	}
+//	if (_capturing) {
+//		if (_position > _startRecordPosition && _position < _endRecordPosition) {
+//			_position = _startRecordPosition;
+//		}
+//	}
 
 	// Push data into the stretcher, observing A/B loop points
 	int shiftInFrames = _shift * _sample_rate;
@@ -225,12 +229,10 @@ void Engine::_process_playing(uint32_t nframes)
 		feed = input_frames;
 
 		std::vector<float>
-			&left = _capturing ? (_position > _startRecordPosition ? _left3 : _left2) : _left,
-			&right = _capturing ? (_position > _startRecordPosition ? _right3 : _right2) : _right
+			&left = _capturing ? (_left2) : _left,
+			&right = _capturing ? (_right2) : _right
 		;
 		size_t position = _position;
-		if (_capturing)
-			position += _startRecordPosition;
 
 		if ( position + feed > left.size() ) {
 			feed = left.size() - position;
@@ -255,7 +257,6 @@ void Engine::_process_playing(uint32_t nframes)
 		}
 		else {
 			_stretcher.write_audio( &left[position], &right[position], feed );
-			//_stretcher.write_audio( &_captured[_position], &_captured[_position], feed );
 		}
 		_position += feed;
 		assert( input_frames >= feed );
@@ -585,14 +586,15 @@ void Engine::start_recording(const unsigned long &startPos) {
 	}
 	else
 	{
+		_startRecordPosition = startPos * _sample_rate / 1000;
+		_endRecordPosition = _left.size();
+
 		std::lock_guard<std::mutex> lk(_audio_lock);
 		_left2 = std::vector<float>(_left.begin(), _left.begin() + _startRecordPosition);
 		_right2 = std::vector<float>(_right.begin(), _right.begin() + _startRecordPosition);
 		_left3 = std::vector<float>(_left.begin() + _endRecordPosition, _left.end());
 		_right3 = std::vector<float>(_right.begin() + _endRecordPosition, _right.end());
 		_capturing = true;
-		_startRecordPosition = startPos * _sample_rate / 1000;
-		_endRecordPosition = _left.size();
 	}
 }
 
@@ -613,14 +615,17 @@ void Engine::start_recording(
 	}
 	else
 	{
+		_startRecordPosition = startPos * _sample_rate / 1000;
+		_endRecordPosition = stopPos * _sample_rate / 1000;
+
 		std::lock_guard<std::mutex> lk(_audio_lock);
 		_left2 = std::vector<float>(_left.begin(), _left.begin() + _startRecordPosition);
 		_right2 = std::vector<float>(_right.begin(), _right.begin() + _startRecordPosition);
 		_left3 = std::vector<float>(_left.begin() + _endRecordPosition, _left.end());
 		_right3 = std::vector<float>(_right.begin() + _endRecordPosition, _right.end());
+		_left3 = std::vector<float>(_left.begin() + _endRecordPosition, _left.end());
+		_right3 = std::vector<float>(_right.begin() + _endRecordPosition, _right.end());
 		_capturing = true;
-		_startRecordPosition = startPos * _sample_rate / 1000;
-		_endRecordPosition = stopPos * _sample_rate / 1000;
 	}
 }
 
@@ -638,8 +643,6 @@ void Engine::stop_recording(bool p_reflectChangesInFile) {
 		_left.insert(_left.end(), _left3.begin(), _left3.end());
 		_right.insert(_right.end(), _right3.begin(), _right3.end());
 	}
-
-	_captured.clear();
 	_capturing = false;
 }
 

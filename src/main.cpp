@@ -226,7 +226,12 @@ int main(int argc, char* argv[])
 		}
 		else if (c == 'c')
 		{
-			_engine->stop_recording(true);
+			if (paramString[0] == '0')
+				_engine->stop_recording(false);
+			else if (paramString[0] == '1')
+				_engine->stop_recording(true);
+			else
+				printf("Stop recording: incorrect argument \"%s\"\n", paramString);
 		}
 		else
 		{
