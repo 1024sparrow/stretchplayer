@@ -43,7 +43,7 @@ public:
 	Engine(Configuration *config = 0);
 	~Engine();
 
-	bool load_song(const char *filename, bool forWriting);
+	bool load_song(const char *filename);
 	void play();
 	void play_pause();
 	void stop();

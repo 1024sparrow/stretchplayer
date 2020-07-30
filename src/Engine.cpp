@@ -483,28 +483,17 @@ bool Engine::_load_song_using_libmpg123(const char *filename)
  *
  * \return Name of song
  */
-bool Engine::load_song(const char *filename, bool forWriting)
+bool Engine::load_song(const char *filename)
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
 	stop();
+	_changed = false;
 	_left.clear();
 	_right.clear();
 	_position = 0;
 	_output_position = 0;
 	_stretcher.reset();
-	bool ok = false;
-	if (forWriting){
-		// create file
-		//SndfileHandle file(filename, SFM_RDWR, SF_FORMAT_WAV, 1, 48000);
-		//short buffer[1024];
-		//memset(buffer, 0, sizeof(buffer));
-		//file.write(buffer, 1024);
-
-		ok = _load_song_using_libsndfile(filename, false);
-	}
-	else{
-		ok = _load_song_using_libsndfile(filename, true) || _load_song_using_libmpg123(filename);
-	}
+	bool ok = _load_song_using_libsndfile(filename, true) || _load_song_using_libmpg123(filename);
 	if (ok && _channelCount > 1 && _config->mono()) {
 		float average = 0; // for mono option enabled and more then one channels
 		for (size_t i = 0, c = _left.size() ; i < c ; ++i) {

@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 	_engine->set_stretch((float)config.stretch()/100.f);
 	_engine->set_pitch(config.pitch());
 	if (config.startup_file()) {
-		if (!_engine->load_song(config.startup_file(), false)) {
+		if (!_engine->load_song(config.startup_file())) {
 			printf("0can't open\n");
 			fflush(stdout);
 			return 1;
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 		}
 		else if (c == '1')
 		{
-			_engine->load_song(paramString, false);
+			_engine->load_song(paramString);
 		}
 		else if (c == '2')
 		{
@@ -190,10 +190,6 @@ int main(int argc, char* argv[])
 		{
 			short i = atoi(paramString);
 			_engine->set_shift(i);
-		}
-		else if (c == 'a')
-		{
-			_engine->load_song(paramString, true);
 		}
 		else if (c == 'b')
 		{
