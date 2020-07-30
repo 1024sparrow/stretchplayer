@@ -43,7 +43,8 @@ public:
 	Engine(Configuration *config = 0);
 	~Engine();
 
-	bool load_song(const char *filename);
+	bool load_song(const char *filename, bool prelimanarily);
+	void applyPreloaded();
 	void play();
 	void play_pause();
 	void stop();
@@ -149,7 +150,7 @@ private:
 
 	void _zero_buffers(uint32_t nframes);
 	void _process_playing(uint32_t nframes);
-	bool _load_song_using_libsndfile(const char *p_filename, bool p_readOnly);
+	bool _load_song_using_libsndfile(const char *p_filename);
 	bool _load_song_using_libmpg123(const char *filename);
 
 	typedef std::set<EngineMessageCallback*> callback_seq_t;
@@ -175,6 +176,15 @@ private:
 		_left3, _right3, // not modified part (tail)
 		_null
 	;
+	struct FileData
+	{
+		std::vector<float> _left;
+		std::vector<float> _right;
+		std::vector<float> _null;
+		int _channelCount; // 1 for mono, 2 for stereo
+		int a;
+	};
+	FileData _fileData, _fileDataPreloaded;
 	bool _changed{false};
 	int _channelCount; // 1 for mono, 2 for stereo
 	size_t

@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 	_engine->set_stretch((float)config.stretch()/100.f);
 	_engine->set_pitch(config.pitch());
 	if (config.startup_file()) {
-		if (!_engine->load_song(config.startup_file())) {
+		if (!_engine->load_song(config.startup_file(), false)) {
 			printf("0can't open\n");
 			fflush(stdout);
 			return 1;
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 # Commands from user:
 #   q - quit
 #   h - show help for console control commands
-#   1 - open audio file (for playback). After "1" (without "enter") input file path.
+#   1 - open audio file. After "1" (without "enter") input file path.
 #   2 - start playing. Parameter: millisecond of starting
 #   3 - start playing. Parameters: millisecond of starting and millisecond of stoping
 #   4 - stop playing. Returns stopping millisecond
@@ -104,6 +104,8 @@ int main(int argc, char* argv[])
 #   c - stop recording. Parameter: if apply recorded fragment (1 - apply, 0 - undo changes)
 #   d - request if data has not reflected in file changes. Response: "d0" (not changed) or "d1" (changed)
 #   e - save to file (WAV). Parameter: filepath to save. Saved mono-file with data from left channel only. It is usable only with --mono key.
+#   f - preload file. Use case: you preload next sound chunk to switch to that in future. Parameter: filepath.
+#   g - quick apply preloaded file.
 #
 # Messages for user:
 #   0 - error message (text)
@@ -123,7 +125,7 @@ int main(int argc, char* argv[])
 		}
 		else if (c == '1')
 		{
-			_engine->load_song(paramString);
+			_engine->load_song(paramString, false);
 		}
 		else if (c == '2')
 		{
@@ -240,6 +242,14 @@ int main(int argc, char* argv[])
 		else if (c == 'e') // save
 		{
 			_engine->save(paramString);
+		}
+		else if (c == 'f')
+		{
+			_engine->load_song(paramString, false);
+		}
+		else if (c == 'g')
+		{
+			//
 		}
 		else
 		{

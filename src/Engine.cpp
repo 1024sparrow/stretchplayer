@@ -318,17 +318,14 @@ void Engine::_process_playing(uint32_t nframes)
  *
  * \return true on success
  */
-bool Engine::_load_song_using_libsndfile(
-	const char *p_filename,
-	bool p_readOnly = true
-)
+bool Engine::_load_song_using_libsndfile(const char *p_filename)
 {
 	SNDFILE *sf = 0;
 	SF_INFO sf_info;
 	memset(&sf_info, 0, sizeof(sf_info));
 
 	_message("Opening file...");
-	sf = sf_open(p_filename, p_readOnly ? SFM_READ : SFM_RDWR, &sf_info);
+	sf = sf_open(p_filename, SFM_READ, &sf_info);
 	if( !sf ) {
 		char tmp[1024] = "Error opening file: '";
 		strcat(tmp, p_filename);
@@ -483,17 +480,20 @@ bool Engine::_load_song_using_libmpg123(const char *filename)
  *
  * \return Name of song
  */
-bool Engine::load_song(const char *filename)
+bool Engine::load_song(const char *filename, bool prelimanarily)
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
 	stop();
 	_changed = false;
+
+	// boris here 1: preload feature (argument "prelimanarily")
+
 	_left.clear();
 	_right.clear();
 	_position = 0;
 	_output_position = 0;
 	_stretcher.reset();
-	bool ok = _load_song_using_libsndfile(filename, true) || _load_song_using_libmpg123(filename);
+	bool ok = _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
 	if (ok && _channelCount > 1 && _config->mono()) {
 		float average = 0; // for mono option enabled and more then one channels
 		for (size_t i = 0, c = _left.size() ; i < c ; ++i) {
@@ -511,6 +511,22 @@ bool Engine::load_song(const char *filename)
 		fflush(stdout);
 	}
 	return ok;
+}
+
+void Engine::applyPreloaded()
+{
+//	std::lock_guard<std::mutex> lk(_audio_lock);
+//	stop();
+//	_changed = false;
+//	_left.clear();
+//	_right.clear();
+//	_position = 0;
+//	_output_position = 0;
+//	_stretcher.reset();
+//	_left.swap(_preLeft);
+//	_right.swap(_preRight);
+
+	// boris here 2: переделать на использование FileData.
 }
 
 void Engine::play()
