@@ -102,6 +102,8 @@ int main(int argc, char* argv[])
 #   9 - set right channel position ahead of left. Parameter: shift (in seconds)
 #   b - start recording. Parameters: start position, end position(if not pointed, then to end of file). Recorded fragment will be inserted instead of pointed interval. Limit: 30 minuts (max latency if still not stoped).
 #   c - stop recording. Parameter: if apply recorded fragment (1 - apply, 0 - undo changes)
+#   d - request if data has not reflected in file changes. Response: "d0" (not changed) or "d1" (changed)
+#   e - save to file (WAV). Parameter: filepath to save. Saved mono-file with data from left channel only. It is usable only with --mono key.
 #
 # Messages for user:
 #   0 - error message (text)
@@ -110,6 +112,8 @@ int main(int argc, char* argv[])
 #   5 - current playing position (in milliseconds)
 #   6 - playing speed. Appears as response for commands 2, 3, and 6.
 #   7 - frequency shift (number from -12 to 12). Appears as response for commands 2, 3 and 7.
+#   d - if data has not reflected in file changes. Response: "d0" (not changed) or "d1" (changed)
+#   e - saved successfully
 #
 # And also:
 #   Как писать в случае замедленного воспроизведения - писать тоже замедленно. Т.е. при нормальной скорости воспроизведения такой записи, она будет ускоренной.
@@ -232,6 +236,14 @@ int main(int argc, char* argv[])
 				_engine->stop_recording(true);
 			else
 				printf("Stop recording: incorrect argument \"%s\"\n", paramString);
+		}
+		else if (c == 'd') // request if changed
+		{
+			puts(_engine->changed() ? "d1" : "d0");
+		}
+		else if (c == 'e') // save
+		{
+			_engine->save(paramString);
 		}
 		else
 		{

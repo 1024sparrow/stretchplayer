@@ -186,7 +186,6 @@ void Engine::_process_playing(uint32_t nframes)
 {
 	//boris here:
 	//  * Падает, если врубаем запись (где-то в нвчале), в то время как сейчас играет (где-то уже после начала записи)
-	//  * Сохранение результата записи в файл (отдельная функция API), а также запрос изменённости файла (отдельная функция API)
 	//Далее:
 	//  FakeAudioDevice (впоследствии будет переименовано в PipefilesAudioDevice) - запись и чтение в pipe-файлы. Отлаживаться в связке с WebSsh (там надо воспроизводить звук, считанный сервером с указанных при запуске pipe-файлов (при запуске указывается шаблон, по которому для каждого пользователя и каждого IP цели вычисляются имена для pipe-файлов)).
 
@@ -547,6 +546,46 @@ void Engine::stop()
 	}
 }
 
+bool Engine::save(const char *p_filepath)
+{
+	std::lock_guard<std::mutex> lk(_audio_lock);
+
+	SF_INFO sfinfo {
+		// sf_count_t	frames ;		/* Used to be called samples.  Changed to avoid confusion. */
+		0,
+		// int			samplerate ;
+		static_cast<int>(_config->sample_rate()),
+		// int			channels ;
+		1, // _config->mono() ? 1 : _channelCount,
+		// int			format ;
+		SF_FORMAT_WAV | SF_FORMAT_FLOAT,
+		// int			sections ;
+		0,
+		// int			seekable ;
+		0
+	};
+	SNDFILE *outfile;
+	if (outfile = sf_open(p_filepath, SFM_WRITE, &sfinfo))
+	{
+		sf_count_t count = sf_write_float(outfile, &_left[0], _left.size());
+		sf_write_sync(outfile);
+		sf_close(outfile);
+		if (!count)
+		{
+			puts("0there's no data written");
+			return false;
+		}
+		puts("e");
+		return true;
+	}
+	else
+	{
+		printf("0can't open file %s\n", p_filepath);
+	}
+
+	return false;
+}
+
 float Engine::get_position()
 {
 	if(_left.size() > 0) {
@@ -644,6 +683,7 @@ void Engine::stop_recording(bool p_reflectChangesInFile) {
 		_right.insert(_right.end(), _right3.begin(), _right3.end());
 	}
 	_capturing = false;
+	_changed = true;
 }
 
 void Engine::_dispatch_message(const Engine::callback_seq_t& seq, const char *msg) const

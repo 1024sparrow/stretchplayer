@@ -48,8 +48,14 @@ public:
 	void play_pause();
 	void stop();
 	bool playing() {
+		std::lock_guard<std::mutex> lk(_audio_lock);
 		return _playing;
 	}
+	bool changed() const {
+		std::lock_guard<std::mutex> lk(_audio_lock);
+		return _changed;
+	}
+	bool save(const char *p_filepath);
 
 	float get_position(); // in seconds
 	float get_length();   // in seconds
@@ -169,6 +175,7 @@ private:
 		_left3, _right3, // not modified part (tail)
 		_null
 	;
+	bool _changed{false};
 	int _channelCount; // 1 for mono, 2 for stereo
 	size_t
 		_position{0}, // for time of capturing this is recorded frame count
