@@ -150,8 +150,8 @@ private:
 
 	void _zero_buffers(uint32_t nframes);
 	void _process_playing(uint32_t nframes);
-	bool _load_song_using_libsndfile(const char *p_filename);
-	bool _load_song_using_libmpg123(const char *filename);
+	bool _load_song_using_libsndfile(const char *p_filename, bool prelimanarily);
+	bool _load_song_using_libmpg123(const char *filename, bool prelimanarily);
 
 	typedef std::set<EngineMessageCallback*> callback_seq_t;
 
@@ -181,10 +181,14 @@ private:
 		std::vector<float> _left;
 		std::vector<float> _right;
 		std::vector<float> _null;
-		int _channelCount; // 1 for mono, 2 for stereo
-		int a;
+		int _channelCount{0}; // 1 for mono, 2 for stereo
+		size_t _position{0};
+		size_t _startRecordPosition{0};
+		size_t _endRecordPosition{0};
+		// boris here: _changed must be here too
 	};
-	FileData _fileData, _fileDataPreloaded;
+	FileData _fileDatas[2];
+	int _fileDataIndex{0};
 	bool _changed{false};
 	int _channelCount; // 1 for mono, 2 for stereo
 	size_t

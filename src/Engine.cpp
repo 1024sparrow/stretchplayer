@@ -318,8 +318,12 @@ void Engine::_process_playing(uint32_t nframes)
  *
  * \return true on success
  */
-bool Engine::_load_song_using_libsndfile(const char *p_filename)
+bool Engine::_load_song_using_libsndfile(const char *p_filename, bool prelimanarily)
 {
+	FileData *fd = _fileDatas + _fileDataIndex;
+	if (prelimanarily)
+		FileData *fd = _fileDatas + (_fileDataIndex + 1) % 2;
+
 	SNDFILE *sf = 0;
 	SF_INFO sf_info;
 	memset(&sf_info, 0, sizeof(sf_info));
@@ -336,7 +340,7 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename)
 	}
 
 	_sample_rate = sf_info.samplerate;
-	_left.reserve( sf_info.frames );
+	fd->_left.reserve( sf_info.frames );
 	_right.reserve( sf_info.frames );
 	_null.resize( sf_info.frames, 0.f );
 
@@ -360,7 +364,7 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename)
 		for(k=0 ; k<read ; ++k) {
 		mod = k % sf_info.channels;
 		if( mod == 0 ) {
-			_left.push_back( buf[k] );
+			fd->_left.push_back( buf[k] );
 			if (sf_info.channels == 1) // mono
 				_right.push_back( buf[k] );
 		} else if( mod == 1 ) {
@@ -371,7 +375,7 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename)
 		}
 	}
 
-	if( _left.size() != sf_info.frames ) {
+	if( fd->_left.size() != sf_info.frames ) {
 		_error("Warning: not all of the file data was read.");
 	}
 
@@ -386,8 +390,12 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename)
  *
  * \return true on success
  */
-bool Engine::_load_song_using_libmpg123(const char *filename)
+bool Engine::_load_song_using_libmpg123(const char *filename, bool prelimanarily)
 {
+	FileData *fd = _fileDatas + _fileDataIndex;
+	if (prelimanarily)
+		FileData *fd = _fileDatas + (_fileDataIndex + 1) % 2;
+
 	mpg123_handle *mh = 0;
 	int err, channels, encoding;
 	long rate;
@@ -429,7 +437,7 @@ bool Engine::_load_song_using_libmpg123(const char *filename)
 	}
 
 	_sample_rate = rate;
-	_left.reserve( length );
+	fd->_left.reserve( length );
 	_right.reserve( length );
 	_null.reserve( length );
 
@@ -446,7 +454,7 @@ bool Engine::_load_song_using_libmpg123(const char *filename)
 		for(k = 0; k < read ; k++) {
 			unsigned int mod = k % channels;
 			if( mod == 0 ) {
-			_left.push_back( (float)buffer[k] / 32768.0f );
+			fd->_left.push_back( (float)buffer[k] / 32768.0f );
 			}
 			if( mod == 1 || channels == 1 ) {
 			_right.push_back( (float)buffer[k] / 32768.0f );
@@ -483,22 +491,26 @@ bool Engine::_load_song_using_libmpg123(const char *filename)
 bool Engine::load_song(const char *filename, bool prelimanarily)
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
+	FileData *fd = _fileDatas + _fileDataIndex;
+	if (prelimanarily)
+		FileData *fd = _fileDatas + (_fileDataIndex + 1) % 2;
 	stop();
 	_changed = false;
 
 	// boris here 1: preload feature (argument "prelimanarily")
 
-	_left.clear();
+	fd->_left.clear();
 	_right.clear();
 	_position = 0;
 	_output_position = 0;
 	_stretcher.reset();
-	bool ok = _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
+	bool ok = _load_song_using_libsndfile(filename, prelimanarily)
+			|| _load_song_using_libmpg123(filename, prelimanarily);
 	if (ok && _channelCount > 1 && _config->mono()) {
 		float average = 0; // for mono option enabled and more then one channels
-		for (size_t i = 0, c = _left.size() ; i < c ; ++i) {
-			average = (_left[i] + _right[i]) / 2.f;
-			_left[i] = average;
+		for (size_t i = 0, c = fd->_left.size() ; i < c ; ++i) {
+			average = (fd->_left[i] + _right[i]) / 2.f;
+			fd->_left[i] = average;
 			_right[i] = average;
 		}
 	}
@@ -515,18 +527,10 @@ bool Engine::load_song(const char *filename, bool prelimanarily)
 
 void Engine::applyPreloaded()
 {
-//	std::lock_guard<std::mutex> lk(_audio_lock);
-//	stop();
-//	_changed = false;
-//	_left.clear();
-//	_right.clear();
-//	_position = 0;
-//	_output_position = 0;
-//	_stretcher.reset();
-//	_left.swap(_preLeft);
-//	_right.swap(_preRight);
+	std::lock_guard<std::mutex> lk(_audio_lock);
 
-	// boris here 2: переделать на использование FileData.
+	stop();
+	_fileDataIndex = (_fileDataIndex + 1) % 2;
 }
 
 void Engine::play()
