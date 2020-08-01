@@ -40,25 +40,15 @@ namespace StretchPlayer
 Engine::Engine(Configuration *config)
 	: _config(config)
 	, _hit_end(false)
-	, _state_changed(false)
-	, _sample_rate(48000.0)
 	, _stretch(1.0)
 	, _shift(0)
 	, _pitch(0)
 	, _gain(1.0)
-	, _output_position(0)
+	, _audio_system{ audio_system_factory(_config->driver()) }
 {
 	char err[1024] = "";
 
 	std::lock_guard<std::mutex> lk(_audio_lock);
-
-	Configuration::driver_t pref_driver;
-
-	if(_config){
-		pref_driver = _config->driver();
-	}
-
-	_audio_system = std::move(std::unique_ptr<AudioSystem>( audio_system_factory(pref_driver) ));
 
 	_audio_system->init( "StretchPlayer" , _config, err );
 	_audio_system->set_process_callback(
@@ -74,10 +64,12 @@ Engine::Engine(Configuration *config)
 
 	uint32_t sample_rate = _audio_system->sample_rate();
 
-	//_stretcher = std::move( std::unique_ptr<RubberBandServer>(new RubberBandServer(sample_rate)) );
-	_stretcher.setSampleRate(sample_rate);
-	_stretcher.set_segment_size( _audio_system->current_segment_size() );
-	_stretcher.start();
+	for (int i = 0 ; i < 2 ; ++i) {
+		auto &stretcher = _fileDatas[i]._stretcher;
+		stretcher.setSampleRate(sample_rate);
+		stretcher.set_segment_size( _audio_system->current_segment_size() );
+		stretcher.start();
+	}
 
 	if( _audio_system->activate(err) )
 		throw std::runtime_error(err);
@@ -87,8 +79,11 @@ Engine::~Engine()
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
 
-	_stretcher.go_idle();
-	_stretcher.shutdown();
+	for (int i = 0 ; i < 2 ; ++i) {
+		auto &stretcher = _fileDatas[i]._stretcher;
+		stretcher.go_idle();
+		stretcher.shutdown();
+	}
 
 	_audio_system->deactivate();
 	_audio_system->cleanup();
@@ -102,7 +97,10 @@ Engine::~Engine()
 		(*it)->_parent = 0;
 	}
 
-	_stretcher.wait();
+	for (int i = 0 ; i < 2 ; ++i) {
+		auto &stretcher = _fileDatas[i]._stretcher;
+		stretcher.wait();
+	}
 }
 
 void Engine::_zero_buffers(uint32_t nframes)
@@ -123,29 +121,51 @@ void Engine::_zero_buffers(uint32_t nframes)
 
 int Engine::segment_size_callback(uint32_t nframes)
 {
-	_stretcher.set_segment_size(nframes);
+	std::lock_guard<std::mutex> lk(_audio_lock);
+	_fd->_stretcher.set_segment_size(nframes);
 	return 0;
 }
 
 int Engine::process_callback(uint32_t nframes)
 {
+//	std::lock_guard<std::mutex> lk(_audio_lock);
+//	if(_state_changed) {
+//		_state_changed = false;
+//		_fd->_stretcher.reset();
+//		float left[64], right[64];
+//		while( _fd->_stretcher.available_read() > 0 ) {
+//			_fd->_stretcher.read_audio(left, right, 64);
+//		}
+//		assert( 0 == _fd->_stretcher.available_read() );
+//		_fd->_position = _fd->_output_position;
+//	}
+//	if(_playing) {
+//		if(_fd->_left.size()) {
+//			_process_playing(nframes);
+//		} else {
+//			_playing = false;
+//		}
+//	} else {
+//		_zero_buffers(nframes);
+//	}
+
 	bool locked = false;
 
 	try {
 		locked = _audio_lock.try_lock();
 		if(_state_changed) {
 			_state_changed = false;
-			_stretcher.reset();
+			_fd->_stretcher.reset();
 			float left[64], right[64];
-			while( _stretcher.available_read() > 0 ) {
-				_stretcher.read_audio(left, right, 64);
+			while( _fd->_stretcher.available_read() > 0 ) {
+				_fd->_stretcher.read_audio(left, right, 64);
 			}
-			assert( 0 == _stretcher.available_read() );
-			_position = _output_position;
+			assert( 0 == _fd->_stretcher.available_read() );
+			_fd->_position = _fd->_output_position;
 		}
 		if(locked) {
 			if(_playing) {
-				if(_left.size()) {
+				if(_fd->_left.size()) {
 					_process_playing(nframes);
 				} else {
 					_playing = false;
@@ -171,10 +191,10 @@ int Engine::process_callback_capture(uint32_t nframes)
 	{
 		for (int i = 0 ; i < nframes ; ++i)
 		{
-			_left2.push_back(_audio_system->input_buffer()[i]);
-			_right2.push_back(_audio_system->input_buffer()[i]);
+			_fd->_left2.push_back(_audio_system->input_buffer()[i]);
+			_fd->_right2.push_back(_audio_system->input_buffer()[i]);
 //			if (_position >= _startRecordPosition && _position < _endRecordPosition)
-//				_position = _left.size();
+//				_position = _fd->_left.size();
 		}
 	}
 	return 0;
@@ -196,22 +216,22 @@ void Engine::_process_playing(uint32_t nframes)
 	;
 
 	uint32_t srate = _audio_system->sample_rate();
-	float time_ratio = srate / _sample_rate / _stretch;
+	float time_ratio = srate / _fd->_sample_rate / _stretch;
 
-	_stretcher.time_ratio( time_ratio );
-	_stretcher.pitch_scale( ::pow(2.0, double( _pitch )/12.0) * _sample_rate / srate );
+	_fd->_stretcher.time_ratio( time_ratio );
+	_fd->_stretcher.pitch_scale( ::pow(2.0, double( _pitch )/12.0) * _fd->_sample_rate / srate );
 
 	uint32_t frame;
 	uint32_t reqd, gend, zeros, feed;
 
-	assert( _stretcher.is_running() );
+	assert( _fd->_stretcher.is_running() );
 
 	// Determine how much data to push into the stretcher
 	int32_t write_space, written, input_frames;
-	write_space = _stretcher.available_write();
-	written = _stretcher.written();
-	if(written < _stretcher.feed_block_min() && write_space >= _stretcher.feed_block_max() ) {
-		input_frames = _stretcher.feed_block_max();
+	write_space = _fd->_stretcher.available_write();
+	written = _fd->_stretcher.written();
+	if (written < _fd->_stretcher.feed_block_min() && write_space >= _fd->_stretcher.feed_block_max() ) {
+		input_frames = _fd->_stretcher.feed_block_max();
 	} else {
 		input_frames = 0;
 	}
@@ -223,15 +243,15 @@ void Engine::_process_playing(uint32_t nframes)
 //	}
 
 	// Push data into the stretcher, observing A/B loop points
-	int shiftInFrames = _shift * _sample_rate;
+	int shiftInFrames = _shift * _fd->_sample_rate;
 	while( input_frames > 0 ) {
 		feed = input_frames;
 
 		std::vector<float>
-			&left = _capturing ? (_left2) : _left,
-			&right = _capturing ? (_right2) : _right
+			&left = _capturing ? (_fd->_left2) : _fd->_left,
+			&right = _capturing ? (_fd->_right2) : _fd->_right
 		;
-		size_t position = _position;
+		size_t position = _fd->_position;
 
 		if ( position + feed > left.size() ) {
 			feed = left.size() - position;
@@ -239,52 +259,52 @@ void Engine::_process_playing(uint32_t nframes)
 		}
 
 		if (_shift) {
-			float *cand = &_null[0];
+			float *cand = &_fd->_null[0];
 			if (_shift > 0) {
 				// actual position at the left channel
 				if (left.size() > (position + shiftInFrames))
 					cand = &right[position + shiftInFrames];
 
-				_stretcher.write_audio( &left[position], cand, feed );
+				_fd->_stretcher.write_audio( &left[position], cand, feed );
 			}
 			else {
 				// actual position at the right channel
 				if (left.size() > (position - shiftInFrames))
 					cand = &left[position - shiftInFrames];
-				_stretcher.write_audio( cand, &right[position], feed );
+				_fd->_stretcher.write_audio( cand, &right[position], feed );
 			}
 		}
 		else {
-			_stretcher.write_audio( &left[position], &right[position], feed );
+			_fd->_stretcher.write_audio( &left[position], &right[position], feed );
 		}
-		_position += feed;
+		_fd->_position += feed;
 		assert( input_frames >= feed );
 		input_frames -= feed;
 	}
 
 	// Pull generated data off the stretcher
 	uint32_t read_space;
-	read_space = _stretcher.available_read();
+	read_space = _fd->_stretcher.available_read();
 
 	if( read_space >= nframes ) {
-		_stretcher.read_audio(buf_L, buf_R, nframes);
+		_fd->_stretcher.read_audio(buf_L, buf_R, nframes);
 
 	} else if ( (read_space > 0) && _hit_end ) {
 		_zero_buffers(nframes);
-		_stretcher.read_audio(buf_L, buf_R, read_space);
+		_fd->_stretcher.read_audio(buf_L, buf_R, read_space);
 	} else {
 		_zero_buffers(nframes);
 	}
 
 	// Update our estimation of the output position.
-	unsigned n_feed_buf = _stretcher.latency();
-	if(_position > n_feed_buf) {
-		_output_position = _position - n_feed_buf;
+	unsigned n_feed_buf = _fd->_stretcher.latency();
+	if(_fd->_position > n_feed_buf) {
+		_fd->_output_position = _fd->_position - n_feed_buf;
 	} else {
-		_output_position = 0;
+		_fd->_output_position = 0;
 	}
-	assert( (_output_position > _position) ? (_output_position - _position) <= n_feed_buf : true );
-	assert( (_output_position < _position) ? (_position - _output_position) <= n_feed_buf : true );
+	assert( (_fd->_output_position > _fd->_position) ? (_fd->_output_position - _fd->_position) <= n_feed_buf : true );
+	assert( (_fd->_output_position < _fd->_position) ? (_fd->_position - _fd->_output_position) <= n_feed_buf : true );
 
 	// Apply gain... unroll loop manually so GCC will use SSE
 	if(nframes & 0xf) {  // nframes < 16
@@ -298,19 +318,19 @@ void Engine::_process_playing(uint32_t nframes)
 		apply_gain_to_buffer(buf_R, nframes, _gain);
 	}
 
-	if(_position >= _left.size()) {
+	if(_fd->_position >= _fd->_left.size()) {
 		_hit_end = true;
 	}
 	if( (_hit_end == true) && (read_space == 0) ) {
 		_hit_end = false;
 		_playing = false;
 		printf("4%f\n", 1000. * get_position());
-		_position = 0;
-		_stretcher.reset();
+		_fd->_position = 0;
+		_fd->_stretcher.reset();
 	}
 
 	// Wake up, lazybones!
-	_stretcher.nudge();
+	_fd->_stretcher.nudge();
 }
 
 /**
@@ -318,12 +338,9 @@ void Engine::_process_playing(uint32_t nframes)
  *
  * \return true on success
  */
-bool Engine::_load_song_using_libsndfile(const char *p_filename, bool prelimanarily)
+bool Engine::_load_song_using_libsndfile(const char *p_filename)
 {
-	FileData *fd = _fileDatas + _fileDataIndex;
-	if (prelimanarily)
-		FileData *fd = _fileDatas + (_fileDataIndex + 1) % 2;
-
+	return false;// boris debug
 	SNDFILE *sf = 0;
 	SF_INFO sf_info;
 	memset(&sf_info, 0, sizeof(sf_info));
@@ -339,10 +356,10 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename, bool prelimanar
 		return false;
 	}
 
-	_sample_rate = sf_info.samplerate;
-	fd->_left.reserve( sf_info.frames );
-	_right.reserve( sf_info.frames );
-	_null.resize( sf_info.frames, 0.f );
+	_fd->_sample_rate = sf_info.samplerate;
+	_fd->_left.reserve( sf_info.frames );
+	_fd->_right.reserve( sf_info.frames );
+	_fd->_null.resize( sf_info.frames, 0.f );
 
 	if(sf_info.frames == 0) {
 		char tmp[512] = "Error opening file '";
@@ -352,7 +369,7 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename, bool prelimanar
 		sf_close(sf);
 		return false;
 	}
-	_channelCount = sf_info.channels;
+	_fd->_channelCount = sf_info.channels;
 
 	_message("Reading file...");
 	std::vector<float> buf(4096, 0.0f);
@@ -364,18 +381,18 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename, bool prelimanar
 		for(k=0 ; k<read ; ++k) {
 		mod = k % sf_info.channels;
 		if( mod == 0 ) {
-			fd->_left.push_back( buf[k] );
+			_fd->_left.push_back( buf[k] );
 			if (sf_info.channels == 1) // mono
-				_right.push_back( buf[k] );
+				_fd->_right.push_back( buf[k] );
 		} else if( mod == 1 ) {
-			_right.push_back( buf[k] );
+			_fd->_right.push_back( buf[k] );
 		} else {
 			// remaining channels ignored
 		}
 		}
 	}
 
-	if( fd->_left.size() != sf_info.frames ) {
+	if( _fd->_left.size() != sf_info.frames ) {
 		_error("Warning: not all of the file data was read.");
 	}
 
@@ -390,12 +407,8 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename, bool prelimanar
  *
  * \return true on success
  */
-bool Engine::_load_song_using_libmpg123(const char *filename, bool prelimanarily)
+bool Engine::_load_song_using_libmpg123(const char *filename)
 {
-	FileData *fd = _fileDatas + _fileDataIndex;
-	if (prelimanarily)
-		FileData *fd = _fileDatas + (_fileDataIndex + 1) % 2;
-
 	mpg123_handle *mh = 0;
 	int err, channels, encoding;
 	long rate;
@@ -428,7 +441,7 @@ bool Engine::_load_song_using_libmpg123(const char *filename, bool prelimanarily
 	/* lock the output format */
 	mpg123_format_none(mh);
 	mpg123_format(mh, rate, channels, encoding);
-	_channelCount = channels;
+	_fd->_channelCount = channels;
 
 	off_t length = mpg123_length(mh);
 	if (length == MPG123_ERR || length == 0) {
@@ -436,10 +449,10 @@ bool Engine::_load_song_using_libmpg123(const char *filename, bool prelimanarily
 		goto mpg123error;
 	}
 
-	_sample_rate = rate;
-	fd->_left.reserve( length );
-	_right.reserve( length );
-	_null.reserve( length );
+	_fd->_sample_rate = rate;
+	_fd->_left.reserve( length );
+	_fd->_right.reserve( length );
+	_fd->_null.reserve( length );
 
 	_message("Reading file...");
 	std::vector<signed short> buffer(4096, 0);
@@ -448,19 +461,19 @@ bool Engine::_load_song_using_libmpg123(const char *filename, bool prelimanarily
 	while (1) {
 		err = mpg123_read(mh, (unsigned char*)&buffer[0], buffer.size(), &read);
 		if (err != MPG123_OK && err != MPG123_DONE)
-		break;
+			break;
 		if (read > 0) {
-		read /= sizeof(signed short);
-		for(k = 0; k < read ; k++) {
-			unsigned int mod = k % channels;
-			if( mod == 0 ) {
-			fd->_left.push_back( (float)buffer[k] / 32768.0f );
+			read /= sizeof(signed short);
+			for(k = 0; k < read ; k++) {
+				unsigned int mod = k % channels;
+				if( mod == 0 ) {
+					_fd->_left.push_back( (float)buffer[k] / 32768.0f );
+				}
+				if( mod == 1 || channels == 1 ) {
+					_fd->_right.push_back( (float)buffer[k] / 32768.0f );
+				}
+				/* remaining channels ignored */
 			}
-			if( mod == 1 || channels == 1 ) {
-			_right.push_back( (float)buffer[k] / 32768.0f );
-			}
-			/* remaining channels ignored */
-		}
 		}
 		if (err == MPG123_DONE)
 		break;
@@ -491,27 +504,29 @@ bool Engine::_load_song_using_libmpg123(const char *filename, bool prelimanarily
 bool Engine::load_song(const char *filename, bool prelimanarily)
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
-	FileData *fd = _fileDatas + _fileDataIndex;
-	if (prelimanarily)
-		FileData *fd = _fileDatas + (_fileDataIndex + 1) % 2;
-	stop();
-	_changed = false;
+	_fd = _fileDatas + _fileDataIndex;
+	if (prelimanarily) {
+		_fd = _fileDatas + (_fileDataIndex + 1) % 2;
+	}
+	else {
+		stop();
+		if (_capturing)
+			stop_recording(false);
+	}
+	_fd->_changed = false;
 
-	// boris here 1: preload feature (argument "prelimanarily")
-
-	fd->_left.clear();
-	_right.clear();
-	_position = 0;
-	_output_position = 0;
-	_stretcher.reset();
-	bool ok = _load_song_using_libsndfile(filename, prelimanarily)
-			|| _load_song_using_libmpg123(filename, prelimanarily);
-	if (ok && _channelCount > 1 && _config->mono()) {
+	_fd->_left.clear();
+	_fd->_right.clear();
+	_fd->_position = 0;
+	_fd->_output_position = 0;
+	_fd->_stretcher.reset();
+	bool ok = _load_song_using_libsndfile(filename) || _load_song_using_libmpg123(filename);
+	if (ok && _fd->_channelCount > 1 && _config->mono()) {
 		float average = 0; // for mono option enabled and more then one channels
-		for (size_t i = 0, c = fd->_left.size() ; i < c ; ++i) {
-			average = (fd->_left[i] + _right[i]) / 2.f;
-			fd->_left[i] = average;
-			_right[i] = average;
+		for (size_t i = 0, c = _fd->_left.size() ; i < c ; ++i) {
+			average = (_fd->_left[i] + _fd->_right[i]) / 2.f;
+			_fd->_left[i] = average;
+			_fd->_right[i] = average;
 		}
 	}
 	if (ok) {
@@ -522,6 +537,8 @@ bool Engine::load_song(const char *filename, bool prelimanarily)
 		puts("0can not open file");
 		fflush(stdout);
 	}
+	if (prelimanarily)
+		_fd = _fileDatas + _fileDataIndex;
 	return ok;
 }
 
@@ -530,7 +547,10 @@ void Engine::applyPreloaded()
 	std::lock_guard<std::mutex> lk(_audio_lock);
 
 	stop();
+	if (_capturing)
+		stop_recording(false);
 	_fileDataIndex = (_fileDataIndex + 1) % 2;
+	_fd = _fileDatas + _fileDataIndex;
 }
 
 void Engine::play()
@@ -565,7 +585,7 @@ bool Engine::save(const char *p_filepath)
 		// int			samplerate ;
 		static_cast<int>(_config->sample_rate()),
 		// int			channels ;
-		1, // _config->mono() ? 1 : _channelCount,
+		1, // _config->mono() ? 1 : _fd->_channelCount,
 		// int			format ;
 		SF_FORMAT_WAV | SF_FORMAT_FLOAT,
 		// int			sections ;
@@ -576,7 +596,7 @@ bool Engine::save(const char *p_filepath)
 	SNDFILE *outfile;
 	if (outfile = sf_open(p_filepath, SFM_WRITE, &sfinfo))
 	{
-		sf_count_t count = sf_write_float(outfile, &_left[0], _left.size());
+		sf_count_t count = sf_write_float(outfile, &_fd->_left[0], _fd->_left.size());
 		sf_write_sync(outfile);
 		sf_close(outfile);
 		if (!count)
@@ -597,27 +617,27 @@ bool Engine::save(const char *p_filepath)
 
 float Engine::get_position()
 {
-	if(_left.size() > 0) {
-		return float(_output_position) / _sample_rate;
+	if(_fd->_left.size() > 0) {
+		return float(_fd->_output_position) / _fd->_sample_rate;
 	}
 	return 0;
 }
 
 float Engine::get_length()
 {
-	if(_left.size() > 0) {
-		return float(_left.size()) / _sample_rate;
+	if(_fd->_left.size() > 0) {
+		return float(_fd->_left.size()) / _fd->_sample_rate;
 	}
 	return 0;
 }
 
 void Engine::locate(double secs)
 {
-	unsigned long pos = secs * _sample_rate;
 	std::lock_guard<std::mutex> lk(_audio_lock);
-	_output_position = _position = pos;
+	unsigned long pos = secs * _fd->_sample_rate;
+	_fd->_output_position = _fd->_position = pos;
 	_state_changed = true;
-	_stretcher.reset();
+	_fd->_stretcher.reset();
 }
 
 void Engine::start_recording(const unsigned long &startPos) {
@@ -634,14 +654,14 @@ void Engine::start_recording(const unsigned long &startPos) {
 	}
 	else
 	{
-		_startRecordPosition = startPos * _sample_rate / 1000;
-		_endRecordPosition = _left.size();
-
 		std::lock_guard<std::mutex> lk(_audio_lock);
-		_left2 = std::vector<float>(_left.begin(), _left.begin() + _startRecordPosition);
-		_right2 = std::vector<float>(_right.begin(), _right.begin() + _startRecordPosition);
-		_left3 = std::vector<float>(_left.begin() + _endRecordPosition, _left.end());
-		_right3 = std::vector<float>(_right.begin() + _endRecordPosition, _right.end());
+		_fd->_startRecordPosition = startPos * _fd->_sample_rate / 1000;
+		_fd->_endRecordPosition = _fd->_left.size();
+
+		_fd->_left2 = std::vector<float>(_fd->_left.begin(), _fd->_left.begin() + _fd->_startRecordPosition);
+		_fd->_right2 = std::vector<float>(_fd->_right.begin(), _fd->_right.begin() + _fd->_startRecordPosition);
+		_fd->_left3 = std::vector<float>(_fd->_left.begin() + _fd->_endRecordPosition, _fd->_left.end());
+		_fd->_right3 = std::vector<float>(_fd->_right.begin() + _fd->_endRecordPosition, _fd->_right.end());
 		_capturing = true;
 	}
 }
@@ -663,16 +683,15 @@ void Engine::start_recording(
 	}
 	else
 	{
-		_startRecordPosition = startPos * _sample_rate / 1000;
-		_endRecordPosition = stopPos * _sample_rate / 1000;
-
 		std::lock_guard<std::mutex> lk(_audio_lock);
-		_left2 = std::vector<float>(_left.begin(), _left.begin() + _startRecordPosition);
-		_right2 = std::vector<float>(_right.begin(), _right.begin() + _startRecordPosition);
-		_left3 = std::vector<float>(_left.begin() + _endRecordPosition, _left.end());
-		_right3 = std::vector<float>(_right.begin() + _endRecordPosition, _right.end());
-		_left3 = std::vector<float>(_left.begin() + _endRecordPosition, _left.end());
-		_right3 = std::vector<float>(_right.begin() + _endRecordPosition, _right.end());
+		_fd->_startRecordPosition = startPos * _fd->_sample_rate / 1000;
+		_fd->_endRecordPosition = stopPos * _fd->_sample_rate / 1000;
+		_fd->_left2 = std::vector<float>(_fd->_left.begin(), _fd->_left.begin() + _fd->_startRecordPosition);
+		_fd->_right2 = std::vector<float>(_fd->_right.begin(), _fd->_right.begin() + _fd->_startRecordPosition);
+		_fd->_left3 = std::vector<float>(_fd->_left.begin() + _fd->_endRecordPosition, _fd->_left.end());
+		_fd->_right3 = std::vector<float>(_fd->_right.begin() + _fd->_endRecordPosition, _fd->_right.end());
+		_fd->_left3 = std::vector<float>(_fd->_left.begin() + _fd->_endRecordPosition, _fd->_left.end());
+		_fd->_right3 = std::vector<float>(_fd->_right.begin() + _fd->_endRecordPosition, _fd->_right.end());
 		_capturing = true;
 	}
 }
@@ -686,13 +705,13 @@ void Engine::stop_recording(bool p_reflectChangesInFile) {
 
 	std::lock_guard<std::mutex> lk(_audio_lock);
 	if (p_reflectChangesInFile) {
-		_left = _left2;
-		_right = _right2;
-		_left.insert(_left.end(), _left3.begin(), _left3.end());
-		_right.insert(_right.end(), _right3.begin(), _right3.end());
+		_fd->_left = _fd->_left2; // boris e: use std::vector::swap instead
+		_fd->_right = _fd->_right2;
+		_fd->_left.insert(_fd->_left.end(), _fd->_left3.begin(), _fd->_left3.end());
+		_fd->_right.insert(_fd->_right.end(), _fd->_right3.begin(), _fd->_right3.end());
+		_fd->_changed = true;
 	}
 	_capturing = false;
-	_changed = true;
 }
 
 void Engine::_dispatch_message(const Engine::callback_seq_t& seq, const char *msg) const
@@ -726,7 +745,7 @@ float Engine::get_cpu_load()
 
 	audio_load = _audio_system->dsp_load();
 	if(_playing) {
-		worker_load = _stretcher.cpu_load();
+		worker_load = _fd->_stretcher.cpu_load();
 	} else {
 		worker_load = 0.0;
 	}

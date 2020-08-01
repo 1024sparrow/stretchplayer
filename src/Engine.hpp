@@ -54,7 +54,7 @@ public:
 	}
 	bool changed() const {
 		std::lock_guard<std::mutex> lk(_audio_lock);
-		return _changed;
+		return _fd->_changed;
 	}
 	bool save(const char *p_filepath);
 
@@ -150,8 +150,8 @@ private:
 
 	void _zero_buffers(uint32_t nframes);
 	void _process_playing(uint32_t nframes);
-	bool _load_song_using_libsndfile(const char *p_filename, bool prelimanarily);
-	bool _load_song_using_libmpg123(const char *filename, bool prelimanarily);
+	bool _load_song_using_libsndfile(const char *p_filename);
+	bool _load_song_using_libmpg123(const char *filename);
 
 	typedef std::set<EngineMessageCallback*> callback_seq_t;
 
@@ -167,46 +167,38 @@ private:
 
 	Configuration *_config;
 	bool _playing{false}, _capturing{false};
-	bool _hit_end;
-	bool _state_changed;
+	bool _hit_end; // boris e
+	bool _state_changed; // boris here: move to FileData
 	mutable std::mutex _audio_lock;
-	std::vector<float> // input data: candidate to push into stretcher
-		_left, _right,
-		_left2, _right2, // before captured with captured appended
-		_left3, _right3, // not modified part (tail)
-		_null
-	;
+
 	struct FileData
 	{
-		std::vector<float> _left;
-		std::vector<float> _right;
-		std::vector<float> _null;
+		std::vector<float> // input data: candidate to push into stretcher
+			_left, _right,
+			_left2, _right2, // before captured with captured appended
+			_left3, _right3, // not modified part (tail)
+			_null
+		;
 		int _channelCount{0}; // 1 for mono, 2 for stereo
-		size_t _position{0};
-		size_t _startRecordPosition{0};
-		size_t _endRecordPosition{0};
-		// boris here: _changed must be here too
+		size_t
+			_position{0},
+			_startRecordPosition{0},
+			_endRecordPosition{0},
+			_output_position{0} // Latency tracking
+		;
+		float _sample_rate{ 48000.0 };
+		RubberBandServer _stretcher;
+		bool _changed{false};
 	};
 	FileData _fileDatas[2];
 	int _fileDataIndex{0};
-	bool _changed{false};
-	int _channelCount; // 1 for mono, 2 for stereo
-	size_t
-		_position{0}, // for time of capturing this is recorded frame count
-		_startRecordPosition{0},
-		_endRecordPosition{0}
-	;
-	float _sample_rate;
+	FileData *_fd{_fileDatas};
+
 	float _stretch;
 	int _shift;
 	int _pitch;
 	float _gain;
-	//std::unique_ptr<RubberBandServer> _stretcher;
-	RubberBandServer _stretcher;
 	std::unique_ptr<AudioSystem> _audio_system;
-
-	/* Latency tracking */
-	unsigned long _output_position;
 
 	mutable std::mutex _callback_lock;
 	callback_seq_t _error_callbacks;

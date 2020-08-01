@@ -245,11 +245,12 @@ int main(int argc, char* argv[])
 		}
 		else if (c == 'f')
 		{
-			_engine->load_song(paramString, false);
+			//_engine->load_song(paramString, true);
+			_engine->load_song("/home/boris/da/mu/bng.mp3", true);//
 		}
 		else if (c == 'g')
 		{
-			//
+			_engine->applyPreloaded();
 		}
 		else
 		{
