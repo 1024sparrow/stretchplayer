@@ -131,46 +131,6 @@ public:
 	}
 
 private:
-	static int static_process_callback(uint32_t nframes, void* arg) {
-		Engine *e = static_cast<Engine*>(arg);
-		return e->process_callback(nframes);
-	}
-	static int static_process_capture_callback(uint32_t nframes, void* arg) {
-		Engine *e = static_cast<Engine*>(arg);
-		return e->process_callback_capture(nframes);
-	}
-	static int static_segment_size_callback(uint32_t nframes, void* arg) {
-		Engine *e = static_cast<Engine*>(arg);
-		return e->segment_size_callback(nframes);
-	}
-
-	int process_callback(uint32_t nframes);
-	int process_callback_capture(uint32_t nframes);
-	int segment_size_callback(uint32_t nframes);
-
-	void _zero_buffers(uint32_t nframes);
-	void _process_playing(uint32_t nframes);
-	bool _load_song_using_libsndfile(const char *p_filename);
-	bool _load_song_using_libmpg123(const char *filename);
-
-	typedef std::set<EngineMessageCallback*> callback_seq_t;
-
-	void _error(const char *msg) const {
-	_dispatch_message(_error_callbacks, msg);
-	}
-	void _message(const char *msg) const {
-	_dispatch_message(_message_callbacks, msg);
-	}
-	void _dispatch_message(const callback_seq_t& seq, const char *msg) const;
-	void _subscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
-	void _unsubscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
-
-	Configuration *_config;
-	bool _playing{false}, _capturing{false};
-	bool _hit_end; // boris e
-	bool _state_changed; // boris here: move to FileData
-	mutable std::mutex _audio_lock;
-
 	struct FileData
 	{
 		std::vector<float> // input data: candidate to push into stretcher
@@ -190,6 +150,47 @@ private:
 		RubberBandServer _stretcher;
 		bool _changed{false};
 	};
+
+	static int static_process_callback(uint32_t nframes, void* arg) {
+		Engine *e = static_cast<Engine*>(arg);
+		return e->process_callback(nframes);
+	}
+	static int static_process_capture_callback(uint32_t nframes, void* arg) {
+		Engine *e = static_cast<Engine*>(arg);
+		return e->process_callback_capture(nframes);
+	}
+	static int static_segment_size_callback(uint32_t nframes, void* arg) {
+		Engine *e = static_cast<Engine*>(arg);
+		return e->segment_size_callback(nframes);
+	}
+
+	int process_callback(uint32_t nframes);
+	int process_callback_capture(uint32_t nframes);
+	int segment_size_callback(uint32_t nframes);
+
+	void _zero_buffers(uint32_t nframes);
+	void _process_playing(uint32_t nframes);
+	bool _load_song_using_libsndfile(const char *p_filename, FileData *p_fileData);
+	bool _load_song_using_libmpg123(const char *filename, FileData *p_fileData);
+
+	typedef std::set<EngineMessageCallback*> callback_seq_t;
+
+	void _error(const char *msg) const {
+	_dispatch_message(_error_callbacks, msg);
+	}
+	void _message(const char *msg) const {
+	_dispatch_message(_message_callbacks, msg);
+	}
+	void _dispatch_message(const callback_seq_t& seq, const char *msg) const;
+	void _subscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
+	void _unsubscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
+
+	Configuration *_config;
+	bool _playing{false}, _capturing{false};
+	bool _hit_end; // boris e
+	bool _state_changed; // boris here: move to FileData
+	mutable std::mutex _audio_lock;
+
 	FileData _fileDatas[2];
 	int _fileDataIndex{0};
 	FileData *_fd{_fileDatas};
