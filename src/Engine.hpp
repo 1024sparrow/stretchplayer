@@ -147,7 +147,6 @@ private:
 			_output_position{0} // Latency tracking
 		;
 		float _sample_rate{ 48000.0 };
-		RubberBandServer _stretcher;
 		bool _changed{false};
 	};
 
@@ -190,6 +189,7 @@ private:
 	bool _hit_end; // boris e
 	bool _state_changed; // boris here: move to FileData
 	mutable std::mutex _audio_lock;
+	RubberBandServer _stretcher;
 
 	FileData _fileDatas[2];
 	int _fileDataIndex{0};

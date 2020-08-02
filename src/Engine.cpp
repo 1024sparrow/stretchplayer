@@ -64,12 +64,9 @@ Engine::Engine(Configuration *config)
 
 	uint32_t sample_rate = _audio_system->sample_rate();
 
-	for (int i = 0 ; i < 2 ; ++i) {
-		auto &stretcher = _fileDatas[i]._stretcher;
-		stretcher.setSampleRate(sample_rate);
-		stretcher.set_segment_size( _audio_system->current_segment_size() );
-		stretcher.start();
-	}
+	_stretcher.setSampleRate(sample_rate);
+	_stretcher.set_segment_size( _audio_system->current_segment_size() );
+	_stretcher.start();
 
 	if( _audio_system->activate(err) )
 		throw std::runtime_error(err);
@@ -79,11 +76,8 @@ Engine::~Engine()
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
 
-	for (int i = 0 ; i < 2 ; ++i) {
-		auto &stretcher = _fileDatas[i]._stretcher;
-		stretcher.go_idle();
-		stretcher.shutdown();
-	}
+	_stretcher.go_idle();
+	_stretcher.shutdown();
 
 	_audio_system->deactivate();
 	_audio_system->cleanup();
@@ -97,10 +91,7 @@ Engine::~Engine()
 		(*it)->_parent = 0;
 	}
 
-	for (int i = 0 ; i < 2 ; ++i) {
-		auto &stretcher = _fileDatas[i]._stretcher;
-		stretcher.wait();
-	}
+	_stretcher.wait();
 }
 
 void Engine::_zero_buffers(uint32_t nframes)
@@ -122,7 +113,7 @@ void Engine::_zero_buffers(uint32_t nframes)
 int Engine::segment_size_callback(uint32_t nframes)
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
-	_fd->_stretcher.set_segment_size(nframes);
+	_stretcher.set_segment_size(nframes);
 	return 0;
 }
 
@@ -155,12 +146,12 @@ int Engine::process_callback(uint32_t nframes)
 		locked = _audio_lock.try_lock();
 		if(_state_changed) {
 			_state_changed = false;
-			_fd->_stretcher.reset();
+			_stretcher.reset();
 			float left[64], right[64];
-			while( _fd->_stretcher.available_read() > 0 ) {
-				_fd->_stretcher.read_audio(left, right, 64);
+			while( _stretcher.available_read() > 0 ) {
+				_stretcher.read_audio(left, right, 64);
 			}
-			assert( 0 == _fd->_stretcher.available_read() );
+			assert( 0 == _stretcher.available_read() );
 			_fd->_position = _fd->_output_position;
 		}
 		if(locked) {
@@ -218,20 +209,20 @@ void Engine::_process_playing(uint32_t nframes)
 	uint32_t srate = _audio_system->sample_rate();
 	float time_ratio = srate / _fd->_sample_rate / _stretch;
 
-	_fd->_stretcher.time_ratio( time_ratio );
-	_fd->_stretcher.pitch_scale( ::pow(2.0, double( _pitch )/12.0) * _fd->_sample_rate / srate );
+	_stretcher.time_ratio( time_ratio );
+	_stretcher.pitch_scale( ::pow(2.0, double( _pitch )/12.0) * _fd->_sample_rate / srate );
 
 	uint32_t frame;
 	uint32_t reqd, gend, zeros, feed;
 
-	assert( _fd->_stretcher.is_running() );
+	assert( _stretcher.is_running() );
 
 	// Determine how much data to push into the stretcher
 	int32_t write_space, written, input_frames;
-	write_space = _fd->_stretcher.available_write();
-	written = _fd->_stretcher.written();
-	if (written < _fd->_stretcher.feed_block_min() && write_space >= _fd->_stretcher.feed_block_max() ) {
-		input_frames = _fd->_stretcher.feed_block_max();
+	write_space = _stretcher.available_write();
+	written = _stretcher.written();
+	if (written < _stretcher.feed_block_min() && write_space >= _stretcher.feed_block_max() ) {
+		input_frames = _stretcher.feed_block_max();
 	} else {
 		input_frames = 0;
 	}
@@ -265,17 +256,17 @@ void Engine::_process_playing(uint32_t nframes)
 				if (left.size() > (position + shiftInFrames))
 					cand = &right[position + shiftInFrames];
 
-				_fd->_stretcher.write_audio( &left[position], cand, feed );
+				_stretcher.write_audio( &left[position], cand, feed );
 			}
 			else {
 				// actual position at the right channel
 				if (left.size() > (position - shiftInFrames))
 					cand = &left[position - shiftInFrames];
-				_fd->_stretcher.write_audio( cand, &right[position], feed );
+				_stretcher.write_audio( cand, &right[position], feed );
 			}
 		}
 		else {
-			_fd->_stretcher.write_audio( &left[position], &right[position], feed );
+			_stretcher.write_audio( &left[position], &right[position], feed );
 		}
 		_fd->_position += feed;
 		assert( input_frames >= feed );
@@ -284,20 +275,20 @@ void Engine::_process_playing(uint32_t nframes)
 
 	// Pull generated data off the stretcher
 	uint32_t read_space;
-	read_space = _fd->_stretcher.available_read();
+	read_space = _stretcher.available_read();
 
 	if( read_space >= nframes ) {
-		_fd->_stretcher.read_audio(buf_L, buf_R, nframes);
+		_stretcher.read_audio(buf_L, buf_R, nframes);
 
 	} else if ( (read_space > 0) && _hit_end ) {
 		_zero_buffers(nframes);
-		_fd->_stretcher.read_audio(buf_L, buf_R, read_space);
+		_stretcher.read_audio(buf_L, buf_R, read_space);
 	} else {
 		_zero_buffers(nframes);
 	}
 
 	// Update our estimation of the output position.
-	unsigned n_feed_buf = _fd->_stretcher.latency();
+	unsigned n_feed_buf = _stretcher.latency();
 	if(_fd->_position > n_feed_buf) {
 		_fd->_output_position = _fd->_position - n_feed_buf;
 	} else {
@@ -326,11 +317,11 @@ void Engine::_process_playing(uint32_t nframes)
 		_playing = false;
 		printf("4%f\n", 1000. * get_position());
 		_fd->_position = 0;
-		_fd->_stretcher.reset();
+		_stretcher.reset();
 	}
 
 	// Wake up, lazybones!
-	_fd->_stretcher.nudge();
+	_stretcher.nudge();
 }
 
 /**
@@ -517,7 +508,9 @@ bool Engine::load_song(const char *filename, bool prelimanarily)
 	fd->_right.clear();
 	fd->_position = 0;
 	fd->_output_position = 0;
-	fd->_stretcher.reset();
+	if (!prelimanarily) {
+		_stretcher.reset();
+	}
 	bool ok = _load_song_using_libsndfile(filename, fd) || _load_song_using_libmpg123(filename, fd);
 	if (ok && fd->_channelCount > 1 && _config->mono()) {
 		float average = 0; // for mono option enabled and more then one channels
@@ -542,6 +535,7 @@ void Engine::applyPreloaded()
 {
 	std::lock_guard<std::mutex> lk(_audio_lock);
 
+	_stretcher.reset();
 	stop();
 	if (_capturing)
 		stop_recording(false);
@@ -633,7 +627,7 @@ void Engine::locate(double secs)
 	unsigned long pos = secs * _fd->_sample_rate;
 	_fd->_output_position = _fd->_position = pos;
 	_state_changed = true;
-	_fd->_stretcher.reset();
+	_stretcher.reset();
 }
 
 void Engine::start_recording(const unsigned long &startPos) {
@@ -741,7 +735,7 @@ float Engine::get_cpu_load()
 
 	audio_load = _audio_system->dsp_load();
 	if(_playing) {
-		worker_load = _fd->_stretcher.cpu_load();
+		worker_load = _stretcher.cpu_load();
 	} else {
 		worker_load = 0.0;
 	}
