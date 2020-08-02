@@ -195,9 +195,7 @@ static void apply_gain_to_buffer(float *buf, uint32_t frames, float gain);
 
 void Engine::_process_playing(uint32_t nframes)
 {
-	//boris here:
-	//  * Падает, если врубаем запись (где-то в нвчале), в то время как сейчас играет (где-то уже после начала записи)
-	//Далее:
+	//boris here: Далее:
 	//  FakeAudioDevice (впоследствии будет переименовано в PipefilesAudioDevice) - запись и чтение в pipe-файлы. Отлаживаться в связке с WebSsh (там надо воспроизводить звук, считанный сервером с указанных при запуске pipe-файлов (при запуске указывается шаблон, по которому для каждого пользователя и каждого IP цели вычисляются имена для pipe-файлов)).
 
 	// MUTEX MUST ALREADY BE LOCKED
@@ -205,6 +203,10 @@ void Engine::_process_playing(uint32_t nframes)
 		*buf_L = _audio_system->output_buffer(0),
 		*buf_R = _audio_system->output_buffer(1)
 	;
+	if (_capturing) {
+		stop();
+		_stretcher.reset();
+	}
 
 	uint32_t srate = _audio_system->sample_rate();
 	float time_ratio = srate / _fd->_sample_rate / _stretch;
@@ -695,7 +697,7 @@ void Engine::stop_recording(bool p_reflectChangesInFile) {
 
 	std::lock_guard<std::mutex> lk(_audio_lock);
 	if (p_reflectChangesInFile) {
-		_fd->_left = _fd->_left2; // boris e: use std::vector::swap instead
+		_fd->_left = _fd->_left2;
 		_fd->_right = _fd->_right2;
 		_fd->_left.insert(_fd->_left.end(), _fd->_left3.begin(), _fd->_left3.end());
 		_fd->_right.insert(_fd->_right.end(), _fd->_right3.begin(), _fd->_right3.end());
