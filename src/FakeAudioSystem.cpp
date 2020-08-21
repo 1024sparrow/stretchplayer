@@ -27,7 +27,7 @@ namespace StretchPlayer
 	}
 
 	int FakeAudioSystem::init(const char *app_name, Configuration *config, char *err_msg){
-		const char *configFilepath = getenv("AUDIO_PIPE_CONFIG");
+		const char *configFilepath = getenv("AUDIO_PIPE_CONFIG"); // boris here: читаем только один раз!!
 		const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
 		const char *captureFilepath = getenv("AUDIO_PIPE_CAPTURE");
 		//puts(playbackFilepath);
