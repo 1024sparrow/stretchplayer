@@ -34,6 +34,7 @@ namespace StretchPlayer
 	uint32_t current_segment_size() override;
 
 	private:
+	int _fdConfig, _fdPlayback, _fdCapture;
 	process_callback_t _cbPlayback, _cbCapture;
 	void *_callback_arg;
 	float *_left, *_right;

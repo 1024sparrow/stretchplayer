@@ -1,15 +1,23 @@
 #include "FakeAudioSystem.hpp"
 
 #include <cassert>
+#include <cstdlib>
+#include <stdio.h>//boris debug
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
 
 namespace StretchPlayer
 {
 
-	FakeAudioSystem::FakeAudioSystem():
-	_left(0),
-	_right(0),
-	_sample_rate(44100),
-	_period_nframes(512)
+	FakeAudioSystem::FakeAudioSystem()
+		: _left(0)
+		, _right(0)
+		, _sample_rate(44100)
+		, _period_nframes(512)
+		, _fdPlayback(0)
+		, _fdCapture(0)
 	{
 	}
 
@@ -19,9 +27,68 @@ namespace StretchPlayer
 	}
 
 	int FakeAudioSystem::init(const char *app_name, Configuration *config, char *err_msg){
+		const char *configFilepath = getenv("AUDIO_PIPE_CONFIG");
+		const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
+		const char *captureFilepath = getenv("AUDIO_PIPE_CAPTURE");
+		//puts(playbackFilepath);
+		//printf("++ %i, %s\n", playbackFilepath, playbackFilepath);
+		if (!configFilepath) {
+			if (err_msg) {
+				strcat(err_msg, "environment variable AUDIO_PIPE_CONFIG not set");
+			}
+			goto init_bail;
+		}
+		if ((_fdConfig = open(configFilepath, O_ASYNC | O_NONBLOCK, O_RDONLY)) <= 0){
+			if (err_msg) {
+				strcat(err_msg, "can not open file '");
+				strcat(err_msg, configFilepath);
+				strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_CONFIG)");
+			}
+			goto init_bail;
+		}
+		if (playbackFilepath){
+			if ((_fdPlayback = open(playbackFilepath, O_ASYNC | O_NONBLOCK, O_WRONLY)) <= 0){
+				if (err_msg) {
+					strcat(err_msg, "can not open file '");
+					strcat(err_msg, playbackFilepath);
+					strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
+				}
+				goto init_bail;
+			}
+//			struct timeval timeout;
+//			fd_set set;
+//			int rv;
+//			int fdSocket = worker->socket->fdSocket;
+//			FD_ZERO(&set);
+//			FD_SET(fdSocket, &set);
+//			timeout.tv_sec = 0;
+//			timeout.tv_usec = 500;
+//			rv = select(fdSocket + 1, &set, NULL, NULL, &timeout);
+//			// в Linux-е timeout разынициализуется после select-а
+//			if (rv < 0) // ошибка чтения. Например, разрыв соединения
+//			{
+//				//
+//			}
+
+		}
+		if (captureFilepath){
+			if ((_fdCapture = open(captureFilepath, O_ASYNC | O_NONBLOCK, O_WRONLY)) <= 0){
+				if (err_msg) {
+					strcat(err_msg, "can not open file '");
+					strcat(err_msg, captureFilepath);
+					strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
+				}
+				goto init_bail;
+			}
+		}
+
 		_left = new float[_period_nframes];
 		_right = new float[_period_nframes];
 		return 0;
+
+	init_bail:
+		cleanup();
+		return 0xDEADBEEF;
 	}
 
 	void FakeAudioSystem::cleanup(){

@@ -60,7 +60,7 @@ namespace StretchPlayer
 			"F",
 			{"fake", 0, 0, 'F'},
 			"off",
-			"use fake audio device: i.e. playing but without sound"
+			"use fake audio device: i.e. playing but without sound (set environment variables AUDIO_PIPE_PLAYBACK and AUDIO_PIPE_CAPTURE to playback or/and capture respectively to/from given fifo-file path; set environment variable AUDIO_PIPE_CONFIG)"
 		},
 	#ifdef AUDIO_SUPPORT_JACK
 		{
