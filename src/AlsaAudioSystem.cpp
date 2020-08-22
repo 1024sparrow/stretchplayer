@@ -68,7 +68,7 @@ namespace StretchPlayer
 {
 
 inline bool not_aligned_16(void* ptr) {
-return (reinterpret_cast<uintptr_t>(ptr) & 0x0F);
+	return (reinterpret_cast<uintptr_t>(ptr) & 0x0F);
 }
 
 AlsaAudioSystem::AlsaAudioSystem() :

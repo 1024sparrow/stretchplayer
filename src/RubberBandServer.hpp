@@ -34,14 +34,15 @@ namespace RubberBand
 
 namespace StretchPlayer
 {
-	/**
-	 * \brief A RubberBandStretcher object contained in its own thread.
-	 *
-	 * This is designed for a stereo setup only.
-	 */
-	class RubberBandServer
-	{
-	public:
+
+/**
+ * \brief A RubberBandStretcher object contained in its own thread.
+ *
+ * This is designed for a stereo setup only.
+ */
+class RubberBandServer
+{
+public:
 	typedef Tritium::RingBuffer<float> ringbuffer_t;
 
 	RubberBandServer();
@@ -77,13 +78,14 @@ namespace StretchPlayer
 	uint32_t read_audio(float* left, float* right, uint32_t count);
 	float cpu_load() const;
 
-	private:
+private:
 	virtual void run();
 	void _process();
 	void _update_cpu_load();
 
-	private:
+private:
 	friend class RubberBandServerFunc;
+
 	std::thread t;
 	bool _running;
 	std::unique_ptr< RubberBand::RubberBandStretcher > _stretcher;
@@ -102,7 +104,7 @@ namespace StretchPlayer
 	float _time_ratio_param;
 	float _pitch_scale_param;
 	bool _reset_param;
-	};
+};
 
 } // namespace StretchPlayer
 

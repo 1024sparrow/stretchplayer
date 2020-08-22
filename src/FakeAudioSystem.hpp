@@ -1,12 +1,59 @@
+/*
+ * Copyright(c) 2020 by Boris Pavlovich Vasilyev <1024sparrow@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
+/*
+
+Протокол:
+Читаем
+	- частоту дискретизации
+	- количество каналов
+	- запрос на число отсчётов
+	- (записанные данные)
+
+	- playback_request.fifo:
+		* WAV-заголовок (с указанием частоты дискретизации и количества каналов)
+		* количество сэмплов, которые надо отослать (запрос)
+	- capture.fifo:
+		* WAV-заголовок
+		* записанные данные
+Пишем
+	- данные на воспроизведение
+	- (запрос на записанные данные)
+
+	- capture_request.fifo:
+		* количество сэмплов, которые жду (запрос).
+	- playback.fifo:
+		* WAV-заголовок
+		* данные на воспроизведение
+*/
 #pragma once
 
 #include <AudioSystem.hpp>
+#include <thread>
+#include <mutex>
 
 namespace StretchPlayer
 {
-	class FakeAudioSystem : public AudioSystem
-	{
-	public:
+\
+class FakeAudioSystem : public AudioSystem
+{
+public:
 	FakeAudioSystem();
 	~FakeAudioSystem() override;
 	int init(const char *app_name, Configuration *config, char *err_msg = 0) override;
@@ -33,13 +80,22 @@ namespace StretchPlayer
 	uint32_t segment_start_time_stamp() override;
 	uint32_t current_segment_size() override;
 
-	private:
+private:
+	void _runConfig();
+	void _runPlayback();
+	void _runCapture();
+
+private:
+	mutable std::mutex _mutexPlayback, _mutexCapture;
 	int _fdConfig, _fdPlayback, _fdCapture;
 	process_callback_t _cbPlayback, _cbCapture;
 	void *_callback_arg;
 	float *_left, *_right;
 	uint32_t _sample_rate;
 	uint32_t _period_nframes;
-	};
+	bool _active;
+	std::thread _tConfig, _tPlayback, _tCapture;
+	bool _playbackDebug;
+};
 
 } // namespace StretchPlayer
