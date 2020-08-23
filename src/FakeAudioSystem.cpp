@@ -28,6 +28,8 @@
 #include <string.h>
 #include <unistd.h> // read
 
+#define debug_profiling printf("--> %s: %i <--\n", __FILE__, __LINE__)
+
 const int CONST_CONFIG_TIMEOUT = 5000;
 
 namespace StretchPlayer
@@ -53,8 +55,8 @@ FakeAudioSystem::~FakeAudioSystem()
 int FakeAudioSystem::init(const char *app_name, Configuration *config, char *err_msg)
 {
 //	const char *configFilepath = getenv("AUDIO_PIPE_CONFIG"); // boris here: читаем только один раз!!
-//	const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
-	const char *captureFilepath = getenv("AUDIO_PIPE_CAPTURE");
+	const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
+//	const char *captureFilepath = getenv("AUDIO_PIPE_CAPTURE");
 //	if (!configFilepath)
 //	{
 //		if (err_msg)
@@ -103,16 +105,16 @@ int FakeAudioSystem::init(const char *app_name, Configuration *config, char *err
 ////		}
 
 //	}
-	if (captureFilepath){
-		if ((_fdCapture = open(captureFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY)) <= 0){
-			if (err_msg) {
-				strcat(err_msg, "can not open file '");
-				strcat(err_msg, captureFilepath);
-				strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
-			}
-			goto init_bail;
-		}
-	}
+//	if (captureFilepath){
+//		if ((_fdCapture = open(captureFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY)) <= 0){
+//			if (err_msg) {
+//				strcat(err_msg, "can not open file '");
+//				strcat(err_msg, captureFilepath);
+//				strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
+//			}
+//			goto init_bail;
+//		}
+//	}
 
 	_sample_rate = config->sample_rate();
 	_period_nframes = config->period_size();
@@ -156,9 +158,9 @@ int FakeAudioSystem::set_segment_size_callback(segment_size_callback_t cb, void*
 int FakeAudioSystem::activate(char *err_msg)
 {
 	_active = true;
-	_tConfig = std::thread(&FakeAudioSystem::_runConfig, this);
-	_tConfig.detach();
-	if (_fdPlayback)
+//	_tConfig = std::thread(&FakeAudioSystem::_runConfig, this);
+//	_tConfig.detach();
+//	if (_fdPlayback)
 	{
 		_tPlayback = std::thread(&FakeAudioSystem::_runPlayback, this);
 		_tPlayback.detach();
@@ -174,8 +176,8 @@ int FakeAudioSystem::activate(char *err_msg)
 int FakeAudioSystem::deactivate(char *err_msg)
 {
 	_active = false;
-	if (_tConfig.joinable())
-		_tConfig.join();
+//	if (_tConfig.joinable())
+//		_tConfig.join();
 	if (_tPlayback.joinable())
 		_tPlayback.join();
 	if (_tCapture.joinable())
@@ -302,56 +304,99 @@ void FakeAudioSystem::_runConfig()
 
 void FakeAudioSystem::_runPlayback()
 {
-	while (_active)
+	const char *filepathRequest = getenv("AUDIO_PIPE_PLAYBACK_REQUEST");
+	if (!filepathRequest)
 	{
-		//
+		debug_profiling;
+		return;
 	}
-
-	return;
-	const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
-	if (playbackFilepath){
-		puts("if (playbackFilepath){");
-		puts(playbackFilepath);
-		_fdPlayback = open(playbackFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY);
-		//if ((_fdPlayback = open(playbackFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY)) <= 0){
-		if (_fdPlayback <= 0){
-//			if (err_msg) {
-//				strcat(err_msg, "can not open file '");
-//				strcat(err_msg, playbackFilepath);
-//				strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
-//			}
-//			goto init_bail;
-		}
-		printf("_fdPlayback: %i\n", _fdPlayback);
+	const char *filepath = getenv("AUDIO_PIPE_PLAYBACK");
+	if (!filepath)
+	{
+		debug_profiling;
+		return;
 	}
-
+	puts("11");
+	//if ((_fdPlaybackRequest = open(filepathRequest, /*O_ASYNC |*/ /*O_NONBLOCK*/0, O_RDONLY)) <= 0)
+	if ((_fdPlaybackRequest = open(filepathRequest, O_RDONLY)) <= 0)
+	{
+		debug_profiling;
+		return;
+	}
+	puts("22");
+	if ((_fdPlayback = open(filepath, O_WRONLY)) <= 0)
+	{
+		debug_profiling;
+		return;
+	}
+	puts("33");
 	char buffer[1024];
+
 	while (_active)
 	{
-		int readCount = read(_fdConfig, buffer, 1024);
+		int playbackRequest = 0;
+		int readCount = read(_fdPlaybackRequest, buffer, 1024);
 		if (readCount < 0)
 		{
-			//puts("1111 ERROR");
-			perror("1111 ERROR");
+			perror("_fdPlaybackRequest read error");
 		}
-		if (readCount > 0)
+		else if (readCount > 0)
 		{
-			printf("read %i bytes\n", readCount);
-			if (_playbackDebug)
-			{
-				if (_fdPlayback)
-				{
-//					readCount = write(_fdPlayback, buffer, 2);
-					readCount = write(_fdPlayback, "hello\n", 7);
-					if (readCount < 0)
-					{
-						perror("2222 ERROR");
-					}
-					printf("wrtitten %i bytes\n", readCount);
-				}
-			}
+			playbackRequest = atoi(buffer);
+			printf("88: %i\n", playbackRequest);
+		}
+
+		if (playbackRequest > 0)
+		{
+			//
 		}
 	}
+
+	// ==============================================================
+//	const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
+//	if (playbackFilepath){
+//		puts("if (playbackFilepath){");
+//		puts(playbackFilepath);
+//		_fdPlayback = open(playbackFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY);
+//		//if ((_fdPlayback = open(playbackFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY)) <= 0){
+//		if (_fdPlayback <= 0){
+////			if (err_msg) {
+////				strcat(err_msg, "can not open file '");
+////				strcat(err_msg, playbackFilepath);
+////				strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
+////			}
+////			goto init_bail;
+//		}
+//		printf("_fdPlayback: %i\n", _fdPlayback);
+//	}
+
+//	char buffer[1024];
+//	while (_active)
+//	{
+//		int readCount = read(_fdConfig, buffer, 1024);
+//		if (readCount < 0)
+//		{
+//			//puts("1111 ERROR");
+//			perror("1111 ERROR");
+//		}
+//		if (readCount > 0)
+//		{
+//			printf("read %i bytes\n", readCount);
+//			if (_playbackDebug)
+//			{
+//				if (_fdPlayback)
+//				{
+////					readCount = write(_fdPlayback, buffer, 2);
+//					readCount = write(_fdPlayback, "hello\n", 7);
+//					if (readCount < 0)
+//					{
+//						perror("2222 ERROR");
+//					}
+//					printf("wrtitten %i bytes\n", readCount);
+//				}
+//			}
+//		}
+//	}
 }
 
 void FakeAudioSystem::_runCapture()

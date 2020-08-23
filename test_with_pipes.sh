@@ -2,7 +2,7 @@
 
 pushd build
 
-AUDIO_PIPE_CONFIG=boris_config.fifo \
+AUDIO_PIPE_PLAYBACK_REQUEST=boris_playback_request.fifo \
 AUDIO_PIPE_PLAYBACK=boris_playback.fifo \
  src/stretchplayer-cli -F
 

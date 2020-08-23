@@ -21,11 +21,6 @@
 
 Протокол:
 Читаем
-	- частоту дискретизации
-	- количество каналов
-	- запрос на число отсчётов
-	- (записанные данные)
-
 	- playback_request.fifo:
 		* WAV-заголовок (с указанием частоты дискретизации и количества каналов)
 		* количество сэмплов, которые надо отослать (запрос)
@@ -33,9 +28,6 @@
 		* WAV-заголовок
 		* записанные данные
 Пишем
-	- данные на воспроизведение
-	- (запрос на записанные данные)
-
 	- capture_request.fifo:
 		* количество сэмплов, которые жду (запрос).
 	- playback.fifo:
@@ -87,7 +79,7 @@ private:
 
 private:
 	mutable std::mutex _mutexPlayback, _mutexCapture;
-	int _fdConfig, _fdPlayback, _fdCapture;
+	int _fdConfig, _fdPlayback, _fdPlaybackRequest, _fdCapture;
 	process_callback_t _cbPlayback, _cbCapture;
 	void *_callback_arg;
 	float *_left, *_right;
