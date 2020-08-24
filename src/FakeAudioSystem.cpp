@@ -340,15 +340,34 @@ void FakeAudioSystem::_runPlayback()
 		{
 			perror("_fdPlaybackRequest read error");
 		}
-		else if (readCount > 0)
-		{
-			playbackRequest = atoi(buffer);
-			printf("88: %i\n", playbackRequest);
-		}
+//		else if (readCount > 0)
+//		{
+//			playbackRequest = atoi(buffer);
+//			printf("88: %i\n", playbackRequest);
+//		}
 
-		if (playbackRequest > 0)
+		if (readCount > 0)
 		{
-			//
+			// copy from _left and _right to _fdPlayback
+			write(_fdPlayback, "744", 4);
+			bool wavHeader = false;
+			printf("-- %i --\n", readCount);
+			if (readCount == 44)
+			{
+				if (!strncmp(buffer, "RIFF", 4) && !strncmp(buffer + 8, "WAVEfmt ", 8))
+				{
+					wavHeader = true;
+
+					uint16_t numberOfChannels = buffer[22];
+					uint32_t sampleRate = buffer[24] + (buffer[25] << 8) + (buffer[26] << 16) + (buffer[27] << 24);
+					printf(":: number of channels: %i ::\n", numberOfChannels);
+					printf(":: sample rate: %i ::\n", sampleRate);
+				}
+			}
+			else
+			{
+				playbackRequest = atoi(buffer);
+			}
 		}
 	}
 

@@ -59,6 +59,9 @@ LIST(APPEND sp_cpp
   jack_memops.c
   bams_format.c
   RubberBandServer.cpp
+  WAVE/RIFFFile.cpp
+  WAVE/WAVE.cpp
+  WAVE/WavCat/RIFFFile.cpp
   )
 
 LIST(APPEND sp_hpp
