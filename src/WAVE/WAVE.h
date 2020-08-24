@@ -27,51 +27,51 @@ public:
 	bool Close();
 
 	unsigned short GetFormatType() const
-		{ return formatType; };
+		{ return formatType; }
 	void SetFormatType(unsigned short type)
-		{ formatType = type; changed = true; };
+		{ formatType = type; changed = true; }
 	bool IsCompressed() const
-		{ return formatType != 1; };
+		{ return formatType != 1; }
 
 	unsigned short GetNumChannels() const
-		{ return numChannels; };
+		{ return numChannels; }
 	void SetNumChannels(unsigned short num)
-		{ numChannels = num; changed = true; };
+		{ numChannels = num; changed = true; }
 
 	unsigned long GetSampleRate() const
-		{ return sampleRate; };
+		{ return sampleRate; }
 	void SetSampleRate(unsigned long rate)
-		{ sampleRate = rate; changed = true; };
+		{ sampleRate = rate; changed = true; }
 
 	unsigned long GetBytesPerSecond() const
-		{ return bytesPerSecond; };
+		{ return bytesPerSecond; }
 	void SetBytesPerSecond(unsigned long bytes)
-		{ bytesPerSecond = bytes; changed = true; };
+		{ bytesPerSecond = bytes; changed = true; }
 
 	unsigned short GetBytesPerSample() const
-		{ return bytesPerSample; };
+		{ return bytesPerSample; }
 	void SetBytesPerSample(unsigned short bytes)
-		{ bytesPerSample = bytes; changed = true; };
+		{ bytesPerSample = bytes; changed = true; }
 
 	unsigned short GetBitsPerChannel() const
-		{ return bitsPerChannel; };
+		{ return bitsPerChannel; }
 	void SetBitsPerChannel(unsigned short bits)
-		{ bitsPerChannel = bits; changed = true; };
+		{ bitsPerChannel = bits; changed = true; }
 
 	unsigned long GetNumSamples() const
 		{ return (GetBytesPerSample())?
-			GetDataLength() / GetBytesPerSample(): 0; };
+			GetDataLength() / GetBytesPerSample(): 0; }
 	void SetNumSamples(unsigned long num)
-		{ SetDataLength(num * GetBytesPerSample()); };
+		{ SetDataLength(num * GetBytesPerSample()); }
 
 	float GetNumSeconds() const
 		{ return GetBytesPerSecond()?
-			float(GetDataLength()) / GetBytesPerSecond(): 0; };
+			float(GetDataLength()) / GetBytesPerSecond(): 0; }
 
 	unsigned long GetDataLength() const
-		{ return dataLength; };
+		{ return dataLength; }
 	void SetDataLength(unsigned long numBytes)
-		{ dataLength = numBytes; changed = true; };
+		{ dataLength = numBytes; changed = true; }
 
 	bool FormatMatches(const WaveFile& other);
 
@@ -80,10 +80,10 @@ public:
 	void SetupFormat(int sampleRate = 44100, short bitsPerChannel = 16, short channels = 1);
 
 	FILE* GetFile()
-		{ return readFile? readFile->filep(): writeFile; };
+		{ return readFile? readFile->filep(): writeFile; }
 
 	RiffFile* GetRiffFile()
-		{ return readFile? readFile : 0; };
+		{ return readFile? readFile : 0; }
 
 	bool WriteHeaderToFile(FILE* fp);
 
@@ -110,9 +110,9 @@ public:
 	bool CopyFrom(WaveFile& other);
 
 	const char* GetError() const
-		{ return error; };
+		{ return error; }
 	void ClearError()
-		{ error = 0; };
+		{ error = 0; }
 
 protected:
 	RiffFile* readFile;

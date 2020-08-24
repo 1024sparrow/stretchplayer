@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <stdio.h>
+#include <string.h>
 
 /***************************************************************************
 	macros, constants, and enums
@@ -30,16 +31,17 @@ public:
 	// initialize at the file's current read position, and mark the file as bad
 	// if there's an error.
 	RiffChunk()
-		{};
+		{}
 	RiffChunk(RiffFile& file);
 
 	bool operator < (const RiffChunk& other) const
-		{ return start < other.start; };
+		{ return start < other.start; }
 	bool operator == (const RiffChunk& other) const
 	{ return strcmp(name, other.name) == 0
 		&& size == other.size
 		&& strcmp(subType, other.subType) == 0
-		&& start == other.start; };
+		&& start == other.start;
+	}
 };
 
 class RiffFile {
@@ -61,7 +63,7 @@ public:
 	const char* subType() const;
 	bool getNextExtraItem(std::string& type, std::string& value);
 	FILE* filep()
-		{ return fp; };
+		{ return fp; }
 
 protected:
 	bool readExtraItem(std::string& type, std::string& value);

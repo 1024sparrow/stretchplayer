@@ -61,7 +61,6 @@ LIST(APPEND sp_cpp
   RubberBandServer.cpp
   WAVE/RIFFFile.cpp
   WAVE/WAVE.cpp
-  WAVE/WavCat/RIFFFile.cpp
   )
 
 LIST(APPEND sp_hpp

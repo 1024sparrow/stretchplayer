@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-#include "rifffile.h"
+#include "RIFFFile.h"
 
 /***************************************************************************
 	macros and constants
