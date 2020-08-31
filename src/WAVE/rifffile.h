@@ -23,7 +23,7 @@ class RiffFile;
 class RiffChunk {
 public:
 	char name[5];
-	unsigned long size;  // the length, read from the second chunk header entry
+	uint32_t size;  // the length, read from the second chunk header entry
 	char subType[5];  // valid for RIFF and LIST chunks
 	long start;  // the file offset in bytes of the chunk contents
 	long after;  // the start of what comes after this chunk
@@ -52,7 +52,7 @@ class RiffFile {
 	std::stack<RiffChunk, std::vector<RiffChunk> > chunks;
 
 public:
-	RiffFile(const char *name);
+	RiffFile(FILE* p_fp);
 	~RiffFile();
 
 	bool rewind();

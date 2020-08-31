@@ -59,7 +59,7 @@ LIST(APPEND sp_cpp
   jack_memops.c
   bams_format.c
   RubberBandServer.cpp
-  WAVE/RIFFFile.cpp
+  WAVE/rifffile.cpp
   WAVE/WAVE.cpp
   )
 

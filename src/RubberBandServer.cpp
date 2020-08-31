@@ -67,7 +67,7 @@ RubberBandServer::~RubberBandServer()
 
 void RubberBandServer::operator ()()
 {
-	//printf("running...");
+	//puts("running...");
 	run();
 }
 

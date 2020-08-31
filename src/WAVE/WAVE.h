@@ -21,7 +21,7 @@ public:
 	WaveFile();
 	~WaveFile();
 
-	bool OpenRead(const char* name);
+	bool OpenRead(FILE *file);
 	bool OpenWrite(const char* name);
 	bool ResetToStart();
 	bool Close();
@@ -118,13 +118,13 @@ protected:
 	RiffFile* readFile;
 	FILE* writeFile;
 
-	unsigned short formatType;
-	unsigned short numChannels;
-	unsigned long sampleRate;
-	unsigned long bytesPerSecond;
-	unsigned short bytesPerSample;
-	unsigned short bitsPerChannel;
-	unsigned long dataLength;
+	uint16_t formatType;
+	uint16_t numChannels;
+	uint32_t sampleRate;
+	uint32_t bytesPerSecond;
+	uint16_t bytesPerSample;
+	uint16_t bitsPerChannel;
+	uint32_t dataLength;
 
 	const char* error;
 	bool changed;  // true if any parameters changed since the header was last written

@@ -18,6 +18,7 @@
  */
 #include "FakeAudioSystem.hpp"
 #include "Configuration.hpp"
+#include "WAVE/WAVE.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -318,58 +319,131 @@ void FakeAudioSystem::_runPlayback()
 	}
 	puts("11");
 	//if ((_fdPlaybackRequest = open(filepathRequest, /*O_ASYNC |*/ /*O_NONBLOCK*/0, O_RDONLY)) <= 0)
-	if ((_fdPlaybackRequest = open(filepathRequest, O_RDONLY)) <= 0)
-	{
-		debug_profiling;
-		return;
-	}
 	puts("22");
-	if ((_fdPlayback = open(filepath, O_WRONLY)) <= 0)
-	{
-		debug_profiling;
-		return;
-	}
+//	if ((_fdPlayback = open(filepath, O_WRONLY)) <= 0)
+//	{
+//		debug_profiling;
+//		return;
+//	}
 	puts("33");
-	char buffer[1024];
+	char buffer[1024000];
+
+	FILE *tmpFile = std::tmpfile();
+	//FILE *tmpFile = fopen("/home/boris/2.wav", "wb");
+	long int byteCounter = 0;
 
 	while (_active)
 	{
+//		{
+//			WaveFile wf;
+//			if (!wf.OpenRead(filepathRequest))
+//			{
+//				perror("can not open playuback request file");
+//			}
+//			unsigned long sr = wf.GetSampleRate();
+//			printf("** sample rate: %lu\n", sr);
+//		}
+		if ((_fdPlaybackRequest = open(filepathRequest, O_RDONLY)) <= 0)
+		{
+			debug_profiling;
+			return;
+		}
+
 		int playbackRequest = 0;
 		int readCount = read(_fdPlaybackRequest, buffer, 1024);
 		if (readCount < 0)
 		{
 			perror("_fdPlaybackRequest read error");
 		}
-//		else if (readCount > 0)
-//		{
-//			playbackRequest = atoi(buffer);
-//			printf("88: %i\n", playbackRequest);
-//		}
 
 		if (readCount > 0)
 		{
-			// copy from _left and _right to _fdPlayback
-			write(_fdPlayback, "744", 4);
-			bool wavHeader = false;
-			printf("-- %i --\n", readCount);
-			if (readCount == 44)
+			if (byteCounter == 0)
 			{
-				if (!strncmp(buffer, "RIFF", 4) && !strncmp(buffer + 8, "WAVEfmt ", 8))
+				if (readCount >= 40)
 				{
-					wavHeader = true;
-
-					uint16_t numberOfChannels = buffer[22];
-					uint32_t sampleRate = buffer[24] + (buffer[25] << 8) + (buffer[26] << 16) + (buffer[27] << 24);
-					printf(":: number of channels: %i ::\n", numberOfChannels);
-					printf(":: sample rate: %i ::\n", sampleRate);
+					if (!strncmp(buffer, "RIFF", 4) && !strncmp(buffer + 8, "WAVEfmt ", 8))
+					{
+						byteCounter = buffer[4] + (buffer[5] << 8) + (buffer[6] << 16) + (buffer[7] << 24);
+					}
+				}
+				else
+				{
+					// читаем количество сэмплов, которые надо отослать
+					puts(buffer);
 				}
 			}
-			else
+			if (byteCounter > 0)
 			{
-				playbackRequest = atoi(buffer);
+				byteCounter -= readCount;
+				if (byteCounter > 0)
+				{
+					//tmpFile->
+					fwrite(buffer, 1, readCount, tmpFile);
+					fflush(tmpFile);
+				}
+				else
+				{
+					puts("I got this!");
+					byteCounter = 0;
+
+//					WaveFile wf;
+//					if (!wf.OpenRead(tmpFile))
+//					{
+//						perror("can not open playuback request file");
+//					}
+//					unsigned long sr = wf.GetSampleRate();
+//					printf("** sample rate: %lu\n", sr);
+				}
 			}
+
+//			// copy from _left and _right to _fdPlayback
+//			write(_fdPlayback, "744", 4);//
+//			bool wavHeader = false;
+
+////			WaveFile wf;
+////			if (!wf.OpenRead(buffer, readCount))
+////			{
+////				puts("ERROR 1");
+////			}
+
+//			printf("-- %i --\n", readCount);
+//			if (readCount == 44)
+//			{
+//				if (!strncmp(buffer, "RIFF", 4) && !strncmp(buffer + 8, "WAVEfmt ", 8))
+//				{
+//					wavHeader = true;
+
+//					uint16_t numberOfChannels = buffer[22];
+//					uint32_t sampleRate = buffer[24] + (buffer[25] << 8) + (buffer[26] << 16) + (buffer[27] << 24);
+//					printf(":: number of channels: %i ::\n", numberOfChannels);
+//					printf(":: sample rate: %i ::\n", sampleRate);
+//				}
+//			}
+//			else
+//			{
+//				playbackRequest = atoi(buffer);
+//			}
 		}
+		else if (readCount == 0)
+		{
+			puts("00000000000000000000000000");
+			// закончили читать
+			WaveFile wf;
+			if (!wf.OpenRead(tmpFile))
+			{
+				perror("can not open playuback request file");
+			}
+			unsigned long sr = wf.GetSampleRate();
+			printf("** sample rate: %lu\n", sr);
+		}
+		else if (readCount < 0)
+		{
+			puts("-------"); // epic fail
+		}
+		close(_fdPlaybackRequest);
 	}
+	fclose(tmpFile);
 
 	// ==============================================================
 //	const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");

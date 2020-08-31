@@ -61,14 +61,14 @@ WaveFile::~WaveFile()
 	Close();
 }
 
-bool WaveFile::OpenRead(const char* name)
+bool WaveFile::OpenRead(FILE *file)
 {
 	if (readFile || writeFile)
 		Close();
 
 	try {
 		// open the RIFF file
-		readFile = new RiffFile(name);
+		readFile = new RiffFile(file);
 		if (!readFile->filep())
 			throw error = "Couldn't open file";
 
@@ -76,13 +76,17 @@ bool WaveFile::OpenRead(const char* name)
 		if (strcmp(readFile->chunkName(), "RIFF")
 			|| strcmp(readFile->subType(), "WAVE")
 			|| !readFile->push("fmt "))
+		{
 			throw error = "Couldn't find RIFF, WAVE, or fmt";
+		}
 
 		size_t dwFmtSize = size_t(readFile->chunkSize());
 		char* fmtChunk = new char[dwFmtSize];
 		try {
 			if (fread(fmtChunk, dwFmtSize, 1, readFile->filep()) != 1)
+			{
 				throw error = "Error reading format chunk";
+			}
 			readFile->pop();
 
 			// set the format attribute members

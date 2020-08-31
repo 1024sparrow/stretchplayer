@@ -79,6 +79,10 @@ private:
 
 private:
 	mutable std::mutex _mutexPlayback, _mutexCapture;
+	struct {
+		//
+	} _requestForPlayback;
+
 	int _fdConfig, _fdPlayback, _fdPlaybackRequest, _fdCapture;
 	process_callback_t _cbPlayback, _cbCapture;
 	void *_callback_arg;

@@ -13,14 +13,15 @@ using namespace std;
 	macros and constants
 ***************************************************************************/
 
+//#define REVERSE_ENDIANISM // boris e: move this option to CMake
 // define REVERSE_ENDIANISM if the endianism of the host platform is not Intel
 // (Intel is little-endian)
 #ifdef REVERSE_ENDIANISM
  #define SWAP_32(int32) (  \
-	((((DWORD) int32) & 0x000000FFL) << 24) +  \
-	((((DWORD) int32) & 0x0000FF00L) << 8) +  \
-	((((DWORD) int32) & 0x00FF0000L) >> 8) +  \
-	((((DWORD) int32) & 0xFF000000L) >> 24))
+	((((uint32_t) int32) & 0x000000FFL) << 24) +  \
+	((((uint32_t) int32) & 0x0000FF00L) << 8) +  \
+	((((uint32_t) int32) & 0x00FF0000L) >> 8) +  \
+	((((uint32_t) int32) & 0xFF000000L) >> 24))
 #endif
 
 struct TypeRecord {
@@ -72,8 +73,8 @@ const TypeRecord extraTypes[numExtraTypes] = {
 	member functions for RiffFile
 ***************************************************************************/
 
-RiffFile::RiffFile(const char *name):
-	fp(fopen(name, "rb"))
+RiffFile::RiffFile(FILE *p_fp):
+	fp(p_fp)
 {
 	if (fp && !rewind()) {
 		fclose(fp);
@@ -171,9 +172,10 @@ long RiffFile::chunkSize() const
 const char* RiffFile::chunkName() const
 {
 	if (!chunks.empty())
+	{
 		return chunks.top().name;
-	else
-		return 0;
+	}
+	return 0;
 }
 
 const char* RiffFile::subType() const

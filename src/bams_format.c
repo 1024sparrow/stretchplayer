@@ -155,11 +155,10 @@ bams_copy_floatle_s16le(
 ){
 	assert(src_stride == 1);
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-	//printf("******\n");
 	sample_move_sS_d16(dst, src, count, dst_stride, 0);
 #else
 	// not implemented
-	printf("not implemented\n");
+	puts("not implemented");
 #endif
 }
 
