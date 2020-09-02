@@ -163,12 +163,12 @@ int FakeAudioSystem::activate(char *err_msg)
 //	_tConfig.detach();
 //	if (_fdPlayback)
 	{
-		_tPlayback = std::thread(&FakeAudioSystem::_runPlayback, this);
+		_tPlayback = std::thread(&FakeAudioSystem::_runPlaybackRead, this);
 		_tPlayback.detach();
 	}
 	if (_fdCapture)
 	{
-		_tCapture = std::thread(&FakeAudioSystem::_runCapture, this);
+		_tCapture = std::thread(&FakeAudioSystem::_runCaptureRead, this);
 		_tCapture.detach();
 	}
 	return 0;
@@ -303,7 +303,7 @@ void FakeAudioSystem::_runConfig()
 	}
 }
 
-void FakeAudioSystem::_runPlayback()
+void FakeAudioSystem::_runPlaybackRead()
 {
 	const char *filepathRequest = getenv("AUDIO_PIPE_PLAYBACK_REQUEST");
 	if (!filepathRequest)
@@ -326,7 +326,9 @@ void FakeAudioSystem::_runPlayback()
 //		return;
 //	}
 	puts("33");
-	char buffer[1024000];
+
+	const size_t bufferSize = 1024;
+	char buffer[bufferSize];
 
 	FILE *tmpFile = std::tmpfile();
 	//FILE *tmpFile = fopen("/home/boris/2.wav", "wb");
@@ -386,56 +388,61 @@ void FakeAudioSystem::_runPlayback()
 				{
 					puts("I got this!");
 					byteCounter = 0;
-
-//					WaveFile wf;
-//					if (!wf.OpenRead(tmpFile))
-//					{
-//						perror("can not open playuback request file");
-//					}
-//					unsigned long sr = wf.GetSampleRate();
-//					printf("** sample rate: %lu\n", sr);
 				}
 			}
-
-//			// copy from _left and _right to _fdPlayback
-//			write(_fdPlayback, "744", 4);//
-//			bool wavHeader = false;
-
-////			WaveFile wf;
-////			if (!wf.OpenRead(buffer, readCount))
-////			{
-////				puts("ERROR 1");
-////			}
-
-//			printf("-- %i --\n", readCount);
-//			if (readCount == 44)
-//			{
-//				if (!strncmp(buffer, "RIFF", 4) && !strncmp(buffer + 8, "WAVEfmt ", 8))
-//				{
-//					wavHeader = true;
-
-//					uint16_t numberOfChannels = buffer[22];
-//					uint32_t sampleRate = buffer[24] + (buffer[25] << 8) + (buffer[26] << 16) + (buffer[27] << 24);
-//					printf(":: number of channels: %i ::\n", numberOfChannels);
-//					printf(":: sample rate: %i ::\n", sampleRate);
-//				}
-//			}
-//			else
-//			{
-//				playbackRequest = atoi(buffer);
-//			}
 		}
 		else if (readCount == 0)
 		{
 			puts("00000000000000000000000000");
 			// закончили читать
-			WaveFile wf;
-			if (!wf.OpenRead(tmpFile))
+
+			//FILE *fPlayback = fopen(filepath, "wb");
+			FILE *fPlaybackTmp = std::tmpfile();
+			if (!fPlaybackTmp)
 			{
-				perror("can not open playuback request file");
+				perror("can not open tmp-file to write playback data");
+				continue;
 			}
-			unsigned long sr = wf.GetSampleRate();
-			printf("** sample rate: %lu\n", sr);
+
+			WaveFile wfPlayback;
+			{
+				WaveFile wfCapture;
+				if (!wfCapture.OpenRead(tmpFile))
+				{
+					perror("can not open playuback request file");
+				}
+				unsigned long sr = wfCapture.GetSampleRate();
+				printf("** sample rate: %lu\n", sr);
+				// boris here: читаем записанный звук в _left и _right.
+
+				// boris here: по клонированного заголовку пишем _left и _right в WAV-файл.
+				wfPlayback.CopyFormatFrom(wfCapture);
+				if (!wfPlayback.OpenWrite(fPlaybackTmp)) // boris here
+				{
+					perror("can not open tmp-file to write WAV-header");
+					continue;
+				}
+
+				//-----------------------------
+				wfPlayback.CopyFrom(wfCapture);
+				//=============================
+			}
+			//fclose(tmpFile);
+			//tmpFile = std::tmpfile();
+
+			if ((_fdPlayback = open(filepath, O_WRONLY)) <= 0)
+			{
+				perror("can not open pipe-file to write playback data");
+				continue;
+			}
+			debug_profiling;
+			fseek(fPlaybackTmp, 0, SEEK_SET);
+			while ((readCount = fread(buffer, 1, bufferSize, fPlaybackTmp) )> 0)
+			{
+				debug_profiling;
+				write(_fdPlayback, buffer, readCount);
+			}
+			close(_fdPlayback);
 		}
 		else if (readCount < 0)
 		{
@@ -492,7 +499,17 @@ void FakeAudioSystem::_runPlayback()
 //	}
 }
 
-void FakeAudioSystem::_runCapture()
+void FakeAudioSystem::_runCaptureRead()
+{
+	//
+}
+
+void FakeAudioSystem::_runPlaybackWrite()
+{
+	//
+}
+
+void FakeAudioSystem::_runCaptureWrite()
 {
 	//
 }

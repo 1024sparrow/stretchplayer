@@ -33,6 +33,10 @@
 	- playback.fifo:
 		* WAV-заголовок
 		* данные на воспроизведение
+
+
+Читаем Wav-заголовок с данными (capture).
+Пишем Wav-заголовок (копия входного) с данными (playback).
 */
 #pragma once
 
@@ -74,8 +78,10 @@ public:
 
 private:
 	void _runConfig();
-	void _runPlayback();
-	void _runCapture();
+	void _runPlaybackRead();
+	void _runCaptureRead();
+	void _runPlaybackWrite();
+	void _runCaptureWrite();
 
 private:
 	mutable std::mutex _mutexPlayback, _mutexCapture;

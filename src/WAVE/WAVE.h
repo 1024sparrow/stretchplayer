@@ -22,7 +22,7 @@ public:
 	~WaveFile();
 
 	bool OpenRead(FILE *file);
-	bool OpenWrite(const char* name);
+	bool OpenWrite(FILE *file);
 	bool ResetToStart();
 	bool Close();
 

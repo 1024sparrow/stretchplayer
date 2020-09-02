@@ -116,13 +116,13 @@ bool WaveFile::OpenRead(FILE *file)
 	return true;
 }
 
-bool WaveFile::OpenWrite(const char* name)
+bool WaveFile::OpenWrite(FILE *file)
 {
 	if (readFile || writeFile)
 		Close();
 
 	// open the file
-	writeFile = fopen(name, "wb");
+	writeFile = file; // fopen(file, "wb");
 	if (!writeFile) {
 		error = "Couldn't open output file";
 		return false;
