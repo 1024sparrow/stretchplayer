@@ -332,7 +332,7 @@ void FakeAudioSystem::_runPlaybackRead()
 
 	FILE *tmpFile = std::tmpfile();
 	//FILE *tmpFile = fopen("/home/boris/2.wav", "wb");
-	long int byteCounter = 0;
+	size_t byteCounter = 0;
 
 	while (_active)
 	{
@@ -386,7 +386,7 @@ void FakeAudioSystem::_runPlaybackRead()
 				}
 				else
 				{
-					puts("I got this!");
+					printf("I got this! %lu\n", byteCounter);
 					byteCounter = 0;
 				}
 			}
@@ -397,7 +397,8 @@ void FakeAudioSystem::_runPlaybackRead()
 			// закончили читать
 
 			//FILE *fPlayback = fopen(filepath, "wb");
-			FILE *fPlaybackTmp = std::tmpfile();
+			FILE *fPlaybackTmp = std::tmpfile(); // boris commented
+			//FILE *fPlaybackTmp = fopen("/home/boris/00902.wav", "wb");//
 			if (!fPlaybackTmp)
 			{
 				perror("can not open tmp-file to write playback data");
@@ -416,20 +417,37 @@ void FakeAudioSystem::_runPlaybackRead()
 				// boris here: читаем записанный звук в _left и _right.
 
 				// boris here: по клонированного заголовку пишем _left и _right в WAV-файл.
-				wfPlayback.CopyFormatFrom(wfCapture);
+//				wfPlayback.CopyFormatFrom(wfCapture);
 				if (!wfPlayback.OpenWrite(fPlaybackTmp)) // boris here
 				{
 					perror("can not open tmp-file to write WAV-header");
 					continue;
 				}
+				wfPlayback.CopyFormatFrom(wfCapture);//
 
 				//-----------------------------
-				wfPlayback.CopyFrom(wfCapture);
+				if (!wfPlayback.CopyFrom(wfCapture))
+				{
+					perror("can not copy");
+				}
+
+				wfPlayback.SetNumSamples(wfCapture.GetNumSamples() * 2);
+				for (size_t i = 0; i < wfCapture.GetNumSamples(); i++) {
+					float sample = 50;
+					wfCapture.ReadSample(sample);
+					if (!wfPlayback.WriteSample(sample))
+					{
+						perror ("can not write sample");
+						break;
+					}
+				}
 				//=============================
 			}
+
 			//fclose(tmpFile);
 			//tmpFile = std::tmpfile();
 
+			debug_profiling;
 			if ((_fdPlayback = open(filepath, O_WRONLY)) <= 0)
 			{
 				perror("can not open pipe-file to write playback data");
@@ -440,6 +458,7 @@ void FakeAudioSystem::_runPlaybackRead()
 			while ((readCount = fread(buffer, 1, bufferSize, fPlaybackTmp) )> 0)
 			{
 				debug_profiling;
+				printf("##>%i\n", readCount);
 				write(_fdPlayback, buffer, readCount);
 			}
 			close(_fdPlayback);

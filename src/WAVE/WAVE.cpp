@@ -229,9 +229,11 @@ bool WaveFile::CopyFrom(WaveFile& other)
 
 	if (!writeFile) {
 		error = "Copy to an unopened file";
+		puts(error);
 		return false;
 	} else if (!other.readFile) {
 		error = "Copy from an unopened file";
+		puts(error);
 		return false;
 	}
 
@@ -250,7 +252,8 @@ bool WaveFile::CopyFrom(WaveFile& other)
 					size_t(other.dataLength - bytesRead));
 
 				// read the buffer
-				if (fread(transferBuffer, 1, bytesToRead, other.readFile->filep())
+				printf("-- %s: %lu\n", __FUNCTION__, bytesToRead);
+				if (fread(transferBuffer, 1, bytesToRead, other.readFile->filep()) // <-- boris here
 					!= bytesToRead)
 					throw error = "Error reading samples from input file";
 				bytesRead += bytesToRead;
@@ -269,6 +272,7 @@ bool WaveFile::CopyFrom(WaveFile& other)
 			throw error;
 		}
 	} catch (...) {
+		puts(error);
 		return false;
 	}
 
