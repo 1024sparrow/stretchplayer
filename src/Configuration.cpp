@@ -62,6 +62,12 @@ namespace StretchPlayer
 			"off",
 			"use fake audio device: i.e. playing but without sound (set environment variables AUDIO_PIPE_PLAYBACK and AUDIO_PIPE_CAPTURE to playback or/and capture respectively to/from given fifo-file path; set environment variable AUDIO_PIPE_CONFIG)"
 		},
+		{
+			"c",
+			{"config", 0, 0, 'c'},
+			"there is not default value",
+			"path to config file (for fake-device mode)"
+		},
 	#ifdef AUDIO_SUPPORT_JACK
 		{
 			"J",
@@ -469,6 +475,7 @@ namespace StretchPlayer
 	help(false);
 	mono(false);
 	sound_recording(false);
+	configFilePath(nullptr);
 
 	bool bad = false;
 	int i, c;
@@ -491,6 +498,8 @@ namespace StretchPlayer
 		case 'A':
 			driver(AlsaDriver);
 			break;
+		case 'c':
+			// boris here
 		case 'd':
 			audio_device(optarg);
 			break;
