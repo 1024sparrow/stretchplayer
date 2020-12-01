@@ -21,6 +21,8 @@
 
 #include <cassert>
 
+#include "PipesConf.hpp"
+
 namespace StretchPlayer
 {
 
@@ -98,7 +100,7 @@ public:
 	Property<int>      shift; // positive - right ahead (left has actual timing), negative - left ahead (right has actual timing). In seconds.
 	Property<int>      stretch; // in percents
 	Property<int>      pitch; // from -12 to 12, frequency shift
-	Property<const char *> configFilePath;
+	Property<PipesConf> pipesConfig;
 
 private:
 	void init(int argc, char* argv[]);

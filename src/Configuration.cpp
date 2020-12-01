@@ -19,6 +19,7 @@
 
 #include "Configuration.hpp"
 #include "config.h"
+#include "PipesConfParser.hpp"
 #include <getopt.h>
 #include <iostream>
 #include <cstdlib>
@@ -475,10 +476,11 @@ namespace StretchPlayer
 	help(false);
 	mono(false);
 	sound_recording(false);
-	configFilePath(nullptr);
+	pipesConfig(PipesConf());
 
 	bool bad = false;
 	int i, c;
+	PipesConfParser pipesConfParser;
 
 	if(argc && argv) {
 		while(1) {
@@ -499,7 +501,11 @@ namespace StretchPlayer
 			driver(AlsaDriver);
 			break;
 		case 'c':
-			// boris here
+			if (pipesConfParser.parse(optarg))
+			{
+				pipesConfig(pipesConfParser.result());
+			}
+			break;
 		case 'd':
 			audio_device(optarg);
 			break;

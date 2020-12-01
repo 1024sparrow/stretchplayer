@@ -86,7 +86,10 @@ IF( ALSA_FOUND )
 ENDIF( ALSA_FOUND )
 
 LIST(APPEND sp_cpp FakeAudioSystem.cpp)
-LIST(APPEND sp_cpp FakeAudioSystem.hpp)
+LIST(APPEND sp_hpp FakeAudioSystem.hpp)
+LIST(APPEND sp_hpp PipesConf.hpp)
+LIST(APPEND sp_hpp PipesConfParser.hpp)
+LIST(APPEND sp_cpp PipesConfParser.cpp)
 
 INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}
