@@ -25,6 +25,10 @@ private:
 			Init,
 			IntoGlobalObject,
 			KeyStarting,
+			KeyValueSeparator,
+			ValuePlayback,
+			ValueCapture,
+			ValueRemote,
 
 			Finished
 		} s {S::Init};

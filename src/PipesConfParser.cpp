@@ -17,6 +17,16 @@ bool isWhitespaceSymbol(char byte)
 		return true;
 	return false;
 }
+bool isFilenameSymbol(char byte)
+{
+	if (byte >= ',' && byte <= '9')
+		return true;
+	if (byte >= 'A' && byte <= 'Z')
+		return true;
+	if (byte >= 'a' && byte <= 'z')
+		return true;
+	return false;
+}
 
 namespace StretchPlayer
 {
@@ -71,7 +81,6 @@ bool PipesConfParser::parseTick(char byte)
 			_state.s = State::S::IntoGlobalObject;
 		else
 			return false;
-		return true;
 	}
 	else if (_state.s == State::S::IntoGlobalObject)
 	{
@@ -83,12 +92,54 @@ bool PipesConfParser::parseTick(char byte)
 		}
 		else
 			return false;
-		return true;
 	}
 	else if (_state.s == State::S::KeyStarting)
 	{
-		if (byte >= ) // boris here
+		if (byte == '"')
+		{
+			_state.s = State::S::KeyValueSeparator;
+		}
+		else if (isFilenameSymbol(byte))
+		{
+			_state.key.append(1, byte);
+		}
+		else
+		{
+			return false;
+		}
 	}
+	else if (_state.s == State::S::KeyValueSeparator)
+	{
+		if (isWhitespaceSymbol(byte))
+			;
+		else if (byte == ':')
+		{
+			if (_state.key == "playback")
+				_state.s = State::S::ValuePlaybackStarting;
+			else if (_state.key == "capture")
+				_state.s = State::S::ValueCaptureStarting;
+			else if (_state.key == "remote")
+				_state.s = State::S::ValueRemote;
+			else
+				return false;
+		}
+		else
+			return false;
+	}
+	// boris here
+	else if (_state.s == State::S::ValuePlaybackStarting)
+	{
+		//
+	}
+	else if (_state.s == State::S::ValueCaptureStarting)
+	{
+		//
+	}
+	else if (_state.s == State::S::ValueRemote)
+	{
+		//
+	}
+	return true;
 }
 
 } // namespace StretchPlayer
