@@ -26,13 +26,22 @@ private:
 			IntoGlobalObject,
 			KeyStarting,
 			KeyValueSeparator,
+			ValuePlaybackStarting,
+			ValueCaptureStarting,
+			ValueRemote,
 			ValuePlayback,
 			ValueCapture,
-			ValueRemote,
+			ValuePlaybackTilda,
+			ValueCaptureTilda,
+			ValuePlaybackDollar,
+			ValueCaptureDollar,
+			ValueFinished,
 
 			Finished
 		} s {S::Init};
 		std::string key;
+		std::string value;
+		int counter;
 	} _state;
 };
 

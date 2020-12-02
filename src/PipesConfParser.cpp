@@ -101,7 +101,7 @@ bool PipesConfParser::parseTick(char byte)
 		}
 		else if (isFilenameSymbol(byte))
 		{
-			_state.key.append(1, byte);
+			_state.key.push_back(byte);
 		}
 		else
 		{
@@ -126,19 +126,119 @@ bool PipesConfParser::parseTick(char byte)
 		else
 			return false;
 	}
-	// boris here
 	else if (_state.s == State::S::ValuePlaybackStarting)
 	{
-		//
+		if (byte == '"')
+		{
+			_state.s = State::S::ValuePlayback;
+			_state.value.clear();
+		}
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return false;
 	}
 	else if (_state.s == State::S::ValueCaptureStarting)
 	{
-		//
+		if (byte == '"')
+		{
+			_state.s = State::S::ValueCapture;
+			_state.value.clear();
+		}
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return false;
 	}
 	else if (_state.s == State::S::ValueRemote)
 	{
 		//
 	}
+	else if (_state.s == State::S::ValuePlayback)
+	{
+		if (byte == '"')
+		{
+			// boris here: save value
+			//_pipesConf.playback = _state.key;
+			_state.s = State::S::ValueFinished;
+		}
+		else if (isFilenameSymbol(byte))
+		{
+			_state.value.push_back(byte);
+		}
+		else if (byte == '~' && _state.value.size() == 0)
+		{
+			_state.s = State::S::ValuePlaybackTilda;
+		}
+		else if (byte == '$')
+		{
+			_state.s = State::S::ValuePlaybackDollar;
+		}
+	}
+	else if (_state.s == State::S::ValueCapture)
+	{
+		//
+	}
+	else if (_state.s == State::S::ValuePlaybackTilda)
+	{
+		if (byte == '"')
+		{
+			// boris here: save value
+			_state.s = State::S::ValueFinished;
+		}
+		else if (byte == '/')
+		{
+			_state.value.append("/home/boris/");
+			_state.s = State::S::ValuePlayback;
+		}
+		else if (isFilenameSymbol(byte))
+		{
+			_state.value.push_back('~');
+			_state.value.push_back(byte);
+		}
+		else if (byte == '$')
+		{
+			_state.value.push_back('~');
+			_state.s = State::S::ValuePlaybackDollar;
+		}
+	}
+	else if (_state.s == State::S::ValueCaptureTilda)
+	{
+		//
+	}
+	else if (_state.s == State::S::ValuePlaybackDollar)
+	{
+		if (true) // boris here: check for "{user}" using _s.counter. По успешном окончании выставляем состояние ValuePlayback
+		{
+			;
+		}
+		else
+			return false;
+	}
+	else if (_state.s == State::S::ValueCaptureDollar)
+	{
+		//
+	}
+	else if (_state.s == State::S::ValueFinished)
+	{
+		if (_state.key == "playback")
+		{
+			_pipesConf.playback = _state.value;
+		}
+		else if (_state.key == "capture")
+		{
+			_pipesConf.capture = _state.value;
+		}
+		else if (_state.key == "remote")
+		{
+			//
+		}
+		else
+		{
+			return false;
+		}
+	}
+	//
 	return true;
 }
 
