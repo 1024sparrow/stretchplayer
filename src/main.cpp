@@ -33,7 +33,9 @@
 
 int main(int argc, char* argv[])
 {
-	StretchPlayer::Configuration config(argc, argv);
+	StretchPlayer::Configuration config;
+	if (!config.init(argc, argv))
+		return 1;
 
 	if(config.help() || ( !config.ok() )) {
 	config.usage();

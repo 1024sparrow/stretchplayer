@@ -78,8 +78,9 @@ class Configuration
 public:
 	typedef enum { JackDriver = 1, AlsaDriver = 2, FakeAudioDriver = 3 } driver_t;
 
-	Configuration(int argc, char* argv[]);
+	Configuration();
 	~Configuration();
+	bool init(int argc, char* argv[]);
 
 	void copyright();
 	void usage();
@@ -103,7 +104,6 @@ public:
 	Property<PipesConf> pipesConfig;
 
 private:
-	void init(int argc, char* argv[]);
 
 }; // class Configuration
 

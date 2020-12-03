@@ -11,11 +11,21 @@ class PipesConfParser
 {
 public:
 	PipesConfParser();
-	bool parse(const char *filepath);
+	int parse(const char *filepath);
+	static const char * error(int errorCode);
 	const PipesConf & result() const;
 private:
+	enum class Error
+	{
+		NoError = 0,
+		SystaxError,
+
+		CanNotOpenFile,
+		IncompleteFile,
+		__Count
+	};
 	void initParse();
-	bool parseTick(char byte);
+	Error parseTick(char byte);
 
 	PipesConf _pipesConf;
 	struct State

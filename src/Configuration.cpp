@@ -64,8 +64,8 @@ namespace StretchPlayer
 			"use fake audio device: i.e. playing but without sound (set environment variables AUDIO_PIPE_PLAYBACK and AUDIO_PIPE_CAPTURE to playback or/and capture respectively to/from given fifo-file path; set environment variable AUDIO_PIPE_CONFIG)"
 		},
 		{
-			"c",
-			{"config", 0, 0, 'c'},
+			"c:",
+			{"config", 1, 0, 'c'},
 			"there is not default value",
 			"path to config file (for fake-device mode)"
 		},
@@ -395,7 +395,7 @@ namespace StretchPlayer
 	}
 	}
 
-	Configuration::Configuration(int argc, char* argv[]) :
+	Configuration::Configuration() :
 		version(this, STRETCHPLAYER_VERSION),
 		ok(this, false),
 		driver(JackDriver), // actually set in init()
@@ -407,10 +407,6 @@ namespace StretchPlayer
 		pitch(0),
 		startup_file(0)
 	{
-		clarify_defaults();
-		setup_options();
-		check_options_validity();
-		init(argc, argv);
 	}
 
 	Configuration::~Configuration()
@@ -454,117 +450,126 @@ namespace StretchPlayer
 		cout << endl;
 	}
 
-	void Configuration::init(int argc, char* argv[])
+	bool Configuration::init(int argc, char* argv[])
 	{
-#if defined( AUDIO_SUPPORT_JACK )
-	driver = JackDriver;
-#elif defined( AUDIO_SUPPORT_ALSA )
-	driver = AlsaDriver;
-#else
-#error "Must have support for at least ONE audio API"
-#endif
-	audio_device( defaultDeviceName );
-	sample_rate( atoi(DEFAULT_SAMPLE_RATE) );
-	period_size( atoi(DEFAULT_PERIOD_SIZE) );
-	periods_per_buffer( atoi(DEFAULT_PERIODS_PER_BUFFER) );
-	shift( atoi(DEFAULT_SHIFT) );
-	stretch( atoi(DEFAULT_STRETCH) );
-	pitch( atoi(DEFAULT_PITCH) );
-	startup_file( 0 );
-	autoconnect(true);
-	quiet(false);
-	help(false);
-	mono(false);
-	sound_recording(false);
-	pipesConfig(PipesConf());
+		clarify_defaults();
+		setup_options();
+		check_options_validity();
 
-	bool bad = false;
-	int i, c;
-	PipesConfParser pipesConfParser;
+	#if defined( AUDIO_SUPPORT_JACK )
+		driver = JackDriver;
+	#elif defined( AUDIO_SUPPORT_ALSA )
+		driver = AlsaDriver;
+	#else
+	#error "Must have support for at least ONE audio API"
+	#endif
+		audio_device( defaultDeviceName );
+		sample_rate( atoi(DEFAULT_SAMPLE_RATE) );
+		period_size( atoi(DEFAULT_PERIOD_SIZE) );
+		periods_per_buffer( atoi(DEFAULT_PERIODS_PER_BUFFER) );
+		shift( atoi(DEFAULT_SHIFT) );
+		stretch( atoi(DEFAULT_STRETCH) );
+		pitch( atoi(DEFAULT_PITCH) );
+		startup_file( 0 );
+		autoconnect(true);
+		quiet(false);
+		help(false);
+		mono(false);
+		sound_recording(false);
+		pipesConfig(PipesConf());
 
-	if(argc && argv) {
-		while(1) {
-		c = getopt_long(argc, argv, optstring, longopts, 0);
+		bool bad = false;
+		int i, c;
+		PipesConfParser pipesConfParser;
 
-		if(c == -1)
-			break;
+		if(argc && argv) {
+			while(1) {
+			c = getopt_long(argc, argv, optstring, longopts, 0);
 
-		switch(c)
-		{
-		case 'F':
-			driver(FakeAudioDriver);
-			break;
-		case 'J':
-			driver(JackDriver);
-			break;
-		case 'A':
-			driver(AlsaDriver);
-			break;
-		case 'c':
-			if (pipesConfParser.parse(optarg))
+			if(c == -1)
+				break;
+
+			switch(c)
 			{
+			case 'F':
+				driver(FakeAudioDriver);
+				break;
+			case 'J':
+				driver(JackDriver);
+				break;
+			case 'A':
+				driver(AlsaDriver);
+				break;
+			case 'c':
+				if (int error = pipesConfParser.parse(optarg))
+				{
+					printf("Pipes configuration file error: %s\n", PipesConfParser::error(error));
+					return false;
+				}
 				pipesConfig(pipesConfParser.result());
-			}
-			break;
-		case 'd':
-			audio_device(optarg);
-			break;
-		case 'r':
-			sample_rate( atoi(optarg) );
-			break;
-		case 'p':
-			period_size( atoi(optarg) );
-			break;
-		case 'n':
-			periods_per_buffer( atoi(optarg) );
-			break;
-		case 's':
-			i = atoi(optarg);
-			shift( i );
-			if ( i )
+				break;
+			case 'd':
+				audio_device(optarg);
+				break;
+			case 'r':
+				sample_rate( atoi(optarg) );
+				break;
+			case 'p':
+				period_size( atoi(optarg) );
+				break;
+			case 'n':
+				periods_per_buffer( atoi(optarg) );
+				break;
+			case 's':
+				i = atoi(optarg);
+				shift( i );
+				if ( i )
+					mono(true);
+				break;
+			case 'S':
+				stretch( atoi(optarg) );
+				break;
+			case 'P':
+				pitch( atoi(optarg) );
+				break;
+			case 'x':
+				autoconnect(false);
+				break;
+			case 'q':
+				quiet(true);
+				break;
+			case 'h':
+				help(true);
+				break;
+			case 'm':
 				mono(true);
-			break;
-		case 'S':
-			stretch( atoi(optarg) );
-			break;
-		case 'P':
-			pitch( atoi(optarg) );
-			break;
-		case 'x':
-			autoconnect(false);
-			break;
-		case 'q':
-			quiet(true);
-			break;
-		case 'h':
-			help(true);
-			break;
-		case 'm':
-			mono(true);
-			break;
-		case 'M':
-			sound_recording(true);
-			break;
-		default:
-			bad = true;
+				break;
+			case 'M':
+				sound_recording(true);
+				break;
+			default:
+				bad = true;
+			}
+			}
 		}
+
+		int o = optind;
+		for( o=optind ; o < argc; ++o ) {
+			startup_file( argv[o] );
 		}
-	}
 
-	int o = optind;
-	for( o=optind ; o < argc; ++o ) {
-		startup_file( argv[o] );
-	}
+		// Check if setup is sane.
+		if( driver() == AlsaDriver ) {
+			if( sample_rate() == 0 ) bad = true;
+			if( audio_device() == "" ) bad = true;
+			if( period_size() == 0 ) bad = true;
+			if( periods_per_buffer() == 0 ) bad = true;
+		}
 
-	// Check if setup is sane.
-	if( driver() == AlsaDriver ) {
-		if( sample_rate() == 0 ) bad = true;
-		if( audio_device() == "" ) bad = true;
-		if( period_size() == 0 ) bad = true;
-		if( periods_per_buffer() == 0 ) bad = true;
-	}
+		if( !bad )
+			ok.set(this, true);
 
-	if( !bad ) ok.set(this, true);
+		return true;
 	}
 
 
