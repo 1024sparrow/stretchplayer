@@ -89,7 +89,7 @@ int PipesConfParser::parse(const char *filepath)
 	{
 		return static_cast<int>(Error::IncompleteFile);
 	}
-	puts("ok");//
+	puts("Pipes configuration file parsed successfully");//
 	return 0;
 }
 
@@ -114,7 +114,7 @@ void PipesConfParser::initParse()
 
 PipesConfParser::Error PipesConfParser::parseTick(char byte)
 {
-	printf("%c\t%s\n", byte, State::str(_state.s));
+//	printf("%c\t%s\n", byte, State::str(_state.s));
 
 	if (_state.s == State::S::Init)
 	{
@@ -271,7 +271,27 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 	}
 	else if (_state.s == State::S::ValueCaptureTilda)
 	{
-		//
+		if (byte == '"')
+		{
+			// boris here: save value
+			_state.s = State::S::ValueFinished;
+		}
+		else if (byte == '/')
+		{
+			_state.value.append(getenv("HOME"));
+			_state.value.push_back('/');
+			_state.s = State::S::ValueCapture;
+		}
+		else if (isFilenameSymbol(byte))
+		{
+			_state.value.push_back('~');
+			_state.value.push_back(byte);
+		}
+		else if (byte == '$')
+		{
+			_state.value.push_back('~');
+			_state.s = State::S::ValueCaptureDollar;
+		}
 	}
 	else if (_state.s == State::S::ValuePlaybackDollar)
 	{
@@ -288,23 +308,34 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 	}
 	else if (_state.s == State::S::ValueCaptureDollar)
 	{
-		//
+		if (_state.counter < USER_MARK_LEN && byte == USER_MARK[_state.counter])
+			;
+		else
+			return Error::SystaxError;
+
+		if (++_state.counter == USER_MARK_LEN)
+		{
+			_state.value.append(getenv("USER"));
+			_state.s = State::S::ValueCapture;
+		}
 	}
 	else if (_state.s == State::S::ValueFinished)
 	{
 		if (_state.key == "playback")
 		{
-			//_pipesConf.playback = _state.value;
-			//printf("playback: %s", _state.value);//
-
-			std::cout << "playback: " << _state.value << "\n"; //
+			if (!_pipesConf.playback)
+			{
+				std::cout << "playback: " << _state.value << "\n"; //
+				_pipesConf.playback = _state.value.c_str();
+			}
 		}
 		else if (_state.key == "capture")
 		{
-			//_pipesConf.capture = _state.value;
-			//printf("capture: %s", _state.value);//
-
-			std::cout << "capture: " << _state.value << "\n"; //
+			if (!_pipesConf.capture)
+			{
+				std::cout << "capture: " << _state.value << "\n"; //
+				_pipesConf.capture = _state.value.c_str();
+			}
 		}
 		else if (_state.key == "remote")
 		{
@@ -324,7 +355,6 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 		else
 			return Error::InobjectCommaExpected;
 	}
-	//
 	return Error::NoError;
 }
 
