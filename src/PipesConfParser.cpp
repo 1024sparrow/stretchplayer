@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "string.h"
 #include <iostream> //
 
 //#define err(T) static_cast<int>(T)
@@ -16,7 +17,16 @@
 }
 */
 
-const char * userMark = "{user}";
+const char
+	*USER_MARK = "{user}",
+	*TRUE = "true",
+	*FALSE = "false"
+;
+const int
+	USER_MARK_LEN = strlen(USER_MARK),
+	TRUE_LEN = strlen(TRUE),
+	FALSE_LEN = strlen(FALSE)
+;
 
 bool isWhitespaceSymbol(char byte)
 {
@@ -38,6 +48,9 @@ bool isFilenameSymbol(char byte)
 const char * ERROR_CODE_DESCRIPTIONS[] = {
 	"no error",
 	"syntax error",
+	"unsupported key used",
+	"comma between object key-value pairs expected",
+	"unexpected comma not between objects in object",
 
 	"can not open file",
 	"file is incomplete",
@@ -68,6 +81,8 @@ int PipesConfParser::parse(const char *filepath)
 		{
 			if (int err = static_cast<int>(parseTick(i)))
 				return err;
+			if (_state.s == State::S::Finished)
+				break;
 		}
 	}
 	if (_state.s != State::S::Finished)
@@ -99,6 +114,8 @@ void PipesConfParser::initParse()
 
 PipesConfParser::Error PipesConfParser::parseTick(char byte)
 {
+	printf("%c\t%s\n", byte, State::str(_state.s));
+
 	if (_state.s == State::S::Init)
 	{
 		if (isWhitespaceSymbol((byte)))
@@ -115,6 +132,9 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 		else if (byte == '"'){
 			_state.s = State::S::KeyStarting;
 			_state.key.clear();
+		}
+		else if (byte == '}'){
+			_state.s = State::S::Finished;
 		}
 		else
 			return Error::SystaxError;
@@ -145,7 +165,10 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 			else if (_state.key == "capture")
 				_state.s = State::S::ValueCaptureStarting;
 			else if (_state.key == "remote")
+			{
 				_state.s = State::S::ValueRemote;
+				_state.counter = 0;
+			}
 			else
 				return Error::SystaxError;
 		}
@@ -178,14 +201,15 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 	}
 	else if (_state.s == State::S::ValueRemote)
 	{
-		//
+//		if (_state.counter < TRUE_LEN && byte == TRUE[_state.counter++])
+//		{
+//			_pipesConf.remote.type = PipesConf::Remote::TypePipe;
+//		}
 	}
 	else if (_state.s == State::S::ValuePlayback)
 	{
 		if (byte == '"')
 		{
-			// boris here: save value
-			//_pipesConf.playback = _state.key;
 			_state.s = State::S::ValueFinished;
 		}
 		else if (isFilenameSymbol(byte))
@@ -203,7 +227,22 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 	}
 	else if (_state.s == State::S::ValueCapture)
 	{
-		//
+		if (byte == '"')
+		{
+			_state.s = State::S::ValueFinished;
+		}
+		else if (isFilenameSymbol(byte))
+		{
+			_state.value.push_back(byte);
+		}
+		else if (byte == '~' && _state.value.size() == 0)
+		{
+			_state.s = State::S::ValueCaptureTilda;
+		}
+		else if (byte == '$')
+		{
+			_state.s = State::S::ValueCaptureDollar;
+		}
 	}
 	else if (_state.s == State::S::ValuePlaybackTilda)
 	{
@@ -251,12 +290,14 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 		{
 			//_pipesConf.playback = _state.value;
 			//printf("playback: %s", _state.value);//
+
 			std::cout << "playback: " << _state.value << "\n"; //
 		}
 		else if (_state.key == "capture")
 		{
 			//_pipesConf.capture = _state.value;
 			//printf("capture: %s", _state.value);//
+
 			std::cout << "capture: " << _state.value << "\n"; //
 		}
 		else if (_state.key == "remote")
@@ -265,8 +306,17 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 		}
 		else
 		{
-			return Error::SystaxError;
+			return Error::UnsupportedKeyUsed;
 		}
+
+		if (byte == ',')
+			_state.s = State::S::IntoGlobalObject;
+		else if (byte == '}')
+			_state.s = State::S::Finished;
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return Error::InobjectCommaExpected;
 	}
 	//
 	return Error::NoError;
