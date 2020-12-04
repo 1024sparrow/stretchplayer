@@ -254,7 +254,8 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 		}
 		else if (byte == '/')
 		{
-			_state.value.append("/home/boris/");
+			_state.value.append(getenv("HOME"));
+			_state.value.push_back('/');
 			_state.s = State::S::ValuePlayback;
 		}
 		else if (isFilenameSymbol(byte))
