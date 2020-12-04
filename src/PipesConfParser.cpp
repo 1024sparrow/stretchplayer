@@ -223,6 +223,7 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 		else if (byte == '$')
 		{
 			_state.s = State::S::ValuePlaybackDollar;
+			_state.counter = 0;
 		}
 	}
 	else if (_state.s == State::S::ValueCapture)
@@ -273,12 +274,16 @@ PipesConfParser::Error PipesConfParser::parseTick(char byte)
 	}
 	else if (_state.s == State::S::ValuePlaybackDollar)
 	{
-		if (true) // boris here: check for "{user}" using _s.counter. По успешном окончании выставляем состояние ValuePlayback
-		{
+		if (_state.counter < USER_MARK_LEN && byte == USER_MARK[_state.counter])
 			;
-		}
 		else
 			return Error::SystaxError;
+
+		if (++_state.counter == USER_MARK_LEN)
+		{
+			_state.value.append(getenv("USER"));
+			_state.s = State::S::ValuePlayback;
+		}
 	}
 	else if (_state.s == State::S::ValueCaptureDollar)
 	{
