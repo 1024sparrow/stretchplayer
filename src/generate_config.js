@@ -190,7 +190,6 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 	states:
 		0 - normal
 		1 - config path expected
-		2 - mode expected
 	*/
 	state = 0;
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
@@ -215,16 +214,7 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			{
 				return collectError(p_error, std::string{state == 1 ? "\\"--config\\"" : "\\"--mode\\""} + ": parameter value not present");
 			}
-			else if (state == 1)
-			{
-				configPath = arg;
-			}
-			else if (state == 2)
-			{
-				if (_mode != Mode::Undefined){
-					return collectError(p_error, "only one time mode can be set");
-				};${modeResolving}
-			}
+			configPath = arg;
 		}
 	}
 	if (state)
@@ -233,6 +223,38 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 	if (int fd = open(configPath, O_RDONLY))
 	{
 		${jsonParsingCode}
+	}
+
+	/*
+	states:
+		0 - normal
+		1 - mode expected
+	*/
+	state = 0;
+	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
+	{
+		const char *arg = p_argv[iArg];
+		if (!strcmp(arg, "--mode"))
+		{
+			state = 1;
+		}
+		else if (state)
+		{
+			if (arg[0] == '-')
+			{
+				//
+			}
+			else if (state == 1)
+			{
+				if (_mode != Mode::Undefined){
+					return collectError(p_error, "only one time mode can be set");
+				};${modeResolving}
+			}
+		}
+		else
+		{
+			// boris here
+		}
 	}
 
 	return 0;
