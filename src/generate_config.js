@@ -16,10 +16,20 @@ const
 
 var _modes = `
 		Undefined = 0,`;
+var modeResolving = '';
 for (let o of src.modes){
 	o.inEnumName = o.name[0].toUpperCase() + o.name.slice(1);
 	_modes += `
 		${o.inEnumName},`;
+	if (modeResolving)
+		modeResolving += '\n\t\t\t\telse ';
+	else
+		modeResolving += '\n\t\t\t\t';
+	modeResolving += `if (!strcmp(arg, "${o.name}")) _mode = Mode::${o.inEnumName};`;
+}
+if (modeResolving){
+	modeResolving += `
+				else return collectError(p_error, "unsupported mode");`;
 }
 console.log(src.modes);
 
@@ -119,6 +129,10 @@ ${parent.helpIndent}	${oOption.help} (default: ${resolveValue(oOption)})`;
 
 
 
+var jsonParsingCode = '// JSON parsing: not implemented yet';
+
+
+
 var result = {
 	h : `#pragma once
 
@@ -134,11 +148,26 @@ public:
 ${_fields.getters}
 
 private:
-	void printHelp();
 ${_fields.valueHolders}
 };`,
 	cpp: `#include "${CLASSFILENAME}.h"
 #include <iostream>
+#include <string>
+#include <string.h>
+#include <stdlib.h> // exit()
+#include <fcntl.h>
+#include <unistd.h>
+
+inline int collectError(std::string *p_error, const std::string &p_message)
+{
+	if (p_error)
+	{
+		if (p_error->size() > 0)
+			*p_error += ":\\n";
+		*p_error += p_message;
+	}
+	return -1;
+}
 
 int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 {
@@ -154,12 +183,64 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим не указан, но указаны параметры, которых нет в числе общих параметров
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
 	*/
+
+	const char *configPath = nullptr;
+	int state;
+	/*
+	states:
+		0 - normal
+		1 - config path expected
+		2 - mode expected
+	*/
+	state = 0;
+	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
+	{
+		const char *arg = p_argv[iArg];
+		if (!strcmp(arg, "--help"))
+		{
+			std::cout << R"(${_fields.help})" << std::endl;
+			exit(0);
+		}
+		else if (!strcmp(arg, "--config"))
+		{
+			state = 1;
+		}
+		else if (!strcmp(arg, "--mode"))
+		{
+			state = 2;
+		}
+		else if (state)
+		{
+			if (arg[0] == '-')
+			{
+				return collectError(p_error, std::string{state == 1 ? "\\"--config\\"" : "\\"--mode\\""} + ": parameter value not present");
+			}
+			else if (state == 1)
+			{
+				configPath = arg;
+			}
+			else if (state == 2)
+			{
+				if (_mode != Mode::Undefined){
+					return collectError(p_error, "only one time mode can be set");
+				};${modeResolving}
+			}
+		}
+	}
+	if (state)
+		return collectError(p_error, std::string{state == 1 ? "\\"--config\\"" : "\\"--mode\\""} + ": parameter value not present");
+
+	if (int fd = open(configPath, O_RDONLY))
+	{
+		${jsonParsingCode}
+	}
+
+	return 0;
 }
 
-void ${CLASSNAME}::printHelp()
+/*void ${CLASSNAME}::printHelp()
 {
-	std::cout << R"(${_fields.help})" << std::endl;
-}
+}*/
 `
 };
 fs.writeFileSync(path.resolve(TARGET_DIR, `${CLASSFILENAME}.h`), result.h, 'utf8');
