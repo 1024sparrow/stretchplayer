@@ -18,6 +18,7 @@ var _modes = `
 		Undefined = 0,`;
 var modeResolving = '';
 var paramIfs = '';
+var stateCounter = [];
 for (let o of src.options){
 	if (paramIfs){
 		paramIfs += '\n\t\telse ';
@@ -25,10 +26,13 @@ for (let o of src.options){
 	else{
 		paramIfs += '\n\t\t';
 	}
+	stateCounter.push({
+		state: stateCounter.length + 1,
+		type: o.type,
+		name: o.name
+	});
 	paramIfs += `if (!strcmp(arg, "--${o.name}"))
-		{`;
-	paramIfs += `
-		}`;
+			state = ${stateCounter.length};`;
 }
 var _inModeParams;
 for (let o of src.modes){
@@ -43,20 +47,99 @@ for (let o of src.modes){
 
 	_inModeParams = '';
 	for (const oInModeParams of o.options){
+		stateCounter.push({
+			state: stateCounter.length + 1,
+			type: oInModeParams.type,
+			target: `_data.${o.name}.${oInModeParams.name}`,
+			name: oInModeParams.name
+		});
 		if (_inModeParams)
 			_inModeParams += '\n\t\t\telse ';
 		else
 			_inModeParams += '\n\t\t\t';
-		_inModeParams += `if (!strcmp(arg, "--${oInModeParams.name}")){`;
-		_inModeParams += '\n\t\t\t}';
+		_inModeParams += `if (!strcmp(arg, "--${oInModeParams.name}"))
+				state = ${stateCounter.length};`;
+		/*if (oInModeParams.type === 'integer'){
+			_inModeParams += `
+				_data.${o.name}.${oInModeParams.name} = atoi(arg);`;
+		}
+		else if (oInModeParams.type === 'string'){
+			_inModeParams += `
+				_data.${o.name}.${oInModeParams.name} = arg;`;
+		}
+		else if (oInModeParams.type === 'boolean'){
+			_inModeParams += `
+				if (!strcmp(arg, "true"))
+					_data.${o.name}.${oInModeParams.name} = true;
+				else if (!strcmp(arg, "false"))
+					_data.${o.name}.${oInModeParams.name} = false;
+				else
+					return collectError(p_error, "--${oInModeParams.name}: true|false expected");`
+		}
+		else{
+			console.log('incorrect parameter type pointed');
+			process.exit(1);
+		}*/
+		//_inModeParams += '\n\t\t\t}';
 	}
 	paramIfs += `
 		else if (_mode == Mode::${o.inEnumName})
 		{
-			if (state)
-				return collectError(error, "parameter value missing");
+			/*if (state)
+				return collectError(p_error, "parameter value missing");*/
 			${_inModeParams}`;
 	paramIfs += `
+		}`;
+}
+var _asd = `if (state == 0)
+			{
+				// свободный аргумент (вне параметров)
+			}`;
+while (stateCounter.length){
+	let state = stateCounter.shift();
+	_asd += `
+			else if (state == ${state.state})
+			{`;
+	if (state.type === 'integer'){
+		_asd += `
+				int tmp = atoi(arg);`;
+	}
+	else if (state.type === 'string'){
+		_asd += `
+				const char *tmp = arg;`;
+	}
+	else if (state.type === 'boolean'){
+		_asd += `
+				bool tmp;
+				if (!strcmp(arg, "true"))
+					tmp = true;
+				else if (!strcmp(arg, "false"))
+					tmp = false;
+				else
+					return collectError(p_error, "--${state.name}: true|false expected");`;
+	}
+	else{
+		console.log('incorrect parameter type pointed');
+		process.exit(1);
+	}
+	if (state.target){
+		_asd += `
+				${state.target} = tmp;`;
+	}
+	else{
+		for (const oMode of src.modes){
+			_asd += `
+				_data.${oMode.name}.${state.name} = tmp;`;
+		}
+	}
+	_asd += `
+			}`;
+}
+if (paramIfs){
+	paramIfs += `
+		else
+		{
+			${_asd}
 		}`;
 }
 /*if (modeResolving){
@@ -187,7 +270,7 @@ ${_fields.valueHolders}
 #include <iostream>
 #include <string>
 #include <string.h>
-#include <stdlib.h> // exit()
+#include <stdlib.h> // exit(), atoi()
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -274,28 +357,6 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 	{
 		const char *arg = p_argv[iArg];
 		${paramIfs}
-
-		/*if (!strcmp(arg, "--mode"))
-		{
-			state = 1;
-		}
-		else if (state)
-		{
-			if (arg[0] == '-')
-			{
-				//
-			}
-			else if (state == 1)
-			{
-				if (_mode != Mode::Undefined){
-					return collectError(p_error, "only one time mode can be set");
-				};${modeResolving}
-			}
-		}
-		else
-		{
-			// boris here
-		}*/
 	}
 
 	return 0;
