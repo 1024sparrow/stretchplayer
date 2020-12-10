@@ -84,37 +84,96 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		{
 			state = 1;
 		}
-		else if (!strcmp(arg, "--mode"))
-		{
-			state = 2;
-		}
 		else if (state)
 		{
 			if (arg[0] == '-')
 			{
-				return collectError(p_error, std::string{state == 1 ? "\"--config\"" : "\"--mode\""} + ": parameter value not present");
+				return collectError(p_error, "--config: parameter value not present");
 			}
+			if (configPath)
+				return collectError(p_error, "only one time config file path can be set");
 			configPath = arg;
 		}
 	}
 	if (state)
-		return collectError(p_error, std::string{state == 1 ? "\"--config\"" : "\"--mode\""} + ": parameter value not present");
+		return collectError(p_error, "--config: parameter value not present");
 
 	if (int fd = open(configPath, O_RDONLY))
 	{
 		// JSON parsing: not implemented yet
 	}
 
+	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
+	{
+		const char *arg = p_argv[iArg];
+		if (_mode != Mode::Undefined){
+			return collectError(p_error, "only one time mode can be set");
+		};
+		
+		if (!strcmp(arg, "--alsa")) _mode = Mode::Alsa;
+		else if (!strcmp(arg, "--fake")) _mode = Mode::Fake;
+		else if (!strcmp(arg, "--jack")) _mode = Mode::Jack;
+	}
+	state = 0;
 	/*
 	states:
 		0 - normal
 		1 - mode expected
 	*/
-	state = 0;
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
 		const char *arg = p_argv[iArg];
-		if (!strcmp(arg, "--mode"))
+		
+		if (!strcmp(arg, "--sampleRate"))
+		{
+		}
+		else if (!strcmp(arg, "--mono"))
+		{
+		}
+		else if (!strcmp(arg, "--mic"))
+		{
+		}
+		else if (!strcmp(arg, "--shift"))
+		{
+		}
+		else if (!strcmp(arg, "--stretch"))
+		{
+		}
+		else if (!strcmp(arg, "--pitch"))
+		{
+		}
+		else if (_mode == Mode::Alsa)
+		{
+			if (state)
+				return collectError(error, "parameter value missing");
+			
+			if (!strcmp(arg, "--device")){
+			}
+			else if (!strcmp(arg, "--periodSize")){
+			}
+			else if (!strcmp(arg, "--periods")){
+			}
+		}
+		else if (_mode == Mode::Fake)
+		{
+			if (state)
+				return collectError(error, "parameter value missing");
+			
+			if (!strcmp(arg, "--fifoPlayback")){
+			}
+			else if (!strcmp(arg, "--fifoCapture")){
+			}
+		}
+		else if (_mode == Mode::Jack)
+		{
+			if (state)
+				return collectError(error, "parameter value missing");
+			
+			if (!strcmp(arg, "--noAutoconnect")){
+			}
+		}
+
+		/*if (!strcmp(arg, "--mode"))
 		{
 			state = 1;
 		}
@@ -129,16 +188,15 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				if (_mode != Mode::Undefined){
 					return collectError(p_error, "only one time mode can be set");
 				};
-				if (!strcmp(arg, "alsa")) _mode = Mode::Alsa;
-				else if (!strcmp(arg, "fake")) _mode = Mode::Fake;
-				else if (!strcmp(arg, "jack")) _mode = Mode::Jack;
-				else return collectError(p_error, "unsupported mode");
+		if (!strcmp(arg, "--alsa")) _mode = Mode::Alsa;
+		else if (!strcmp(arg, "--fake")) _mode = Mode::Fake;
+		else if (!strcmp(arg, "--jack")) _mode = Mode::Jack;
 			}
 		}
 		else
 		{
 			// boris here
-		}
+		}*/
 	}
 
 	return 0;

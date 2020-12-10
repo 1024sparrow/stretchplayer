@@ -17,20 +17,52 @@ const
 var _modes = `
 		Undefined = 0,`;
 var modeResolving = '';
+var paramIfs = '';
+for (let o of src.options){
+	if (paramIfs){
+		paramIfs += '\n\t\telse ';
+	}
+	else{
+		paramIfs += '\n\t\t';
+	}
+	paramIfs += `if (!strcmp(arg, "--${o.name}"))
+		{`;
+	paramIfs += `
+		}`;
+}
+var _inModeParams;
 for (let o of src.modes){
 	o.inEnumName = o.name[0].toUpperCase() + o.name.slice(1);
 	_modes += `
 		${o.inEnumName},`;
 	if (modeResolving)
-		modeResolving += '\n\t\t\t\telse ';
+		modeResolving += '\n\t\telse ';
 	else
-		modeResolving += '\n\t\t\t\t';
-	modeResolving += `if (!strcmp(arg, "${o.name}")) _mode = Mode::${o.inEnumName};`;
+		modeResolving += '\n\t\t';
+	modeResolving += `if (!strcmp(arg, "--${o.name}")) _mode = Mode::${o.inEnumName};`;
+
+	_inModeParams = '';
+	for (const oInModeParams of o.options){
+		if (_inModeParams)
+			_inModeParams += '\n\t\t\telse ';
+		else
+			_inModeParams += '\n\t\t\t';
+		_inModeParams += `if (!strcmp(arg, "--${oInModeParams.name}")){`;
+		_inModeParams += '\n\t\t\t}';
+	}
+	paramIfs += `
+		else if (_mode == Mode::${o.inEnumName})
+		{
+			if (state)
+				return collectError(error, "parameter value missing");
+			${_inModeParams}`;
+	paramIfs += `
+		}`;
 }
-if (modeResolving){
+/*if (modeResolving){
 	modeResolving += `
-				else return collectError(p_error, "unsupported mode");`;
-}
+		else return collectError(p_error, "unsupported mode");`;
+}*/
 console.log(src.modes);
 
 var _fields = {
@@ -205,37 +237,45 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 		{
 			state = 1;
 		}
-		else if (!strcmp(arg, "--mode"))
-		{
-			state = 2;
-		}
 		else if (state)
 		{
 			if (arg[0] == '-')
 			{
-				return collectError(p_error, std::string{state == 1 ? "\\"--config\\"" : "\\"--mode\\""} + ": parameter value not present");
+				return collectError(p_error, "--config: parameter value not present");
 			}
+			if (configPath)
+				return collectError(p_error, "only one time config file path can be set");
 			configPath = arg;
 		}
 	}
 	if (state)
-		return collectError(p_error, std::string{state == 1 ? "\\"--config\\"" : "\\"--mode\\""} + ": parameter value not present");
+		return collectError(p_error, "--config: parameter value not present");
 
 	if (int fd = open(configPath, O_RDONLY))
 	{
 		${jsonParsingCode}
 	}
 
+	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
+	{
+		const char *arg = p_argv[iArg];
+		if (_mode != Mode::Undefined){
+			return collectError(p_error, "only one time mode can be set");
+		};
+		${modeResolving}
+	}
+	state = 0;
 	/*
 	states:
 		0 - normal
 		1 - mode expected
 	*/
-	state = 0;
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
 		const char *arg = p_argv[iArg];
-		if (!strcmp(arg, "--mode"))
+		${paramIfs}
+
+		/*if (!strcmp(arg, "--mode"))
 		{
 			state = 1;
 		}
@@ -255,7 +295,7 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 		else
 		{
 			// boris here
-		}
+		}*/
 	}
 
 	return 0;
