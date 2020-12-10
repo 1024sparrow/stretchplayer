@@ -121,7 +121,7 @@ ${parent.helpIndent}	${oOption.help} (default: ${resolveValue(oOption)})`;
 		p_fields.help = p_fields.help.slice(1); // remove starting new-line symbol
 	}
 	p_fields.valueHolders = `
-	union
+	struct
 	{${p_fields.valueHolders}
 	} _data;
 	Mode _mode {Mode::Undefined};`;
@@ -144,6 +144,7 @@ public:
 	enum class Mode
 	{${_modes}
 	};${_fields.structs}
+	${CLASSNAME}() = default;
 	int parse(int p_argc, char **p_argv, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
 ${_fields.getters}
 

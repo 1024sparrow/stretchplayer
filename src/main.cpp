@@ -25,6 +25,7 @@
 #include <unistd.h> // read
 
 #include "Configuration.hpp"
+#include "configuration2.h"
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -33,6 +34,18 @@
 
 int main(int argc, char* argv[])
 {
+	Configuration2 config2;
+	std::string error;
+	if (int configParseResult = config2.parse(argc, argv, &error))
+	{
+		if (configParseResult > 0)
+			return 0;
+		std::cerr << error << std::endl;
+		return 1;
+	}
+	std::cout << "Normal program execution prevented (not implemented yet)" << std::endl;
+	return 0;
+
 	StretchPlayer::Configuration config;
 	if (!config.init(argc, argv))
 		return 1;
