@@ -34,7 +34,6 @@ for (let o of src.options){
 	paramIfs += `if (!strcmp(arg, "--${o.name}"))
 			state = ${stateCounter.length};`;
 }
-var _inModeParams;
 for (let o of src.modes){
 	o.inEnumName = o.name[0].toUpperCase() + o.name.slice(1);
 	_modes += `
@@ -45,7 +44,6 @@ for (let o of src.modes){
 		modeResolving += '\n\t\t';
 	modeResolving += `if (!strcmp(arg, "--${o.name}")) _mode = Mode::${o.inEnumName};`;
 
-	_inModeParams = '';
 	for (const oInModeParams of o.options){
 		stateCounter.push({
 			state: stateCounter.length + 1,
@@ -53,47 +51,25 @@ for (let o of src.modes){
 			target: `_data.${o.name}.${oInModeParams.name}`,
 			name: oInModeParams.name
 		});
-		if (_inModeParams)
-			_inModeParams += '\n\t\t\telse ';
-		else
-			_inModeParams += '\n\t\t\t';
-		_inModeParams += `if (!strcmp(arg, "--${oInModeParams.name}"))
-				state = ${stateCounter.length};`;
-		/*if (oInModeParams.type === 'integer'){
-			_inModeParams += `
-				_data.${o.name}.${oInModeParams.name} = atoi(arg);`;
-		}
-		else if (oInModeParams.type === 'string'){
-			_inModeParams += `
-				_data.${o.name}.${oInModeParams.name} = arg;`;
-		}
-		else if (oInModeParams.type === 'boolean'){
-			_inModeParams += `
-				if (!strcmp(arg, "true"))
-					_data.${o.name}.${oInModeParams.name} = true;
-				else if (!strcmp(arg, "false"))
-					_data.${o.name}.${oInModeParams.name} = false;
-				else
-					return collectError(p_error, "--${oInModeParams.name}: true|false expected");`
+		if (paramIfs){
+			paramIfs += `
+		else `;
 		}
 		else{
-			console.log('incorrect parameter type pointed');
-			process.exit(1);
-		}*/
-		//_inModeParams += '\n\t\t\t}';
+			paramIfs += `
+		`;
+		}
+		paramIfs += `if (_mode == Mode::${o.inEnumName} && !strcmp(arg, "--${oInModeParams.name}"))
+			state = ${stateCounter.length};`;
 	}
-	paramIfs += `
-		else if (_mode == Mode::${o.inEnumName})
-		{
-			/*if (state)
-				return collectError(p_error, "parameter value missing");*/
-			${_inModeParams}`;
-	paramIfs += `
-		}`;
 }
 var _asd = `if (state == 0)
 			{
 				// свободный аргумент (вне параметров)
+				if (arg[0] == '-')
+				{
+					return collectError(p_error, "unknown key");
+				}
 			}`;
 while (stateCounter.length){
 	let state = stateCounter.shift();

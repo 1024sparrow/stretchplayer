@@ -136,41 +136,27 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			state = 5;
 		else if (!strcmp(arg, "--pitch"))
 			state = 6;
-		else if (_mode == Mode::Alsa)
-		{
-			/*if (state)
-				return collectError(p_error, "parameter value missing");*/
-			
-			if (!strcmp(arg, "--device"))
-				state = 7;
-			else if (!strcmp(arg, "--periodSize"))
-				state = 8;
-			else if (!strcmp(arg, "--periods"))
-				state = 9;
-		}
-		else if (_mode == Mode::Fake)
-		{
-			/*if (state)
-				return collectError(p_error, "parameter value missing");*/
-			
-			if (!strcmp(arg, "--fifoPlayback"))
-				state = 10;
-			else if (!strcmp(arg, "--fifoCapture"))
-				state = 11;
-		}
-		else if (_mode == Mode::Jack)
-		{
-			/*if (state)
-				return collectError(p_error, "parameter value missing");*/
-			
-			if (!strcmp(arg, "--noAutoconnect"))
-				state = 12;
-		}
+		else if (_mode == Mode::Alsa && !strcmp(arg, "--device"))
+			state = 7;
+		else if (_mode == Mode::Alsa && !strcmp(arg, "--periodSize"))
+			state = 8;
+		else if (_mode == Mode::Alsa && !strcmp(arg, "--periods"))
+			state = 9;
+		else if (_mode == Mode::Fake && !strcmp(arg, "--fifoPlayback"))
+			state = 10;
+		else if (_mode == Mode::Fake && !strcmp(arg, "--fifoCapture"))
+			state = 11;
+		else if (_mode == Mode::Jack && !strcmp(arg, "--noAutoconnect"))
+			state = 12;
 		else
 		{
 			if (state == 0)
 			{
 				// свободный аргумент (вне параметров)
+				if (arg[0] == '-')
+				{
+					return collectError(p_error, "unknown key");
+				}
 			}
 			else if (state == 1)
 			{
