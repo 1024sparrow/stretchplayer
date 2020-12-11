@@ -45,7 +45,13 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		const char *arg = p_argv[iArg];
 		if (!strcmp(arg, "--help"))
 		{
-			std::cout << R"(--sampleRate
+			std::cout << R"(--config
+	set alternative config file path (default is "~/.stretchplayer.conf")
+--config-add
+	copy current config and add options to it
+--config-rewrite
+	create new config and add options to it
+--sampleRate
 	sample rate to use for ALSA (default: 44100)
 --mono
 	merge all sound channels into the one: make it mono (default: false)
@@ -93,6 +99,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			if (configPath)
 				return collectError(p_error, "only one time config file path can be set");
 			configPath = arg;
+			state = 0;
 		}
 	}
 	if (state)
@@ -123,8 +130,12 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
 		const char *arg = p_argv[iArg];
-		
-		if (!strcmp(arg, "--sampleRate"))
+		if (!strcmp(arg, "--config"))
+			state = -1;
+		else if (!strcmp(arg, "--alsa"));
+		else if (!strcmp(arg, "--fake"));
+		else if (!strcmp(arg, "--jack"));
+		else if (!strcmp(arg, "--sampleRate"))
 			state = 1;
 		else if (!strcmp(arg, "--mono"))
 			state = 2;
@@ -157,6 +168,10 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				{
 					return collectError(p_error, "unknown key");
 				}
+			}
+			else if (state == -1)
+			{
+				state = 0;
 			}
 			else if (state == 1)
 			{

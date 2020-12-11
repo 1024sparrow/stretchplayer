@@ -17,21 +17,21 @@ const
 var _modes = `
 		Undefined = 0,`;
 var modeResolving = '';
-var paramIfs = '';
+var paramIfs = `if (!strcmp(arg, "--config"))
+			state = -1;`;
 var stateCounter = [];
+for (let o of src.modes){
+	paramIfs += `
+		else if (!strcmp(arg, "--${o.name}"));`;
+}
 for (let o of src.options){
-	if (paramIfs){
-		paramIfs += '\n\t\telse ';
-	}
-	else{
-		paramIfs += '\n\t\t';
-	}
 	stateCounter.push({
 		state: stateCounter.length + 1,
 		type: o.type,
 		name: o.name
 	});
-	paramIfs += `if (!strcmp(arg, "--${o.name}"))
+	paramIfs += `
+		else if (!strcmp(arg, "--${o.name}"))
 			state = ${stateCounter.length};`;
 }
 for (let o of src.modes){
@@ -70,6 +70,10 @@ var _asd = `if (state == 0)
 				{
 					return collectError(p_error, "unknown key");
 				}
+			}
+			else if (state == -1)
+			{
+				state = 0;
 			}`;
 while (stateCounter.length){
 	let state = stateCounter.shift();
@@ -127,7 +131,12 @@ console.log(src.modes);
 var _fields = {
 	getters: '',
 	valueHolders: '',
-	help: '',
+	help: `--config
+	set alternative config file path (default is "~/${src.configFileName}")
+--config-add
+	copy current config and add options to it
+--config-rewrite
+	create new config and add options to it`,
 	structs: ''
 };
 var _getters = (function(p_src, p_fields){
@@ -207,9 +216,6 @@ ${parent.helpIndent}	${oOption.help} (default: ${resolveValue(oOption)})`;
 			p_fields.structs += `
 	};`;
 		}
-	}
-	if (p_fields.help){
-		p_fields.help = p_fields.help.slice(1); // remove starting new-line symbol
 	}
 	p_fields.valueHolders = `
 	struct
@@ -305,6 +311,7 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			if (configPath)
 				return collectError(p_error, "only one time config file path can be set");
 			configPath = arg;
+			state = 0;
 		}
 	}
 	if (state)
