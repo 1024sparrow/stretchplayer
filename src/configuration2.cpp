@@ -32,7 +32,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
 	*/
 
-	const char *configPath = nullptr;
+	_configPath = nullptr;
 	int state;
 	/*
 	states:
@@ -96,16 +96,19 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			{
 				return collectError(p_error, "--config: parameter value not present");
 			}
-			if (configPath)
+			if (_configPath)
 				return collectError(p_error, "only one time config file path can be set");
-			configPath = arg;
+			_configPath = arg;
 			state = 0;
 		}
 	}
 	if (state)
 		return collectError(p_error, "--config: parameter value not present");
 
-	if (int fd = open(configPath, O_RDONLY))
+	if (!_configPath)
+		_configPath = "~/.stretchplayer.conf";
+
+	if (int fd = open(_configPath, O_RDONLY))
 	{
 		// JSON parsing: not implemented yet
 	}
@@ -113,13 +116,22 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
 		const char *arg = p_argv[iArg];
-		if (_mode != Mode::Undefined){
-			return collectError(p_error, "only one time mode can be set");
-		};
+		Mode cand = Mode::Undefined;
 		
-		if (!strcmp(arg, "--alsa")) _mode = Mode::Alsa;
-		else if (!strcmp(arg, "--fake")) _mode = Mode::Fake;
-		else if (!strcmp(arg, "--jack")) _mode = Mode::Jack;
+		if (!strcmp(arg, "--alsa")) cand = Mode::Alsa;
+		else if (!strcmp(arg, "--fake")) cand = Mode::Fake;
+		else if (!strcmp(arg, "--jack")) cand = Mode::Jack;
+		if (cand != Mode::Undefined)
+		{
+			if (_mode != Mode::Undefined){
+				return collectError(p_error, "only one time mode can be set");
+			};
+			_mode = cand;
+		}
+	}
+	if (_mode == Mode::Undefined)
+	{
+		return collectError(p_error, "mode not set");
 	}
 	state = 0;
 	/*
@@ -269,6 +281,89 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	return 0;
 }
 
-/*void Configuration2::printHelp()
+std::string Configuration2::toString() const
 {
-}*/
+	std::string retVal;retVal += "mode: ";
+	if (_mode == Mode::Alsa)
+		retVal += "alsa";
+	else if (_mode == Mode::Fake)
+		retVal += "fake";
+	else if (_mode == Mode::Jack)
+		retVal += "jack";
+	else
+		retVal += "<not set>";
+	retVal += "\nconfig file: ";
+	retVal += _configPath;
+	if (_mode == Mode::Undefined)
+		return retVal;
+	if (_mode == Mode::Alsa)
+	{
+		retVal += "\n\nCOMMON OPTIONS:\n";
+		retVal += "\nsampleRate: ";;
+		retVal += std::to_string(_data.alsa.sampleRate);
+		retVal += "\nmono: ";;
+		retVal += _data.alsa.mono ? "true" : "false";
+		retVal += "\nmic: ";;
+		retVal += _data.alsa.mic ? "true" : "false";
+		retVal += "\nshift: ";;
+		retVal += std::to_string(_data.alsa.shift);
+		retVal += "\nstretch: ";;
+		retVal += std::to_string(_data.alsa.stretch);
+		retVal += "\npitch: ";;
+		retVal += std::to_string(_data.alsa.pitch);
+		retVal += "\n\nMODE SPECIFIC OPTIONS:\n";
+		retVal += "\ndevice: ";
+		retVal += "\"";
+		retVal += _data.alsa.device;
+		retVal += "\"";
+		retVal += "\nperiodSize: ";;
+		retVal += std::to_string(_data.alsa.periodSize);
+		retVal += "\nperiods: ";;
+		retVal += std::to_string(_data.alsa.periods);
+	}
+	else if (_mode == Mode::Fake)
+	{
+		retVal += "\n\nCOMMON OPTIONS:\n";
+		retVal += "\nsampleRate: ";;
+		retVal += std::to_string(_data.fake.sampleRate);
+		retVal += "\nmono: ";;
+		retVal += _data.fake.mono ? "true" : "false";
+		retVal += "\nmic: ";;
+		retVal += _data.fake.mic ? "true" : "false";
+		retVal += "\nshift: ";;
+		retVal += std::to_string(_data.fake.shift);
+		retVal += "\nstretch: ";;
+		retVal += std::to_string(_data.fake.stretch);
+		retVal += "\npitch: ";;
+		retVal += std::to_string(_data.fake.pitch);
+		retVal += "\n\nMODE SPECIFIC OPTIONS:\n";
+		retVal += "\nfifoPlayback: ";
+		retVal += "\"";
+		retVal += _data.fake.fifoPlayback;
+		retVal += "\"";
+		retVal += "\nfifoCapture: ";
+		retVal += "\"";
+		retVal += _data.fake.fifoCapture;
+		retVal += "\"";
+	}
+	else if (_mode == Mode::Jack)
+	{
+		retVal += "\n\nCOMMON OPTIONS:\n";
+		retVal += "\nsampleRate: ";;
+		retVal += std::to_string(_data.jack.sampleRate);
+		retVal += "\nmono: ";;
+		retVal += _data.jack.mono ? "true" : "false";
+		retVal += "\nmic: ";;
+		retVal += _data.jack.mic ? "true" : "false";
+		retVal += "\nshift: ";;
+		retVal += std::to_string(_data.jack.shift);
+		retVal += "\nstretch: ";;
+		retVal += std::to_string(_data.jack.stretch);
+		retVal += "\npitch: ";;
+		retVal += std::to_string(_data.jack.pitch);
+		retVal += "\n\nMODE SPECIFIC OPTIONS:\n";
+		retVal += "\nnoAutoconnect: ";;
+		retVal += _data.jack.noAutoconnect ? "true" : "false";
+	}
+	return retVal;
+}

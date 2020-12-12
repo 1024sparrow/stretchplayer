@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
 		std::cerr << error << std::endl;
 		return 1;
 	}
+	std::cout << config2.toString() << std::endl;
 	std::cout << "Normal program execution prevented (not implemented yet)" << std::endl;
 	return 0;
 

@@ -42,7 +42,7 @@ for (let o of src.modes){
 		modeResolving += '\n\t\telse ';
 	else
 		modeResolving += '\n\t\t';
-	modeResolving += `if (!strcmp(arg, "--${o.name}")) _mode = Mode::${o.inEnumName};`;
+	modeResolving += `if (!strcmp(arg, "--${o.name}")) cand = Mode::${o.inEnumName};`;
 
 	for (const oInModeParams of o.options){
 		stateCounter.push({
@@ -137,7 +137,7 @@ var _fields = {
 	copy current config and add options to it
 --config-rewrite
 	create new config and add options to it`,
-	structs: ''
+	structs: '',
 };
 var _getters = (function(p_src, p_fields){
 	var
@@ -230,6 +230,90 @@ var jsonParsingCode = '// JSON parsing: not implemented yet';
 
 
 
+
+var toString = `retVal += "mode: ";`;
+state = 0;
+for (const oMode of src.modes){
+	if (!state++) toString += `
+	`;
+	else toString += `
+	else `;
+	toString += `if (_mode == Mode::${oMode.inEnumName})
+		retVal += "${oMode.name}";`;
+}
+toString += `
+	else
+		retVal += "<not set>";
+	retVal += "\\nconfig file: ";
+	retVal += _configPath;
+	if (_mode == Mode::Undefined)
+		return retVal;`;
+state = 0;
+for (const oMode of src.modes){
+	toString += state++ ? `
+	else `: `
+	`;
+	toString += `if (_mode == Mode::${oMode.inEnumName})
+	{`;
+	let stateOpt = 0;
+	const fPrintParam = function(p_opt, p_mode){
+		var rv = '';
+		rv += `
+		retVal += "\\n${p_opt.name}: ";`;
+		if (p_opt.type === 'string'){
+			rv += `
+		retVal += "\\"";
+		retVal += _data.${p_mode.name}.${p_opt.name};
+		retVal += "\\"";`;
+		}
+		else if (p_opt.type === 'integer'){
+			rv += `;
+		retVal += std::to_string(_data.${p_mode.name}.${p_opt.name});`
+		}
+		else if (p_opt.type === 'boolean'){
+			rv += `;
+		retVal += _data.${p_mode.name}.${p_opt.name} ? "true" : "false";`
+		}
+		return rv;
+	};
+	for (const oOpt of src.options){
+		if (!stateOpt++){
+			toString += `
+		retVal += "\\n\\nCOMMON OPTIONS:\\n";`;
+		}
+		toString += fPrintParam(oOpt, oMode);
+		/*toString += `
+		retVal += "\\n${oOpt.name}: ";`;
+		if (oOpt.type === 'string'){
+			toString += `
+		retVal += _data.${oMode.name}.${oOpt.name};`
+		}
+		else if (oOpt.type === 'integer'){
+			toString += `
+		retVal += sprintf(intBuffer, "%i", _data.${oMode.name}.${oOpt.name});
+		retVal += intBuffer;`
+		}
+		else if (oOpt.type === 'boolean'){
+			toString += `
+		retVal += _data.${oMode.name}.${oOpt.name} ? "true" : "false";`
+		}*/
+	}
+	stateOpt = 0;
+	for (const oOpt of oMode.options){
+		if (!stateOpt++){
+			toString += `
+		retVal += "\\n\\nMODE SPECIFIC OPTIONS:\\n";`;
+		}
+		toString += fPrintParam(oOpt, oMode);
+		//toString += `
+		//retVal += "\\n${oOpt.name}: ";`;
+	}
+	toString += `
+	}`;
+}
+
+
+
 var result = {
 	h : `#pragma once
 
@@ -245,7 +329,10 @@ public:
 	int parse(int p_argc, char **p_argv, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
 ${_fields.getters}
 
+	std::string toString() const;
+
 private:
+	const char *_configPath {nullptr};
 ${_fields.valueHolders}
 };`,
 	cpp: `#include "${CLASSFILENAME}.h"
@@ -282,7 +369,7 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
 	*/
 
-	const char *configPath = nullptr;
+	_configPath = nullptr;
 	int state;
 	/*
 	states:
@@ -308,16 +395,19 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			{
 				return collectError(p_error, "--config: parameter value not present");
 			}
-			if (configPath)
+			if (_configPath)
 				return collectError(p_error, "only one time config file path can be set");
-			configPath = arg;
+			_configPath = arg;
 			state = 0;
 		}
 	}
 	if (state)
 		return collectError(p_error, "--config: parameter value not present");
 
-	if (int fd = open(configPath, O_RDONLY))
+	if (!_configPath)
+		_configPath = "~/${src.configFileName}";
+
+	if (int fd = open(_configPath, O_RDONLY))
 	{
 		${jsonParsingCode}
 	}
@@ -325,10 +415,19 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
 		const char *arg = p_argv[iArg];
-		if (_mode != Mode::Undefined){
-			return collectError(p_error, "only one time mode can be set");
-		};
+		Mode cand = Mode::Undefined;
 		${modeResolving}
+		if (cand != Mode::Undefined)
+		{
+			if (_mode != Mode::Undefined){
+				return collectError(p_error, "only one time mode can be set");
+			};
+			_mode = cand;
+		}
+	}
+	if (_mode == Mode::Undefined)
+	{
+		return collectError(p_error, "mode not set");
 	}
 	state = 0;
 	/*
@@ -345,9 +444,11 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 	return 0;
 }
 
-/*void ${CLASSNAME}::printHelp()
+std::string ${CLASSNAME}::toString() const
 {
-}*/
+	std::string retVal;${toString}
+	return retVal;
+}
 `
 };
 fs.writeFileSync(path.resolve(TARGET_DIR, `${CLASSFILENAME}.h`), result.h, 'utf8');

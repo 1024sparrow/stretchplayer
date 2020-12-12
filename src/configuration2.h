@@ -44,7 +44,10 @@ public:
 	const Fake & fake() const {return _data.fake;}
 	const Jack & jack() const {return _data.jack;}
 
+	std::string toString() const;
+
 private:
+	const char *_configPath {nullptr};
 
 	struct
 	{
