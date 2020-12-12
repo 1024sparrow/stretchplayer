@@ -68,7 +68,10 @@ var _asd = `if (state == 0)
 				// свободный аргумент (вне параметров)
 				if (arg[0] == '-')
 				{
-					return collectError(p_error, "unknown key");
+					std::string errorDescr = "unknown key: \\"";
+					errorDescr += arg;
+					errorDescr += "\\"";
+					return collectError(p_error, errorDescr);
 				}
 			}
 			else if (state == -1)
@@ -113,6 +116,7 @@ while (stateCounter.length){
 		}
 	}
 	_asd += `
+				state = 0;
 			}`;
 }
 if (paramIfs){
@@ -244,8 +248,9 @@ for (const oMode of src.modes){
 toString += `
 	else
 		retVal += "<not set>";
-	retVal += "\\nconfig file: ";
+	retVal += "\\nconfig file: \\"";
 	retVal += _configPath;
+	retVal += "\\"";
 	if (_mode == Mode::Undefined)
 		return retVal;`;
 state = 0;
@@ -282,21 +287,6 @@ for (const oMode of src.modes){
 		retVal += "\\n\\nCOMMON OPTIONS:\\n";`;
 		}
 		toString += fPrintParam(oOpt, oMode);
-		/*toString += `
-		retVal += "\\n${oOpt.name}: ";`;
-		if (oOpt.type === 'string'){
-			toString += `
-		retVal += _data.${oMode.name}.${oOpt.name};`
-		}
-		else if (oOpt.type === 'integer'){
-			toString += `
-		retVal += sprintf(intBuffer, "%i", _data.${oMode.name}.${oOpt.name});
-		retVal += intBuffer;`
-		}
-		else if (oOpt.type === 'boolean'){
-			toString += `
-		retVal += _data.${oMode.name}.${oOpt.name} ? "true" : "false";`
-		}*/
 	}
 	stateOpt = 0;
 	for (const oOpt of oMode.options){
@@ -305,8 +295,6 @@ for (const oMode of src.modes){
 		retVal += "\\n\\nMODE SPECIFIC OPTIONS:\\n";`;
 		}
 		toString += fPrintParam(oOpt, oMode);
-		//toString += `
-		//retVal += "\\n${oOpt.name}: ";`;
 	}
 	toString += `
 	}`;

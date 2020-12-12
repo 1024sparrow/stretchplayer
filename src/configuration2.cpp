@@ -178,7 +178,10 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				// свободный аргумент (вне параметров)
 				if (arg[0] == '-')
 				{
-					return collectError(p_error, "unknown key");
+					std::string errorDescr = "unknown key: \"";
+					errorDescr += arg;
+					errorDescr += "\"";
+					return collectError(p_error, errorDescr);
 				}
 			}
 			else if (state == -1)
@@ -191,6 +194,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				_data.alsa.sampleRate = tmp;
 				_data.fake.sampleRate = tmp;
 				_data.jack.sampleRate = tmp;
+				state = 0;
 			}
 			else if (state == 2)
 			{
@@ -204,6 +208,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				_data.alsa.mono = tmp;
 				_data.fake.mono = tmp;
 				_data.jack.mono = tmp;
+				state = 0;
 			}
 			else if (state == 3)
 			{
@@ -217,6 +222,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				_data.alsa.mic = tmp;
 				_data.fake.mic = tmp;
 				_data.jack.mic = tmp;
+				state = 0;
 			}
 			else if (state == 4)
 			{
@@ -224,6 +230,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				_data.alsa.shift = tmp;
 				_data.fake.shift = tmp;
 				_data.jack.shift = tmp;
+				state = 0;
 			}
 			else if (state == 5)
 			{
@@ -231,6 +238,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				_data.alsa.stretch = tmp;
 				_data.fake.stretch = tmp;
 				_data.jack.stretch = tmp;
+				state = 0;
 			}
 			else if (state == 6)
 			{
@@ -238,31 +246,37 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				_data.alsa.pitch = tmp;
 				_data.fake.pitch = tmp;
 				_data.jack.pitch = tmp;
+				state = 0;
 			}
 			else if (state == 7)
 			{
 				const char *tmp = arg;
 				_data.alsa.device = tmp;
+				state = 0;
 			}
 			else if (state == 8)
 			{
 				int tmp = atoi(arg);
 				_data.alsa.periodSize = tmp;
+				state = 0;
 			}
 			else if (state == 9)
 			{
 				int tmp = atoi(arg);
 				_data.alsa.periods = tmp;
+				state = 0;
 			}
 			else if (state == 10)
 			{
 				const char *tmp = arg;
 				_data.fake.fifoPlayback = tmp;
+				state = 0;
 			}
 			else if (state == 11)
 			{
 				const char *tmp = arg;
 				_data.fake.fifoCapture = tmp;
+				state = 0;
 			}
 			else if (state == 12)
 			{
@@ -274,6 +288,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				else
 					return collectError(p_error, "--noAutoconnect: true|false expected");
 				_data.jack.noAutoconnect = tmp;
+				state = 0;
 			}
 		}
 	}
@@ -292,8 +307,9 @@ std::string Configuration2::toString() const
 		retVal += "jack";
 	else
 		retVal += "<not set>";
-	retVal += "\nconfig file: ";
+	retVal += "\nconfig file: \"";
 	retVal += _configPath;
+	retVal += "\"";
 	if (_mode == Mode::Undefined)
 		return retVal;
 	if (_mode == Mode::Alsa)
