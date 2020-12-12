@@ -184,110 +184,109 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 					return collectError(p_error, errorDescr);
 				}
 			}
-			else if (state == -1)
+			else
 			{
-				state = 0;
-			}
-			else if (state == 1)
-			{
-				int tmp = atoi(arg);
-				_data.alsa.sampleRate = tmp;
-				_data.fake.sampleRate = tmp;
-				_data.jack.sampleRate = tmp;
-				state = 0;
-			}
-			else if (state == 2)
-			{
-				bool tmp;
-				if (!strcmp(arg, "true"))
-					tmp = true;
-				else if (!strcmp(arg, "false"))
-					tmp = false;
-				else
-					return collectError(p_error, "--mono: true|false expected");
-				_data.alsa.mono = tmp;
-				_data.fake.mono = tmp;
-				_data.jack.mono = tmp;
-				state = 0;
-			}
-			else if (state == 3)
-			{
-				bool tmp;
-				if (!strcmp(arg, "true"))
-					tmp = true;
-				else if (!strcmp(arg, "false"))
-					tmp = false;
-				else
-					return collectError(p_error, "--mic: true|false expected");
-				_data.alsa.mic = tmp;
-				_data.fake.mic = tmp;
-				_data.jack.mic = tmp;
-				state = 0;
-			}
-			else if (state == 4)
-			{
-				int tmp = atoi(arg);
-				_data.alsa.shift = tmp;
-				_data.fake.shift = tmp;
-				_data.jack.shift = tmp;
-				state = 0;
-			}
-			else if (state == 5)
-			{
-				int tmp = atoi(arg);
-				_data.alsa.stretch = tmp;
-				_data.fake.stretch = tmp;
-				_data.jack.stretch = tmp;
-				state = 0;
-			}
-			else if (state == 6)
-			{
-				int tmp = atoi(arg);
-				_data.alsa.pitch = tmp;
-				_data.fake.pitch = tmp;
-				_data.jack.pitch = tmp;
-				state = 0;
-			}
-			else if (state == 7)
-			{
-				const char *tmp = arg;
-				_data.alsa.device = tmp;
-				state = 0;
-			}
-			else if (state == 8)
-			{
-				int tmp = atoi(arg);
-				_data.alsa.periodSize = tmp;
-				state = 0;
-			}
-			else if (state == 9)
-			{
-				int tmp = atoi(arg);
-				_data.alsa.periods = tmp;
-				state = 0;
-			}
-			else if (state == 10)
-			{
-				const char *tmp = arg;
-				_data.fake.fifoPlayback = tmp;
-				state = 0;
-			}
-			else if (state == 11)
-			{
-				const char *tmp = arg;
-				_data.fake.fifoCapture = tmp;
-				state = 0;
-			}
-			else if (state == 12)
-			{
-				bool tmp;
-				if (!strcmp(arg, "true"))
-					tmp = true;
-				else if (!strcmp(arg, "false"))
-					tmp = false;
-				else
-					return collectError(p_error, "--noAutoconnect: true|false expected");
-				_data.jack.noAutoconnect = tmp;
+				if (arg[0] == '-')
+				{
+					std::string errorDescr = "unexpected key: \"";
+					errorDescr += arg;
+					errorDescr += "\". Expected previous parameter value instead.";
+					return collectError(p_error, errorDescr);
+				}
+				if (state == -1)
+				{
+					state = 0;
+				}
+				else if (state == 1)
+				{
+					int tmp = atoi(arg);
+					_data.alsa.sampleRate = tmp;
+					_data.fake.sampleRate = tmp;
+					_data.jack.sampleRate = tmp;
+				}
+				else if (state == 2)
+				{
+					bool tmp;
+					if (!strcmp(arg, "true"))
+						tmp = true;
+					else if (!strcmp(arg, "false"))
+						tmp = false;
+					else
+						return collectError(p_error, "--mono: true|false expected");
+					_data.alsa.mono = tmp;
+					_data.fake.mono = tmp;
+					_data.jack.mono = tmp;
+				}
+				else if (state == 3)
+				{
+					bool tmp;
+					if (!strcmp(arg, "true"))
+						tmp = true;
+					else if (!strcmp(arg, "false"))
+						tmp = false;
+					else
+						return collectError(p_error, "--mic: true|false expected");
+					_data.alsa.mic = tmp;
+					_data.fake.mic = tmp;
+					_data.jack.mic = tmp;
+				}
+				else if (state == 4)
+				{
+					int tmp = atoi(arg);
+					_data.alsa.shift = tmp;
+					_data.fake.shift = tmp;
+					_data.jack.shift = tmp;
+				}
+				else if (state == 5)
+				{
+					int tmp = atoi(arg);
+					_data.alsa.stretch = tmp;
+					_data.fake.stretch = tmp;
+					_data.jack.stretch = tmp;
+				}
+				else if (state == 6)
+				{
+					int tmp = atoi(arg);
+					_data.alsa.pitch = tmp;
+					_data.fake.pitch = tmp;
+					_data.jack.pitch = tmp;
+				}
+				else if (state == 7)
+				{
+					const char *tmp = arg;
+					_data.alsa.device = tmp;
+				}
+				else if (state == 8)
+				{
+					int tmp = atoi(arg);
+					_data.alsa.periodSize = tmp;
+				}
+				else if (state == 9)
+				{
+					int tmp = atoi(arg);
+					_data.alsa.periods = tmp;
+				}
+				else if (state == 10)
+				{
+					const char *tmp = arg;
+					_data.fake.fifoPlayback = tmp;
+				}
+				else if (state == 11)
+				{
+					const char *tmp = arg;
+					_data.fake.fifoCapture = tmp;
+				}
+				else if (state == 12)
+				{
+					bool tmp;
+					if (!strcmp(arg, "true"))
+						tmp = true;
+					else if (!strcmp(arg, "false"))
+						tmp = false;
+					else
+						return collectError(p_error, "--noAutoconnect: true|false expected");
+					_data.jack.noAutoconnect = tmp;
+				}
 				state = 0;
 			}
 		}

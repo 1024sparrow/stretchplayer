@@ -74,32 +74,41 @@ var _asd = `if (state == 0)
 					return collectError(p_error, errorDescr);
 				}
 			}
-			else if (state == -1)
+			else
 			{
-				state = 0;
-			}`;
+				if (arg[0] == '-')
+				{
+					std::string errorDescr = "unexpected key: \\"";
+					errorDescr += arg;
+					errorDescr += "\\". Expected previous parameter value instead.";
+					return collectError(p_error, errorDescr);
+				}
+				if (state == -1)
+				{
+					state = 0;
+				}`;
 while (stateCounter.length){
 	let state = stateCounter.shift();
 	_asd += `
-			else if (state == ${state.state})
-			{`;
+				else if (state == ${state.state})
+				{`;
 	if (state.type === 'integer'){
 		_asd += `
-				int tmp = atoi(arg);`;
+					int tmp = atoi(arg);`;
 	}
 	else if (state.type === 'string'){
 		_asd += `
-				const char *tmp = arg;`;
+					const char *tmp = arg;`;
 	}
 	else if (state.type === 'boolean'){
 		_asd += `
-				bool tmp;
-				if (!strcmp(arg, "true"))
-					tmp = true;
-				else if (!strcmp(arg, "false"))
-					tmp = false;
-				else
-					return collectError(p_error, "--${state.name}: true|false expected");`;
+					bool tmp;
+					if (!strcmp(arg, "true"))
+						tmp = true;
+					else if (!strcmp(arg, "false"))
+						tmp = false;
+					else
+						return collectError(p_error, "--${state.name}: true|false expected");`;
 	}
 	else{
 		console.log('incorrect parameter type pointed');
@@ -107,18 +116,20 @@ while (stateCounter.length){
 	}
 	if (state.target){
 		_asd += `
-				${state.target} = tmp;`;
+					${state.target} = tmp;`;
 	}
 	else{
 		for (const oMode of src.modes){
 			_asd += `
-				_data.${oMode.name}.${state.name} = tmp;`;
+					_data.${oMode.name}.${state.name} = tmp;`;
 		}
 	}
 	_asd += `
+				}`;
+}
+_asd += `
 				state = 0;
 			}`;
-}
 if (paramIfs){
 	paramIfs += `
 		else
