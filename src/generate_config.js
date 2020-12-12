@@ -11,7 +11,8 @@ const
 const
 	src = require(META),
 	fs = require('fs'),
-	path = require('path')
+	path = require('path'),
+	configJsonParser = require('./configJsonParser.js')
 ;
 
 var _modes = `
@@ -20,6 +21,7 @@ var modeResolving = '';
 var paramIfs = `if (!strcmp(arg, "--config"))
 			state = -1;`;
 var stateCounter = [];
+var initFromFile = configJsonParser(src);
 for (let o of src.modes){
 	paramIfs += `
 		else if (!strcmp(arg, "--${o.name}"));`;
@@ -331,9 +333,13 @@ ${_fields.getters}
 	std::string toString() const;
 
 private:
+	bool initFromFile(int p_fd, std::string *p_error);
+
 	const char *_configPath {nullptr};
 ${_fields.valueHolders}
 };`,
+
+
 	cpp: `#include "${CLASSFILENAME}.h"
 #include <iostream>
 #include <string>
@@ -452,6 +458,10 @@ std::string ${CLASSNAME}::toString() const
 {
 	std::string retVal;${toString}
 	return retVal;
+}
+
+bool ${CLASSNAME}::initFromFile(int p_fd, std::string *p_error)
+{${initFromFile}
 }
 `
 };

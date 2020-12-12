@@ -387,3 +387,7 @@ std::string Configuration2::toString() const
 	}
 	return retVal;
 }
+
+bool Configuration2::initFromFile(int p_fd, std::string *p_error)
+{// not implemented
+}
