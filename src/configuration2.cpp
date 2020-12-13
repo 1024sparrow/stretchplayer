@@ -24,6 +24,7 @@ private:
 		UnsupportedKeyUsed,
 		InobjectCommaExpected,
 		UnexpectedComma,
+		TrueFalseExpected,
 
 		IncorrectMode,
 
@@ -42,6 +43,8 @@ private:
 	}
 	bool isFilenameSymbol(char byte)
 	{
+		if (byte == ' ' || byte == '_')
+			return true;
 		if (byte >= ',' && byte <= '9')
 			return true;
 		if (byte >= 'A' && byte <= 'Z')
@@ -79,19 +82,11 @@ private:
 			InparamsSeparator,
 			InparamsValueStringStarting,
 			InparamsValueString,
-			InparamsValueBoolean,
+			InparamsValueBooleanStarting,
+			InparamsValueBooleanTrue,
+			InparamsValueBooleanFalse,
 			InparamsValueInteger,
 			InparamsValueFinished,
-
-//			ValuePlaybackStarting,
-//			ValueCaptureStarting,
-//			ValueRemote,
-//			ValuePlayback,
-//			ValueCapture,
-//			ValuePlaybackTilda,
-//			ValueCaptureTilda,
-//			ValuePlaybackDollar,
-//			ValueCaptureDollar,
 			ValueFinished,
 
 			Finished
@@ -111,7 +106,9 @@ private:
 				{ S::InparamsSeparator, "InparamsSeparator"},
 				{ S::InparamsValueStringStarting, "InparamsValueStringStarting"},
 				{ S::InparamsValueString, "InparamsValueString"},
-				{ S::InparamsValueBoolean, "InparamsValueBoolean"},
+				{ S::InparamsValueBooleanStarting, "InparamsValueBooleanStarting"},
+				{ S::InparamsValueBooleanTrue, "InparamsValueBooleanTrue"},
+				{ S::InparamsValueBooleanFalse, "InparamsValueBooleanFalse"},
 				{ S::InparamsValueInteger, "InparamsValueInteger"},
 				{ S::InparamsValueFinished, "InparamsValueFinished"},
 
@@ -527,6 +524,7 @@ const char * Configuration2::JsonParser::ERROR_CODE_DESCRIPTIONS[] {
 	"unsupported key used",
 	"comma between object key-value pairs expected",
 	"unexpected comma not between objects in object",
+	"true|false expected",
 
 	"there is not such mode",
 
@@ -608,8 +606,6 @@ void Configuration2::JsonParser::initParse()
 
 Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte)
 {
-	//return collectError(p_error, "not implemented");
-
 	printf("%c\t%s\n", byte, State::str(_state.s));
 	if (_state.s == State::S::Init)
 	{
@@ -655,17 +651,6 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			;
 		else if (byte == ':')
 		{
-//			if (_state.key == "playback")
-//				_state.s = State::S::ValuePlaybackStarting;
-//			else if (_state.key == "capture")
-//				_state.s = State::S::ValueCaptureStarting;
-//			else if (_state.key == "remote")
-//			{
-//				_state.s = State::S::ValueRemote;
-//				_state.counter = 0;
-//			}
-//			else
-//				return Error::SystaxError;
 			if (_state.key == "mode")
 				_state.s = State::S::ValueModeStarting;
 			else if (_state.key == "parameters")
@@ -720,6 +705,10 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		{
 			_state.s = State::S::ParametersKey;
 		}
+		else if (byte == '}')
+		{
+			_state.s = State::S::IntoGlobalObject;
+		}
 		else if (isWhitespaceSymbol(byte))
 			;
 		else
@@ -744,26 +733,84 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		else if (byte == ':')
 		{
 			if (_state.key == "mono")
-				_state.s = State::S::InparamsValueBoolean;
+				_state.s = State::S::InparamsValueBooleanStarting;
 			else if (_state.key == "device")
 				_state.s = State::S::InparamsValueStringStarting;
+			else if (_state.key == "priodSize")
+				_state.s = State::S::InparamsValueInteger;
 			else
+			{
+				std::cout << "KEY: " << _state.key << std::endl;
 				return Error::UnsupportedKeyUsed;
+			}
 		}
 		else
 			return Error::SystaxError;
 	}
 	else if (_state.s == State::S::InparamsValueStringStarting)
 	{
-		return Error::NotImplemented;
+		if (byte == '"')
+		{
+			_state.s = State::S::InparamsValueString;
+		}
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return Error::SystaxError;
 	}
 	else if (_state.s == State::S::InparamsValueString)
 	{
-		return Error::NotImplemented;
+		if (byte == '"')
+		{
+			if (_state.key == "device")
+				printf("** write value: _device = \"%s\"\n", _state.value.c_str());
+
+			_state.s = State::S::ValueParameters;
+		}
+		else if (isFilenameSymbol(byte))
+			_state.value.push_back(byte);
+		else
+			return Error::SystaxError;
 	}
-	else if (_state.s == State::S::InparamsValueBoolean)
+	else if (_state.s == State::S::InparamsValueBooleanStarting)
 	{
-		return Error::NotImplemented;
+		if (isWhitespaceSymbol(byte))
+			;
+		else  if (byte == TRUE[0])
+		{
+			_state.s = State::S::InparamsValueBooleanTrue;
+		}
+		else if (byte == FALSE[0])
+		{
+			_state.s = State::S::InparamsValueBooleanFalse;
+		}
+		else
+			return Error::TrueFalseExpected;
+		_state.counter = 1;
+	}
+	else if (_state.s == State::S::InparamsValueBooleanTrue)
+	{
+		if (TRUE[_state.counter] != byte)
+			return Error::TrueFalseExpected;
+		if (_state.counter == TRUE_LEN - 1)
+		{
+			if (_state.key == "mono")
+				puts("** write value: _mono = true");
+			_state.s = State::S::InparamsValueFinished;
+		}
+		++_state.counter;
+	}
+	else if (_state.s == State::S::InparamsValueBooleanFalse)
+	{
+		if (FALSE[_state.counter] != byte)
+			return Error::TrueFalseExpected;
+		if (_state.counter == FALSE_LEN - 1)
+		{
+			if (_state.key == "mono")
+				puts("** write value: _mono = false");
+			_state.s = State::S::InparamsValueFinished;
+		}
+		++_state.counter;
 	}
 	else if (_state.s == State::S::InparamsValueInteger)
 	{
@@ -771,7 +818,16 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	}
 	else if (_state.s == State::S::InparamsValueFinished)
 	{
-		return Error::NotImplemented;
+		if (isWhitespaceSymbol(byte))
+			;
+		else if (byte == ',')
+		{
+			_state.key.clear();
+			_state.value.clear();
+			_state.s = State::S::ValueParameters;
+		}
+		else
+			return Error::SystaxError;
 	}
 	else if (_state.s == State::S::ValueFinished)
 	{
