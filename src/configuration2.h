@@ -47,7 +47,8 @@ public:
 	std::string toString() const;
 
 private:
-	bool initFromFile(int p_fd, std::string *p_error);
+	class JsonParser;
+	int collectError(std::string *p_error, const std::string &p_message) const;
 
 	const char *_configPath {nullptr};
 

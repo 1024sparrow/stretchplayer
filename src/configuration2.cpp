@@ -5,17 +5,131 @@
 #include <stdlib.h> // exit(), atoi()
 #include <fcntl.h>
 #include <unistd.h>
+#include <tuple>
 
-inline int collectError(std::string *p_error, const std::string &p_message)
+#include <locale.h> // for futher usage: currently only ASCII field values supported
+
+class Configuration2::JsonParser
 {
-	if (p_error)
+public:
+	JsonParser();
+	bool parse(const char *p_filepath, bool p_force, std::string *p_error);
+private:
+	enum class Error
 	{
-		if (p_error->size() > 0)
-			*p_error += ":\n";
-		*p_error += p_message;
+		NoError = 0,
+		NotImplemented,
+		UnhandledState,
+		SystaxError,
+		UnsupportedKeyUsed,
+		InobjectCommaExpected,
+		UnexpectedComma,
+
+		IncorrectMode,
+
+		CanNotOpenFile,
+		__Count
+	};
+	bool collectError(std::string *p_error, const std::string &p_message) const;
+	void initParse();
+	Error parseTick(char byte);
+
+	bool isWhitespaceSymbol(char byte)
+	{
+		if (byte == ' ' || byte == '\t' || byte == '\r' || byte == '\n')
+			return true;
+		return false;
 	}
-	return -1;
-}
+	bool isFilenameSymbol(char byte)
+	{
+		if (byte >= ',' && byte <= '9')
+			return true;
+		if (byte >= 'A' && byte <= 'Z')
+			return true;
+		if (byte >= 'a' && byte <= 'z')
+			return true;
+		return false;
+	}
+
+	static const char * ERROR_CODE_DESCRIPTIONS[];
+	static const char
+		*USER_MARK,
+		*TRUE,
+		*FALSE
+	;
+	static const int
+		USER_MARK_LEN,
+		TRUE_LEN,
+		FALSE_LEN
+	;
+
+	struct State
+	{
+		enum class S
+		{
+			Init,
+			IntoGlobalObject,
+			KeyStarting,
+			KeyValueSeparator,
+			ValueModeStarting,
+			ValueMode,
+			ValueParametersStarting,
+			ValueParameters,
+			ParametersKey,
+			InparamsSeparator,
+			InparamsValueStringStarting,
+			InparamsValueString,
+			InparamsValueBoolean,
+			InparamsValueInteger,
+			InparamsValueFinished,
+
+//			ValuePlaybackStarting,
+//			ValueCaptureStarting,
+//			ValueRemote,
+//			ValuePlayback,
+//			ValueCapture,
+//			ValuePlaybackTilda,
+//			ValueCaptureTilda,
+//			ValuePlaybackDollar,
+//			ValueCaptureDollar,
+			ValueFinished,
+
+			Finished
+		} s {S::Init};
+		static const char * str(S p)
+		{
+			static const std::tuple<S, const char *> srcData_123[] = {
+				{ S::Init, "Init" },
+				{ S::IntoGlobalObject, "IntoGlobalObject" },
+				{ S::KeyStarting, "KeyStarting" },
+				{ S::KeyValueSeparator, "KeyValueSeparator" },
+				{ S::ValueModeStarting, "ValueModeStarting" },
+				{ S::ValueMode, "ValueMode" },
+				{ S::ValueParametersStarting, "ValueParametersStarting" },
+				{ S::ValueParameters, "ValueParameters" },
+				{ S::ParametersKey, "ParametersKey"},
+				{ S::InparamsSeparator, "InparamsSeparator"},
+				{ S::InparamsValueStringStarting, "InparamsValueStringStarting"},
+				{ S::InparamsValueString, "InparamsValueString"},
+				{ S::InparamsValueBoolean, "InparamsValueBoolean"},
+				{ S::InparamsValueInteger, "InparamsValueInteger"},
+				{ S::InparamsValueFinished, "InparamsValueFinished"},
+
+				{ S::ValueFinished, "ValueFinished" },
+				{ S::Finished, "Finished" }
+			};
+			for (auto o : srcData_123)
+			{
+				if (p == std::get<0>(o))
+					return std::get<1>(o);
+			}
+			return "<incorrect>";
+		}
+		std::string key;
+		std::string value;
+		int counter {0};
+	} _state;
+};
 
 int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 {
@@ -110,13 +224,19 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	if (state)
 		return collectError(p_error, "--config: parameter value not present");
 
+	bool usingDefaultConfig = _configPath;
 	if (!_configPath)
 		_configPath = "~/.stretchplayer.conf";
+	JsonParser jsonParser;
+	if (!jsonParser.parse(_configPath, !usingDefaultConfig, p_error))
+	{
+		return collectError(p_error, "can not parse config");
+	}
 
-	if (int fd = open(_configPath, O_RDONLY))
+	/*if (int fd = open(_configPath, O_RDONLY))
 	{
 		// JSON parsing: not implemented yet
-	}
+	}*/
 
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
@@ -388,6 +508,304 @@ std::string Configuration2::toString() const
 	return retVal;
 }
 
-bool Configuration2::initFromFile(int p_fd, std::string *p_error)
-{// not implemented
+int Configuration2::collectError(std::string *p_error, const std::string &p_message) const
+{
+	if (p_error)
+	{
+		if (p_error->size() > 0)
+			*p_error = ":\n" + *p_error;
+		*p_error = p_message + *p_error;
+	}
+	return -1;
+}
+
+const char * Configuration2::JsonParser::ERROR_CODE_DESCRIPTIONS[] {
+	"no error",
+	"internal error (not implemented)",
+	"internal error (unhandled state)",
+	"syntax error",
+	"unsupported key used",
+	"comma between object key-value pairs expected",
+	"unexpected comma not between objects in object",
+
+	"there is not such mode",
+
+	"can not open file",
+	"" // for invalid error code
+};
+
+const char
+	*Configuration2::JsonParser::USER_MARK = "{user}",
+	*Configuration2::JsonParser::TRUE = "true",
+	*Configuration2::JsonParser::FALSE = "false"
+;
+const int
+	Configuration2::JsonParser::USER_MARK_LEN = strlen(USER_MARK),
+	Configuration2::JsonParser::TRUE_LEN = strlen(TRUE),
+	Configuration2::JsonParser::FALSE_LEN = strlen(FALSE)
+;
+
+Configuration2::JsonParser::JsonParser()
+{
+}
+
+bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std::string *p_error)
+{
+	int fd = open(p_filepath, O_RDONLY);
+	if (!fd)
+	{
+		if (p_force)
+		{
+			return true;
+		}
+		return collectError(p_error, "can not open file");
+	}
+	const int bufferSize = 1024;
+	char buffer[bufferSize];
+	initParse();
+	while(int result = read(fd, buffer, bufferSize))
+	{
+		if (result < 0)
+		{
+			close(fd);
+			(void)collectError(p_error, strerror(errno));
+			return collectError(p_error, "can read file");
+		}
+		for (char i : buffer)
+		{
+			if (int err = static_cast<int>(parseTick(i)))
+			{
+				close(fd);
+				return collectError(p_error, ERROR_CODE_DESCRIPTIONS[err]);
+			}
+			if (_state.s == State::S::Finished)
+				break;
+		}
+	}
+	if (_state.s != State::S::Finished)
+	{
+		return collectError(p_error, "file is incomplete");
+	}
+	puts("Pipes configuration file parsed successfully");//
+	return true;
+}
+
+bool Configuration2::JsonParser::collectError(std::string *p_error, const std::string &p_message) const
+{
+	if (p_error)
+	{
+		if (p_error->size() > 0)
+			*p_error = ":\n" + *p_error;
+		*p_error = p_message + *p_error;
+	}
+	return false;
+}
+
+void Configuration2::JsonParser::initParse()
+{
+	_state = State();
+}
+
+Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte)
+{
+	//return collectError(p_error, "not implemented");
+
+	printf("%c\t%s\n", byte, State::str(_state.s));
+	if (_state.s == State::S::Init)
+	{
+		if (isWhitespaceSymbol((byte)))
+			;
+		else if (byte == '{')
+			_state.s = State::S::IntoGlobalObject;
+		else
+			return Error::SystaxError;
+	}
+	else if (_state.s == State::S::IntoGlobalObject)
+	{
+		if (isWhitespaceSymbol(byte))
+			;
+		else if (byte == '"'){
+			_state.s = State::S::KeyStarting;
+			_state.key.clear();
+		}
+		else if (byte == '}'){
+			_state.s = State::S::Finished;
+		}
+		else
+			return Error::SystaxError;
+	}
+	else if (_state.s == State::S::KeyStarting)
+	{
+		if (byte == '"')
+		{
+			_state.s = State::S::KeyValueSeparator;
+		}
+		else if (isFilenameSymbol(byte))
+		{
+			_state.key.push_back(byte);
+		}
+		else
+		{
+			return Error::SystaxError;
+		}
+	}
+	else if (_state.s == State::S::KeyValueSeparator)
+	{
+		if (isWhitespaceSymbol(byte))
+			;
+		else if (byte == ':')
+		{
+//			if (_state.key == "playback")
+//				_state.s = State::S::ValuePlaybackStarting;
+//			else if (_state.key == "capture")
+//				_state.s = State::S::ValueCaptureStarting;
+//			else if (_state.key == "remote")
+//			{
+//				_state.s = State::S::ValueRemote;
+//				_state.counter = 0;
+//			}
+//			else
+//				return Error::SystaxError;
+			if (_state.key == "mode")
+				_state.s = State::S::ValueModeStarting;
+			else if (_state.key == "parameters")
+				_state.s = State::S::ValueParametersStarting;
+			else
+				return Error::UnsupportedKeyUsed;
+		}
+		else
+			return Error::SystaxError;
+	}
+	else if (_state.s == State::S::ValueModeStarting)
+	{
+		if (byte == '"')
+		{
+			_state.s = State::S::ValueMode;
+			_state.value.clear();
+		}
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return Error::SystaxError;
+	}
+	else if (_state.s == State::S::ValueMode)
+	{
+		if (byte == '"')
+		{
+			_state.s = State::S::ValueFinished;
+		}
+		else if (isFilenameSymbol(byte))
+		{
+			_state.value.push_back(byte);
+		}
+		else
+			return Error::SystaxError; // некорректный символ в строке имени режима
+	}
+	else if (_state.s == State::S::ValueParametersStarting)
+	{
+		if (byte == '{')
+		{
+			_state.s = State::S::ValueParameters;
+			_state.key.clear();
+			_state.value.clear();
+		}
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return Error::SystaxError;
+	}
+	else if (_state.s == State::S::ValueParameters)
+	{
+		if (byte == '"')
+		{
+			_state.s = State::S::ParametersKey;
+		}
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return Error::SystaxError;
+	}
+	else if (_state.s == State::S::ParametersKey)
+	{
+		if (byte == '"')
+			_state.s = State::S::InparamsSeparator;
+		else if (isFilenameSymbol(byte))
+		{
+			_state.key.push_back(byte);
+		}
+		else
+			return Error::SystaxError;
+	}
+	else if (_state.s == State::S::InparamsSeparator)
+	{
+//		return Error::NotImplemented;
+		if (isWhitespaceSymbol(byte))
+			;
+		else if (byte == ':')
+		{
+			if (_state.key == "mono")
+				_state.s = State::S::InparamsValueBoolean;
+			else if (_state.key == "device")
+				_state.s = State::S::InparamsValueStringStarting;
+			else
+				return Error::UnsupportedKeyUsed;
+		}
+		else
+			return Error::SystaxError;
+	}
+	else if (_state.s == State::S::InparamsValueStringStarting)
+	{
+		return Error::NotImplemented;
+	}
+	else if (_state.s == State::S::InparamsValueString)
+	{
+		return Error::NotImplemented;
+	}
+	else if (_state.s == State::S::InparamsValueBoolean)
+	{
+		return Error::NotImplemented;
+	}
+	else if (_state.s == State::S::InparamsValueInteger)
+	{
+		return Error::NotImplemented;
+	}
+	else if (_state.s == State::S::InparamsValueFinished)
+	{
+		return Error::NotImplemented;
+	}
+	else if (_state.s == State::S::ValueFinished)
+	{
+		if (_state.key == "mode")
+		{
+			if (_state.value == "alsa")
+			{
+				//
+				puts("** write value: _mode = Mode::Alsa");
+			}
+			else
+			{
+				return Error::IncorrectMode;
+			}
+		}
+		else
+		{
+			puts("<EMERGENCY>"); // it's internal epic fail to be here (assert() this). Неподдерживаемые ключи должны были быть пресечены ранее (ещё до считывания значения)
+			return Error::UnsupportedKeyUsed;
+		}
+
+		if (byte == ',')
+			_state.s = State::S::IntoGlobalObject;
+		else if (byte == '}')
+			_state.s = State::S::Finished;
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return Error::InobjectCommaExpected;
+	}
+	else
+	{
+		return Error::UnhandledState;
+	}
+
+	return Error::NoError;
 }
