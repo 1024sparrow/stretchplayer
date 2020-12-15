@@ -157,8 +157,6 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим указан несколько раз
 			* режим не указан, но указаны параметры, которых нет в числе общих параметров
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
-
-	boris here 01215: добавить защиту от повторяющихся установок одних и тех же полей
 	*/
 
 	_configPath = nullptr;
@@ -233,6 +231,20 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	}
 	if (state)
 		return collectError(p_error, "--config: parameter value not present");
+
+	{ // prevent argument duplication
+		std::set<std::string> usedArguments;
+		for (int iArg = 0 ; iArg < p_argc ; ++iArg)
+		{
+			const char *arg = p_argv[iArg];
+			if (arg[0] == '-')
+			{
+				if (usedArguments.find(arg) != usedArguments.end())
+					return collectError(p_error, std::string(arg) + ": duplicating argument");
+				usedArguments.insert(arg);
+			}
+		}
+	}
 
 	bool usingDefaultConfig = _configPath;
 	if (!_configPath)
