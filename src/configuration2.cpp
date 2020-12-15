@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <tuple>
+#include <set>
 
 #include <locale.h> // for futher usage: currently only ASCII field values supported
 
@@ -25,6 +26,7 @@ private:
 		InobjectCommaExpected,
 		UnexpectedComma,
 		TrueFalseExpected,
+		DuplicatingKey,
 
 		IncorrectMode,
 
@@ -126,6 +128,8 @@ private:
 		}
 		std::string key;
 		std::string value;
+		std::set<std::string> keysAlreadyUsed;
+		std::set<std::string> inparamsKeysAlreadyUsed;
 		struct
 		{
 			int value;
@@ -529,6 +533,7 @@ const char * Configuration2::JsonParser::ERROR_CODE_DESCRIPTIONS[] {
 	"comma between object key-value pairs expected",
 	"unexpected comma not between objects in object",
 	"true|false expected",
+	"duplicating key",
 
 	"there is not such mode",
 
@@ -661,6 +666,11 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_state.s = State::S::ValueParametersStarting;
 			else
 				return Error::UnsupportedKeyUsed;
+
+			if (_state.keysAlreadyUsed.find(_state.key) == _state.keysAlreadyUsed.end())
+				_state.keysAlreadyUsed.insert(_state.key);
+			else
+				return Error::DuplicatingKey;
 		}
 		else
 			return Error::SystaxError;
@@ -749,6 +759,11 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			{
 				return Error::UnsupportedKeyUsed;
 			}
+
+			if (_state.inparamsKeysAlreadyUsed.find(_state.key) == _state.inparamsKeysAlreadyUsed.end())
+				_state.inparamsKeysAlreadyUsed.insert(_state.key);
+			else
+				return Error::DuplicatingKey;
 		}
 		else
 			return Error::SystaxError;
