@@ -85,6 +85,7 @@ private:
 			InparamsValueBooleanStarting,
 			InparamsValueBooleanTrue,
 			InparamsValueBooleanFalse,
+			InparamsValueIntegerStarting,
 			InparamsValueInteger,
 			InparamsValueFinished,
 			ValueFinished,
@@ -109,6 +110,7 @@ private:
 				{ S::InparamsValueBooleanStarting, "InparamsValueBooleanStarting"},
 				{ S::InparamsValueBooleanTrue, "InparamsValueBooleanTrue"},
 				{ S::InparamsValueBooleanFalse, "InparamsValueBooleanFalse"},
+				{ S::InparamsValueIntegerStarting, "InparamsValueIntegerStarting"},
 				{ S::InparamsValueInteger, "InparamsValueInteger"},
 				{ S::InparamsValueFinished, "InparamsValueFinished"},
 
@@ -124,6 +126,11 @@ private:
 		}
 		std::string key;
 		std::string value;
+		struct
+		{
+			int value;
+			bool negative;
+		} intValue;
 		int counter {0};
 	} _state;
 };
@@ -146,6 +153,8 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим указан несколько раз
 			* режим не указан, но указаны параметры, которых нет в числе общих параметров
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
+
+	boris here 01215: добавить защиту от повторяющихся установок одних и тех же полей
 	*/
 
 	_configPath = nullptr;
@@ -229,11 +238,6 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	{
 		return collectError(p_error, "can not parse config");
 	}
-
-	/*if (int fd = open(_configPath, O_RDONLY))
-	{
-		// JSON parsing: not implemented yet
-	}*/
 
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
@@ -736,11 +740,13 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_state.s = State::S::InparamsValueBooleanStarting;
 			else if (_state.key == "device")
 				_state.s = State::S::InparamsValueStringStarting;
-			else if (_state.key == "priodSize")
-				_state.s = State::S::InparamsValueInteger;
+			else if (_state.key == "periodSize")
+			{
+				_state.intValue = {0, false};
+				_state.s = State::S::InparamsValueIntegerStarting;
+			}
 			else
 			{
-				std::cout << "KEY: " << _state.key << std::endl;
 				return Error::UnsupportedKeyUsed;
 			}
 		}
@@ -765,7 +771,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			if (_state.key == "device")
 				printf("** write value: _device = \"%s\"\n", _state.value.c_str());
 
-			_state.s = State::S::ValueParameters;
+			_state.s = State::S::InparamsValueFinished;
 		}
 		else if (isFilenameSymbol(byte))
 			_state.value.push_back(byte);
@@ -812,9 +818,45 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		}
 		++_state.counter;
 	}
+	else if (_state.s == State::S::InparamsValueIntegerStarting)
+	{
+//		return Error::NotImplemented;
+
+		if (byte == '-')
+		{
+			_state.intValue.negative = true;
+			_state.s = State::S::InparamsValueInteger;
+		}
+		else if (byte >= '0' && byte <= '9')
+		{
+			_state.intValue.value = byte - '0';
+			_state.s = State::S::InparamsValueInteger;
+		}
+		else if (isWhitespaceSymbol(byte))
+			;
+		else
+			return Error::SystaxError;
+	}
 	else if (_state.s == State::S::InparamsValueInteger)
 	{
-		return Error::NotImplemented;
+		if (byte >= '0' && byte <= '9')
+			_state.intValue.value = _state.intValue.value * 10 + byte - '0';
+		else if (byte == ',' || byte == '}' || isWhitespaceSymbol(byte))
+		{
+			printf("** write value: _periodSize = \"%i\"\n", _state.intValue.value * (_state.intValue.negative ? -1 : 1));
+			_state.key.clear();
+			_state.value.clear();
+			if (byte == ',')
+			{
+				_state.s = State::S::ValueParameters;
+			}
+			if (byte == '}')
+			{
+				_state.s = State::S::Finished;
+			}
+		}
+		else
+			return Error::SystaxError;
 	}
 	else if (_state.s == State::S::InparamsValueFinished)
 	{
@@ -825,6 +867,11 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			_state.key.clear();
 			_state.value.clear();
 			_state.s = State::S::ValueParameters;
+		}
+		else if (byte == '}')
+		{
+			_state.key = "parameters";
+			_state.s = State::S::ValueFinished;
 		}
 		else
 			return Error::SystaxError;
@@ -843,6 +890,8 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				return Error::IncorrectMode;
 			}
 		}
+		else if (_state.key == "parameters")
+			;
 		else
 		{
 			puts("<EMERGENCY>"); // it's internal epic fail to be here (assert() this). Неподдерживаемые ключи должны были быть пресечены ранее (ещё до считывания значения)
