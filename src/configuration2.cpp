@@ -13,7 +13,7 @@
 class Configuration2::JsonParser
 {
 public:
-	JsonParser();
+	JsonParser(Configuration2 *p_conf);
 	bool parse(const char *p_filepath, bool p_force, std::string *p_error);
 private:
 	enum class Error
@@ -137,6 +137,7 @@ private:
 		} intValue;
 		int counter {0};
 	} _state;
+	Configuration2 *_conf;
 };
 
 int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
@@ -176,14 +177,16 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
 		const char *arg = p_argv[iArg];
-		if (!strcmp(arg, "--help"))
-		{
-			std::cout << R"(--config
-	set alternative config file path (default is "~/.stretchplayer.conf")
+/*
 --config-add
 	copy current config and add options to it
 --config-rewrite
 	create new config and add options to it
+*/
+		if (!strcmp(arg, "--help"))
+		{
+			std::cout << R"(--config
+	set alternative config file path (default is "~/.stretchplayer.conf")
 --sampleRate
 	sample rate to use for ALSA (default: 44100)
 --mono
@@ -252,15 +255,16 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		}
 	}
 
-	bool usingDefaultConfig = !_configPath;
+	bool usingDefaultConfig = _configPath;
 	if (!_configPath)
 		_configPath = "~/.stretchplayer.conf";
-	JsonParser jsonParser;
+	JsonParser jsonParser(this);
 	if (!jsonParser.parse(_configPath, !usingDefaultConfig, p_error))
 	{
 		return collectError(p_error, "can not parse config");
 	}
 
+	state = 0;
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
 	{
 		const char *arg = p_argv[iArg];
@@ -269,12 +273,16 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		if (!strcmp(arg, "--alsa")) cand = Mode::Alsa;
 		else if (!strcmp(arg, "--fake")) cand = Mode::Fake;
 		else if (!strcmp(arg, "--jack")) cand = Mode::Jack;
-		if (cand != Mode::Undefined)
+		else
+			continue;
+		if (state == 0)
 		{
-			if (_mode != Mode::Undefined){
-				return collectError(p_error, "only one time mode can be set");
-			};
 			_mode = cand;
+			state = 1;
+		}
+		else if (state == 1)
+		{
+			return collectError(p_error, "only one time mode can be set");
 		}
 	}
 	if (_mode == Mode::Undefined)
@@ -570,7 +578,8 @@ const int
 	Configuration2::JsonParser::FALSE_LEN = strlen(FALSE)
 ;
 
-Configuration2::JsonParser::JsonParser()
+Configuration2::JsonParser::JsonParser(Configuration2 *p_conf)
+	: _conf(p_conf)
 {
 }
 
@@ -819,7 +828,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (byte == '"')
 		{
 			if (_state.key == "device")
-				printf("** write value: _device = \"%s\"\n", _state.value.c_str());
+				_conf->_data.alsa.device = _state.value;
 
 			_state.s = State::S::InparamsValueFinished;
 		}
@@ -851,7 +860,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (_state.counter == TRUE_LEN - 1)
 		{
 			if (_state.key == "mono")
-				puts("** write value: _mono = true");
+				_conf->_data.alsa.mono = true;
 			_state.s = State::S::InparamsValueFinished;
 		}
 		++_state.counter;
@@ -863,7 +872,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (_state.counter == FALSE_LEN - 1)
 		{
 			if (_state.key == "mono")
-				puts("** write value: _mono = false");
+				_conf->_data.alsa.mono = false;
 			_state.s = State::S::InparamsValueFinished;
 		}
 		++_state.counter;
@@ -893,7 +902,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			_state.intValue.value = _state.intValue.value * 10 + byte - '0';
 		else if (byte == ',' || byte == '}' || isWhitespaceSymbol(byte))
 		{
-			printf("** write value: _periodSize = \"%i\"\n", _state.intValue.value * (_state.intValue.negative ? -1 : 1));
+			_conf->_data.alsa.periodSize = _state.intValue.value * (_state.intValue.negative ? -1 : 1);
 			_state.key.clear();
 			_state.value.clear();
 			if (byte == ',')
@@ -933,7 +942,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			if (_state.value == "alsa")
 			{
 				//
-				puts("** write value: _mode = Mode::Alsa");
+				_conf->_mode = Mode::Alsa;
 			}
 			else
 			{
