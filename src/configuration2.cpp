@@ -159,11 +159,10 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
 
 	boris here 01215 ffd:
-	1. Аргументы ошибок ( у JsonParser::parseTick() )
-	2. Реальное сохранение значений JsonParser-ом в поля структуры
-	3. Мёрж структур от JSON-конфигурации и от аргументов командной строки
-	(далее) 4. Переименовать файлы прототипа и приступить к правкам пенератора кода
-	(далее) 5. Встроенная в парсер JSON-а подстановка переменных окружения и резолвинг доиашней директории, заданной через "тильду"
+	1. Реальное сохранение значений JsonParser-ом в поля структуры
+	2. Мёрж структур от JSON-конфигурации и от аргументов командной строки
+	(далее) 3. Переименовать файлы прототипа и приступить к правкам пенератора кода
+	(далее) 4. Встроенная в парсер JSON-а подстановка переменных окружения и резолвинг доиашней директории, заданной через "тильду"
 	*/
 
 	_configPath = nullptr;
@@ -253,7 +252,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		}
 	}
 
-	bool usingDefaultConfig = _configPath;
+	bool usingDefaultConfig = !_configPath;
 	if (!_configPath)
 		_configPath = "~/.stretchplayer.conf";
 	JsonParser jsonParser;
@@ -578,7 +577,7 @@ Configuration2::JsonParser::JsonParser()
 bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std::string *p_error)
 {
 	int fd = open(p_filepath, O_RDONLY);
-	if (!fd)
+	if (fd <= 0)
 	{
 		if (p_force)
 		{
@@ -589,23 +588,40 @@ bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std
 	const int bufferSize = 1024;
 	char buffer[bufferSize];
 	initParse();
+	int lineNum = 1, colNum = 1;
 	while(int result = read(fd, buffer, bufferSize))
 	{
 		if (result < 0)
 		{
 			close(fd);
 			(void)collectError(p_error, strerror(errno));
-			return collectError(p_error, "can read file");
+			return collectError(p_error, "can not read file");
 		}
 		for (char i : buffer)
 		{
 			if (int err = static_cast<int>(parseTick(i)))
 			{
 				close(fd);
-				return collectError(p_error, ERROR_CODE_DESCRIPTIONS[err]);
+				sprintf(
+					buffer,
+					"line %i, column %i: %s.",
+					lineNum,
+					colNum,
+					ERROR_CODE_DESCRIPTIONS[err]
+				);
+				return collectError(p_error, buffer);
 			}
 			if (_state.s == State::S::Finished)
 				break;
+			if (i == '\n')
+			{
+				++lineNum;
+				colNum = 1;
+			}
+			else
+			{
+				++colNum;
+			}
 		}
 	}
 	if (_state.s != State::S::Finished)
@@ -634,7 +650,7 @@ void Configuration2::JsonParser::initParse()
 
 Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte)
 {
-	printf("%c\t%s\n", byte, State::str(_state.s));
+	//printf("%c\t%s\n", byte, State::str(_state.s));
 	if (_state.s == State::S::Init)
 	{
 		if (isWhitespaceSymbol((byte)))
