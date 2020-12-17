@@ -252,14 +252,6 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			}
 		}
 	}
-	bool usingDefaultConfig = _configPath;
-	if (!_configPath)
-		_configPath = "~/.stretchplayer.conf";
-	JsonParser jsonParser(this);
-	if (!jsonParser.parse(_configPath, !usingDefaultConfig, p_error))
-	{
-		return collectError(p_error, "can not parse config");
-	}
 
 	state = 0;
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
@@ -282,6 +274,16 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			return collectError(p_error, "only one time mode can be set");
 		}
 	}
+
+	bool usingDefaultConfig = _configPath;
+	if (!_configPath)
+		_configPath = "~/.stretchplayer.conf";
+	JsonParser jsonParser(this);
+	if (!jsonParser.parse(_configPath, !usingDefaultConfig, _mode, p_error))
+	{
+		return collectError(p_error, "can not parse config");
+	}
+
 	if (_mode == Mode::Undefined)
 	{
 		return collectError(p_error, "mode not set");
