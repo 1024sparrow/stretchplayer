@@ -862,11 +862,11 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _mode == Mode::Alsa && _state.key == "device")
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "device")
 			{
 				_state.s = State::S::InparamsValueStringStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _mode == Mode::Alsa && _state.key == "periodSize")
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "periodSize")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
@@ -909,7 +909,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	{
 		if (byte == '"')
 		{
-			if (p_parsingStage == ParsingStage::ModeSpecificSaving && _mode == Mode::Alsa && _state.key == "device")
+			if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "device")
 			{
 				_conf->_data.alsa.device = _state.value;
 			}
@@ -1037,7 +1037,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_conf->_data.fake.pitch = newVal;
 				_conf->_data.jack.pitch = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _mode == Mode::Alsa && _state.key == "periodSize")
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "periodSize")
 			{
 				_conf->_data.alsa.periodSize = newVal;
 			}
