@@ -161,6 +161,7 @@ var jsonParamKeys = (function(p_src){
 		return '<<UNKNOWN_STATE_FOR_SUCH_FIELD_TYPE>>';
 	}
 	var jsonParamKeys = '';
+	console.log('6666666666666');
 	for (const oCommonParams of p_src.options){
 		jsonParamKeys += jsonParamKeys ? `
 			else ` : `
@@ -168,18 +169,56 @@ var jsonParamKeys = (function(p_src){
 		//jsonParamKeys += `if (_state.key == "${oCommonParams.name}")
 		//		_state.s = State::S::${fGetState(oCommonParams.type)};`;
 		jsonParamKeys += `if (_state.key == "${oCommonParams.name}")`;
-		if (oCommonParams.type === 'string')
+		if (oCommonParams.type === 'string'){
+			console.log('7777777');
 			jsonParamKeys += `
 				_state.s = State::S::InparamsValueStringStarting;`;
-		else if (oCommonParams.type === 'boolean')
+			console.log('88888888');
+			jsonSaveResultString += jsonSaveResultString ? `
+			else ` : `
+			`;
+			jsonSaveResultString += `if (_state.key == "${oCommonParams.name}")
+			{`;
+			for (const oMode of src.modes){
+				jsonSaveResultString += `
+				_conf->_data.${oMode.name}.${oCommonParams.name} = _state.value;`;
+			}
+			jsonSaveResultString += `
+			}`;
+		}
+		else if (oCommonParams.type === 'boolean'){
 			jsonParamKeys += `
 				_state.s = State::S::InparamsValueBooleanStarting;`;
-		else if (oCommonParams.type === 'integer')
+			jsonSaveResulBoolean += jsonSaveResulBoolean ? `
+			else ` : `
+			`;
+			jsonSaveResulBoolean += `if (_state.key == "${oCommonParams.name}")
+			{`;
+			for (const oMode of src.modes){
+				jsonSaveResulBoolean += `
+				_conf->_data.${oMode.name}.${oCommonParams.name} = newVal;`;
+			}
+			jsonSaveResulBoolean += `
+			}`;
+		}
+		else if (oCommonParams.type === 'integer'){
 			jsonParamKeys += `
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}`;
+			jsonSaveResulInteger += jsonSaveResulInteger ? `
+			else ` : `
+			`;
+			jsonSaveResulInteger += `if (_state.key == "${oCommonParams.name}")
+			{`;
+			for (const oMode of src.modes){
+				jsonSaveResulInteger += `
+				_conf->_data.${oMode.name}.${oCommonParams.name} = newVal;`;
+			}
+			jsonSaveResulInteger += `
+			}`;
+		}
 	}
 	// boris here: jsonSaveResultString, jsonSaveResulBoolean, jsonSaveResulInteger
 	return jsonParamKeys;
