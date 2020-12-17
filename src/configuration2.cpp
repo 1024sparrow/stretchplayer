@@ -747,9 +747,9 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			;
 		else if (byte == ':')
 		{
-			if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mode")
+			if (_state.key == "mode")
 				_state.s = State::S::ValueModeStarting;
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "parameters")
+			else if (_state.key == "parameters")
 				_state.s = State::S::ValueParametersStarting;
 			else
 				return Error::UnsupportedKeyUsed;
@@ -838,9 +838,13 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
 			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mono")
+			{
 				_state.s = State::S::InparamsValueBooleanStarting;
+			}
 			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mic")
+			{
 				_state.s = State::S::InparamsValueBooleanStarting;
+			}
 			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "shift")
 			{
 				_state.intValue = {0, false};
@@ -852,6 +856,15 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
 			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "pitch")
+			{
+				_state.intValue = {0, false};
+				_state.s = State::S::InparamsValueIntegerStarting;
+			}
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _mode == Mode::Alsa && _state.key == "device")
+			{
+				_state.s = State::S::InparamsValueStringStarting;
+			}
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _mode == Mode::Alsa && _state.key == "periodSize")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
@@ -894,6 +907,10 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	{
 		if (byte == '"')
 		{
+			if (p_parsingStage == ParsingStage::ModeSpecificSaving && _mode == Mode::Alsa && _state.key == "device")
+			{
+				_conf->_data.alsa.device = _state.value;
+			}
 			/*if (_state.key == "device")
 				_conf->_data.alsa.device = _state.value;*/
 
@@ -1018,6 +1035,10 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_conf->_data.fake.pitch = newVal;
 				_conf->_data.jack.pitch = newVal;
 			}
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _mode == Mode::Alsa && _state.key == "periodSize")
+			{
+				_conf->_data.alsa.periodSize = newVal;
+			}
 			/*if (_state.key == "periodSize")
 				_conf->_data.alsa.periodSize = newVal;*/
 			_state.key.clear();
@@ -1056,7 +1077,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	{
 		if (_state.key == "mode")
 		{
-			if (_state.value == "alsa")
+			if (_state.value == "alsa") // boris here 2: mode saving (сохраняем вне зависимости от ParsingStage)
 			{
 				//
 				_conf->_mode = Mode::Alsa;
