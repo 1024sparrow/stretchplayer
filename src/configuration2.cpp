@@ -258,6 +258,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		{
 			std::cout << R"(--config
 	set alternative config file path (default is "~/.stretchplayer.conf")
+	${...} and ~ at the begin resolves to appropriate environment variable values
 --sampleRate
 	sample rate to use for ALSA (default: 44100)
 --mono
@@ -305,7 +306,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			}
 			if (_configPath)
 				return collectError(p_error, "only one time config file path can be set");
-			_configPath = arg;
+			_configPath = resolveEnvVarsAndTilda(arg);
 			state = 0;
 		}
 	}
@@ -481,7 +482,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				}
 				else if (state == 7)
 				{
-					const char *tmp = arg;
+					const char *tmp = resolveEnvVarsAndTilda(arg);
 					_data.alsa.device = tmp;
 				}
 				else if (state == 8)
@@ -496,12 +497,12 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				}
 				else if (state == 10)
 				{
-					const char *tmp = arg;
+					const char *tmp = resolveEnvVarsAndTilda(arg);
 					_data.fake.fifoPlayback = tmp;
 				}
 				else if (state == 11)
 				{
-					const char *tmp = arg;
+					const char *tmp = resolveEnvVarsAndTilda(arg);
 					_data.fake.fifoCapture = tmp;
 				}
 				else if (state == 12)
@@ -991,15 +992,15 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		{
 			if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "device")
 			{
-				_conf->_data.alsa.device = _state.value;
+				_conf->_data.alsa.device = resolveEnvVarsAndTilda(_state.value);
 			}
 			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoPlayback")
 			{
-				_conf->_data.fake.fifoPlayback = _state.value;
+				_conf->_data.fake.fifoPlayback = resolveEnvVarsAndTilda(_state.value);
 			}
 			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoCapture")
 			{
-				_conf->_data.fake.fifoCapture = _state.value;
+				_conf->_data.fake.fifoCapture = resolveEnvVarsAndTilda(_state.value);
 			}
 			_state.s = State::S::InparamsValueFinished;
 		}
