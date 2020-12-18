@@ -10,6 +10,79 @@
 #include <tuple>
 #include <set>
 
+/*
+ * resolve "~/qwe/${USER}/rty" to "/home/user/qwe/user/rty"
+ * "${...}" resolves to appropriate environment variable value
+ * "~" resolves to home directory path only if it is placed in the begin
+ */
+std::string resolveEnvVarsAndTilda(const std::string &p)
+{
+	int state = 0, substate = 0;
+	std::string envName, retVal;
+	for (char ch : p)
+	{
+		if (state == 0)
+		{
+			if (ch == '~')
+			{
+				retVal += getenv("HOME");
+				state = 1;
+			}
+			else if (ch == '$')
+			{
+				state = 2;
+				substate = 0;
+			}
+			else
+			{
+				retVal.push_back(ch);
+				state = 1;
+			}
+		}
+		else if (state == 1)
+		{
+			if (ch == '$')
+			{
+				state = 2;
+				substate = 0;
+			}
+			else
+			{
+				retVal.push_back(ch);
+			}
+		}
+		else if (state == 2)
+		{
+			if (substate == 0)
+			{
+				if (ch == '{')
+				{
+					substate = 1;
+					envName.clear();
+				}
+				else
+				{
+					retVal.push_back('$');
+					retVal.push_back(ch);
+				}
+			}
+			else if (substate == 1)
+			{
+				if (ch == '}')
+				{
+					retVal += getenv(envName.c_str());
+					state = 1;
+				}
+				else
+				{
+					envName.push_back(ch);
+				}
+			}
+		}
+	}
+	return retVal;
+}
+
 class Configuration2::JsonParser
 {
 public:
