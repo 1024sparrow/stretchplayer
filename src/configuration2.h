@@ -51,8 +51,9 @@ public:
 private:
 	class JsonParser;
 	int collectError(std::string *p_error, const std::string &p_message) const;
+	static std::string resolveEnvVarsAndTilda(const std::string &p);
 
-	const char *_configPath {nullptr};
+	std::string _configPath {nullptr};
 
 	struct
 	{

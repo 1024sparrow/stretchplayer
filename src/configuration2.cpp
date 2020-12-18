@@ -10,79 +10,6 @@
 #include <tuple>
 #include <set>
 
-/*
- * resolve "~/qwe/${USER}/rty" to "/home/user/qwe/user/rty"
- * "${...}" resolves to appropriate environment variable value
- * "~" resolves to home directory path only if it is placed in the begin
- */
-std::string resolveEnvVarsAndTilda(const std::string &p)
-{
-	int state = 0, substate = 0;
-	std::string envName, retVal;
-	for (char ch : p)
-	{
-		if (state == 0)
-		{
-			if (ch == '~')
-			{
-				retVal += getenv("HOME");
-				state = 1;
-			}
-			else if (ch == '$')
-			{
-				state = 2;
-				substate = 0;
-			}
-			else
-			{
-				retVal.push_back(ch);
-				state = 1;
-			}
-		}
-		else if (state == 1)
-		{
-			if (ch == '$')
-			{
-				state = 2;
-				substate = 0;
-			}
-			else
-			{
-				retVal.push_back(ch);
-			}
-		}
-		else if (state == 2)
-		{
-			if (substate == 0)
-			{
-				if (ch == '{')
-				{
-					substate = 1;
-					envName.clear();
-				}
-				else
-				{
-					retVal.push_back('$');
-					retVal.push_back(ch);
-				}
-			}
-			else if (substate == 1)
-			{
-				if (ch == '}')
-				{
-					retVal += getenv(envName.c_str());
-					state = 1;
-				}
-				else
-				{
-					envName.push_back(ch);
-				}
-			}
-		}
-	}
-	return retVal;
-}
-
 class Configuration2::JsonParser
 {
 public:
@@ -243,7 +170,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	2. Вывод в консоль содержимого конфига (генерация конфигурационного файла)
 	*/
 
-	_configPath = nullptr;
+	_configPath.clear();
 	int state;
 	/*
 	states:
@@ -304,7 +231,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			{
 				return collectError(p_error, "--config: parameter value not present");
 			}
-			if (_configPath)
+			if (_configPath.size())
 				return collectError(p_error, "only one time config file path can be set");
 			_configPath = resolveEnvVarsAndTilda(arg);
 			state = 0;
@@ -349,11 +276,11 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		}
 	}
 
-	bool usingDefaultConfig = _configPath;
-	if (!_configPath)
+	bool usingDefaultConfig = _configPath.size();
+	if (!usingDefaultConfig)
 		_configPath = "~/.stretchplayer.conf";
 	JsonParser jsonParser(this);
-	if (!jsonParser.parse(_configPath, !usingDefaultConfig, _mode, p_error))
+	if (!jsonParser.parse(_configPath.c_str(), !usingDefaultConfig, _mode, p_error))
 	{
 		return collectError(p_error, "can not parse config");
 	}
@@ -482,7 +409,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				}
 				else if (state == 7)
 				{
-					const char *tmp = resolveEnvVarsAndTilda(arg);
+					std::string tmp = resolveEnvVarsAndTilda(arg);
 					_data.alsa.device = tmp;
 				}
 				else if (state == 8)
@@ -497,12 +424,12 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				}
 				else if (state == 10)
 				{
-					const char *tmp = resolveEnvVarsAndTilda(arg);
+					std::string tmp = resolveEnvVarsAndTilda(arg);
 					_data.fake.fifoPlayback = tmp;
 				}
 				else if (state == 11)
 				{
-					const char *tmp = resolveEnvVarsAndTilda(arg);
+					std::string tmp = resolveEnvVarsAndTilda(arg);
 					_data.fake.fifoCapture = tmp;
 				}
 				else if (state == 12)
@@ -621,6 +548,79 @@ int Configuration2::collectError(std::string *p_error, const std::string &p_mess
 		*p_error = p_message + *p_error;
 	}
 	return -1;
+}
+
+/*
+ * resolve "~/qwe/${USER}/rty" to "/home/user/qwe/user/rty"
+ * "${...}" resolves to appropriate environment variable value
+ * "~" resolves to home directory path only if it is placed in the begin
+ */
+std::string Configuration2::resolveEnvVarsAndTilda(const std::string &p)
+{
+	int state = 0, substate = 0;
+	std::string envName, retVal;
+	for (char ch : p)
+	{
+		if (state == 0)
+		{
+			if (ch == '~')
+			{
+				retVal += getenv("HOME");
+				state = 1;
+			}
+			else if (ch == '$')
+			{
+				state = 2;
+				substate = 0;
+			}
+			else
+			{
+				retVal.push_back(ch);
+				state = 1;
+			}
+		}
+		else if (state == 1)
+		{
+			if (ch == '$')
+			{
+				state = 2;
+				substate = 0;
+			}
+			else
+			{
+				retVal.push_back(ch);
+			}
+		}
+		else if (state == 2)
+		{
+			if (substate == 0)
+			{
+				if (ch == '{')
+				{
+					substate = 1;
+					envName.clear();
+				}
+				else
+				{
+					retVal.push_back('$');
+					retVal.push_back(ch);
+				}
+			}
+			else if (substate == 1)
+			{
+				if (ch == '}')
+				{
+					retVal += getenv(envName.c_str());
+					state = 1;
+				}
+				else
+				{
+					envName.push_back(ch);
+				}
+			}
+		}
+	}
+	return retVal;
 }
 
 const char * Configuration2::JsonParser::ERROR_CODE_DESCRIPTIONS[] {
