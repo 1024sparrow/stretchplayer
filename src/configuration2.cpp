@@ -165,9 +165,9 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим не указан, но указаны параметры, которых нет в числе общих параметров
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
 
-	boris here 01216 ffd:
-	1. Переименовать файлы прототипа и приступить к правкам пенератора кода
-	2. Встроенная в парсер JSON-а подстановка переменных окружения и резолвинг доиашней директории, заданной через "тильду"
+	boris here 01218 ffd:
+	1. Встроенная в парсер JSON-а подстановка переменных окружения и резолвинг доиашней директории, заданной через "тильду"
+	2. Вывод в консоль содержимого конфига (генерация конфигурационного файла)
 	*/
 
 	_configPath = nullptr;
@@ -871,16 +871,23 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
-			// boris here: mode-specific parameters
-			/*if (_state.key == "mono")
-				_state.s = State::S::InparamsValueBooleanStarting;
-			else if (_state.key == "device")
-				_state.s = State::S::InparamsValueStringStarting;
-			else if (_state.key == "periodSize")
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "periods")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
-			}*/
+			}
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoPlayback")
+			{
+				_state.s = State::S::InparamsValueStringStarting;
+			}
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoCapture")
+			{
+				_state.s = State::S::InparamsValueStringStarting;
+			}
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
+			{
+				_state.s = State::S::InparamsValueBooleanStarting;
+			}
 			else
 			{
 				return Error::UnsupportedKeyUsed;
@@ -913,9 +920,14 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			{
 				_conf->_data.alsa.device = _state.value;
 			}
-			/*if (_state.key == "device")
-				_conf->_data.alsa.device = _state.value;*/
-
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoPlayback")
+			{
+				_conf->_data.fake.fifoPlayback = _state.value;
+			}
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoCapture")
+			{
+				_conf->_data.fake.fifoCapture = _state.value;
+			}
 			_state.s = State::S::InparamsValueFinished;
 		}
 		else if (isFilenameSymbol(byte))
@@ -958,8 +970,10 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_conf->_data.fake.mic = newVal;
 				_conf->_data.jack.mic = newVal;
 			}
-			/*if (_state.key == "mono")
-				_conf->_data.alsa.mono = newVal;*/
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
+			{
+				_conf->_data.jack.noAutoconnect = newVal;
+			}
 			_state.s = State::S::InparamsValueFinished;
 		}
 		++_state.counter;
@@ -983,8 +997,10 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 				_conf->_data.fake.mic = newVal;
 				_conf->_data.jack.mic = newVal;
 			}
-			/*if (_state.key == "mono")
-				_conf->_data.alsa.mono = newVal;*/
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
+			{
+				_conf->_data.jack.noAutoconnect = newVal;
+			}
 			_state.s = State::S::InparamsValueFinished;
 		}
 		++_state.counter;
@@ -1041,8 +1057,10 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			{
 				_conf->_data.alsa.periodSize = newVal;
 			}
-			/*if (_state.key == "periodSize")
-				_conf->_data.alsa.periodSize = newVal;*/
+			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "periods")
+			{
+				_conf->_data.alsa.periods = newVal;
+			}
 			_state.key.clear();
 			_state.value.clear();
 			if (byte == ',')
@@ -1079,7 +1097,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	{
 		if (_state.key == "mode")
 		{
-			if (_state.value == "alsa") // boris here 2: mode saving (сохраняем вне зависимости от ParsingStage)
+			if (_state.value == "alsa")
 			{
 				//
 				_conf->_mode = Mode::Alsa;

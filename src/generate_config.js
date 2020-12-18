@@ -161,7 +161,6 @@ var jsonParamKeys = (function(p_src){
 		return '<<UNKNOWN_STATE_FOR_SUCH_FIELD_TYPE>>';
 	}
 	var jsonParamKeys = '';
-	console.log('6666666666666');
 	for (const oCommonParams of p_src.options){
 		jsonParamKeys += jsonParamKeys ? `
 			else ` : `
@@ -171,10 +170,8 @@ var jsonParamKeys = (function(p_src){
 		jsonParamKeys += `if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "${oCommonParams.name}")
 			{`;
 		if (oCommonParams.type === 'string'){
-			console.log('7777777');
 			jsonParamKeys += `
 				_state.s = State::S::InparamsValueStringStarting;`;
-			console.log('88888888');
 			jsonSaveResultString += jsonSaveResultString ? `
 			else ` : `
 			`;
@@ -221,7 +218,53 @@ var jsonParamKeys = (function(p_src){
 			jsonParamKeys += `
 			}`;
 	}
-	// boris here: jsonSaveResultString, jsonSaveResulBoolean, jsonSaveResulInteger
+	for (const oMode of src.modes){
+		for (const oParam of oMode.options){
+			jsonParamKeys += jsonParamKeys ? `
+			else ` : `
+			`;
+			//jsonParamKeys += `if (_state.key == "${oCommonParams.name}")
+			//		_state.s = State::S::${fGetState(oCommonParams.type)};`;
+			jsonParamKeys += `if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::${oMode.inEnumName} && _state.key == "${oParam.name}")
+			{`;
+			if (oParam.type === 'string'){
+				jsonParamKeys += `
+				_state.s = State::S::InparamsValueStringStarting;`;
+				jsonSaveResultString += jsonSaveResultString ? `
+			else ` : `
+			`;
+				jsonSaveResultString += `if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::${oMode.inEnumName} && _state.key == "${oParam.name}")
+			{
+				_conf->_data.${oMode.name}.${oParam.name} = _state.value;
+			}`;
+			}
+			else if (oParam.type === 'boolean'){
+				jsonParamKeys += `
+				_state.s = State::S::InparamsValueBooleanStarting;`;
+				jsonSaveResulBoolean += jsonSaveResulBoolean ? `
+			else ` : `
+			`;
+				jsonSaveResulBoolean += `if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::${oMode.inEnumName} && _state.key == "${oParam.name}")
+			{
+				_conf->_data.${oMode.name}.${oParam.name} = newVal;
+			}`;
+			}
+			else if (oParam.type === 'integer'){
+				jsonParamKeys += `
+				_state.intValue = {0, false};
+				_state.s = State::S::InparamsValueIntegerStarting;`;
+				jsonSaveResulInteger += jsonSaveResulInteger ? `
+			else ` : `
+			`;
+				jsonSaveResulInteger += `if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::${oMode.inEnumName} && _state.key == "${oParam.name}")
+			{
+				_conf->_data.${oMode.name}.${oParam.name} = newVal;
+			}`;
+			}
+			jsonParamKeys += `
+			}`;
+		}
+	}
 	return jsonParamKeys;
 })(src);
 //}}
@@ -589,9 +632,9 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим не указан, но указаны параметры, которых нет в числе общих параметров
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
 
-	boris here 01216 ffd:
-	1. Переименовать файлы прототипа и приступить к правкам пенератора кода
-	2. Встроенная в парсер JSON-а подстановка переменных окружения и резолвинг доиашней директории, заданной через "тильду"
+	boris here 01218 ffd:
+	1. Встроенная в парсер JSON-а подстановка переменных окружения и резолвинг доиашней директории, заданной через "тильду"
+	2. Вывод в консоль содержимого конфига (генерация конфигурационного файла)
 	*/
 
 	_configPath = nullptr;
@@ -992,16 +1035,6 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			;
 		else if (byte == ':')
 		{${jsonParamKeys}
-			// boris here: mode-specific parameters
-			/*if (_state.key == "mono")
-				_state.s = State::S::InparamsValueBooleanStarting;
-			else if (_state.key == "device")
-				_state.s = State::S::InparamsValueStringStarting;
-			else if (_state.key == "periodSize")
-			{
-				_state.intValue = {0, false};
-				_state.s = State::S::InparamsValueIntegerStarting;
-			}*/
 			else
 			{
 				return Error::UnsupportedKeyUsed;
@@ -1030,9 +1063,6 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	{
 		if (byte == '"')
 		{${jsonSaveResultString}
-			/*if (_state.key == "device")
-				_conf->_data.alsa.device = _state.value;*/
-
 			_state.s = State::S::InparamsValueFinished;
 		}
 		else if (isFilenameSymbol(byte))
@@ -1063,8 +1093,6 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (_state.counter == TRUE_LEN - 1)
 		{
 			bool newVal = true;${jsonSaveResulBoolean}
-			/*if (_state.key == "mono")
-				_conf->_data.alsa.mono = newVal;*/
 			_state.s = State::S::InparamsValueFinished;
 		}
 		++_state.counter;
@@ -1076,8 +1104,6 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (_state.counter == FALSE_LEN - 1)
 		{
 			bool newVal = false;${jsonSaveResulBoolean}
-			/*if (_state.key == "mono")
-				_conf->_data.alsa.mono = newVal;*/
 			_state.s = State::S::InparamsValueFinished;
 		}
 		++_state.counter;
@@ -1106,8 +1132,6 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		else if (byte == ',' || byte == '}' || isWhitespaceSymbol(byte))
 		{
 			int newVal = _state.intValue.value * (_state.intValue.negative ? -1 : 1);${jsonSaveResulInteger}
-			/*if (_state.key == "periodSize")
-				_conf->_data.alsa.periodSize = newVal;*/
 			_state.key.clear();
 			_state.value.clear();
 			if (byte == ',')
