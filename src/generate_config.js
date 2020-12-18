@@ -168,7 +168,8 @@ var jsonParamKeys = (function(p_src){
 			`;
 		//jsonParamKeys += `if (_state.key == "${oCommonParams.name}")
 		//		_state.s = State::S::${fGetState(oCommonParams.type)};`;
-		jsonParamKeys += `if (_state.key == "${oCommonParams.name}")`;
+		jsonParamKeys += `if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "${oCommonParams.name}")
+			{`;
 		if (oCommonParams.type === 'string'){
 			console.log('7777777');
 			jsonParamKeys += `
@@ -177,7 +178,7 @@ var jsonParamKeys = (function(p_src){
 			jsonSaveResultString += jsonSaveResultString ? `
 			else ` : `
 			`;
-			jsonSaveResultString += `if (_state.key == "${oCommonParams.name}")
+			jsonSaveResultString += `if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "${oCommonParams.name}")
 			{`;
 			for (const oMode of src.modes){
 				jsonSaveResultString += `
@@ -192,7 +193,7 @@ var jsonParamKeys = (function(p_src){
 			jsonSaveResulBoolean += jsonSaveResulBoolean ? `
 			else ` : `
 			`;
-			jsonSaveResulBoolean += `if (_state.key == "${oCommonParams.name}")
+			jsonSaveResulBoolean += `if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "${oCommonParams.name}")
 			{`;
 			for (const oMode of src.modes){
 				jsonSaveResulBoolean += `
@@ -203,14 +204,12 @@ var jsonParamKeys = (function(p_src){
 		}
 		else if (oCommonParams.type === 'integer'){
 			jsonParamKeys += `
-			{
 				_state.intValue = {0, false};
-				_state.s = State::S::InparamsValueIntegerStarting;
-			}`;
+				_state.s = State::S::InparamsValueIntegerStarting;`;
 			jsonSaveResulInteger += jsonSaveResulInteger ? `
 			else ` : `
 			`;
-			jsonSaveResulInteger += `if (_state.key == "${oCommonParams.name}")
+			jsonSaveResulInteger += `if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "${oCommonParams.name}")
 			{`;
 			for (const oMode of src.modes){
 				jsonSaveResulInteger += `
@@ -219,6 +218,8 @@ var jsonParamKeys = (function(p_src){
 			jsonSaveResulInteger += `
 			}`;
 		}
+			jsonParamKeys += `
+			}`;
 	}
 	// boris here: jsonSaveResultString, jsonSaveResulBoolean, jsonSaveResulInteger
 	return jsonParamKeys;
@@ -437,7 +438,8 @@ class Configuration2::JsonParser
 {
 public:
 	JsonParser(Configuration2 *p_conf);
-	bool parse(const char *p_filepath, bool p_force, std::string *p_error);
+	// p_force - error, if file not exists (or can not read)
+	bool parse(const char *p_filepath, bool p_force, Configuration2::Mode p_mode, std::string *p_error);
 private:
 	enum class Error
 	{
@@ -456,9 +458,14 @@ private:
 		CanNotOpenFile,
 		__Count
 	};
+	enum class ParsingStage
+	{
+		ModeDetectingAndCommonSaving,
+		ModeSpecificSaving
+	};
 	bool collectError(std::string *p_error, const std::string &p_message) const;
 	void initParse();
-	Error parseTick(char byte);
+	Error parseTick(char byte, ParsingStage p_parsingStage);
 
 	bool isWhitespaceSymbol(char byte)
 	{
@@ -635,14 +642,6 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			}
 		}
 	}
-	bool usingDefaultConfig = _configPath;
-	if (!_configPath)
-		_configPath = "~/${src.configFileName}";
-	JsonParser jsonParser(this);
-	if (!jsonParser.parse(_configPath, !usingDefaultConfig, p_error))
-	{
-		return collectError(p_error, "can not parse config");
-	}
 
 	state = 0;
 	for (int iArg = 0 ; iArg < p_argc ; ++iArg)
@@ -662,6 +661,16 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			return collectError(p_error, "only one time mode can be set");
 		}
 	}
+
+	bool usingDefaultConfig = _configPath;
+	if (!_configPath)
+		_configPath = "~/${src.configFileName}";
+	JsonParser jsonParser(this);
+	if (!jsonParser.parse(_configPath, !usingDefaultConfig, _mode, p_error))
+	{
+		return collectError(p_error, "can not parse config");
+	}
+
 	if (_mode == Mode::Undefined)
 	{
 		return collectError(p_error, "mode not set");
@@ -731,7 +740,7 @@ Configuration2::JsonParser::JsonParser(Configuration2 *p_conf)
 {
 }
 
-bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std::string *p_error)
+bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, Configuration2::Mode p_mode, std::string *p_error)
 {
 	int fd = open(p_filepath, O_RDONLY);
 	if (fd <= 0)
@@ -756,7 +765,52 @@ bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std
 		}
 		for (char i : buffer)
 		{
-			if (int err = static_cast<int>(parseTick(i)))
+			if (int err = static_cast<int>(parseTick(i, ParsingStage::ModeDetectingAndCommonSaving)))
+			{
+				close(fd);
+				sprintf(
+					buffer,
+					"line %i, column %i: %s.",
+					lineNum,
+					colNum,
+					ERROR_CODE_DESCRIPTIONS[err]
+				);
+				return collectError(p_error, buffer);
+			}
+			if (_state.s == State::S::Finished)
+				break;
+			if (i == '\\n')
+			{
+				++lineNum;
+				colNum = 1;
+			}
+			else
+			{
+				++colNum;
+			}
+		}
+	}
+	if (_state.s != State::S::Finished)
+	{
+		return collectError(p_error, "file is incomplete");
+	}
+
+	if (_conf->_mode != p_mode) // _conf->_mode can not be equal Mode::Undefined
+		return true;
+
+	lseek(fd, 0, SEEK_SET);
+	lineNum = 1, colNum = 1;
+	while(int result = read(fd, buffer, bufferSize))
+	{
+		if (result < 0)
+		{
+			close(fd);
+			(void)collectError(p_error, strerror(errno));
+			return collectError(p_error, "can not read file");
+		}
+		for (char i : buffer)
+		{
+			if (int err = static_cast<int>(parseTick(i, ParsingStage::ModeSpecificSaving)))
 			{
 				close(fd);
 				sprintf(
@@ -805,7 +859,7 @@ void Configuration2::JsonParser::initParse()
 	_state = State();
 }
 
-Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte)
+Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte, ParsingStage p_parsingStage)
 {
 	//printf("%c\\t%s\\n", byte, State::str(_state.s));
 
