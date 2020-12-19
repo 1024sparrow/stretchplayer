@@ -282,13 +282,17 @@ var _fields = {
 	valueHolders: '',
 	/*
 --config-gen
-	generate config-file content (print it to stdin) and normal exit`,
+	generate config-file content (print it to stdout) and normal exit
+--showOptionsInsteadOfApplying
+	show parameters, resulting of config file (if exists) and command-line arguments, and exit normally`,
 	*/
 	help: `--config
 	set alternative config file path (default is "~/${src.configFileName}")
 	\${...} and ~ at the begin resolves to appropriate environment variable values
 --config-gen
-	generate config-file content (print it to stdin) and normal exit`,
+	generate config-file content (print it to stdout) and normal exit
+--showOptionsInsteadOfApplying
+	show parameters, resulting of config file (if exists) and command-line arguments, and exit normally`,
 	structs: '',
 };
 var _getters = (function(p_src, p_fields){
@@ -704,7 +708,7 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, const char *p_helpPrefix, con
 	*/
 
 	_configPath.clear();
-	bool needToGenerateConfig = false;
+	int needToGenerateConfig = 0; // 1 - generateConfig, 2 - showParameters
 	int state;
 	/*
 	states:
@@ -734,7 +738,11 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, const char *p_helpPrefix, con
 		}
 		else if (!strcmp(arg, "--config-gen"))
 		{
-			needToGenerateConfig = true;
+			needToGenerateConfig = 1;
+		}
+		else if (!strcmp(arg, "--showOptionsInsteadOfApplying"))
+		{
+			needToGenerateConfig = 2;
 		}
 		else if (state)
 		{
