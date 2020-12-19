@@ -287,7 +287,11 @@ var _fields = {
 	*/
 	help: `--config
 	set alternative config file path (default is "~/${src.configFileName}")
-	\${...} and ~ at the begin resolves to appropriate environment variable values`,
+	\${...} and ~ at the begin resolves to appropriate environment variable values
+--config-add
+	copy current config and add options to it
+--config-rewrite
+	create new config and add options to it`,
 	structs: '',
 };
 var _getters = (function(p_src, p_fields){

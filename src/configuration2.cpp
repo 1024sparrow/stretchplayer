@@ -186,6 +186,10 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			std::cout << R"(--config
 	set alternative config file path (default is "~/.stretchplayer.conf")
 	${...} and ~ at the begin resolves to appropriate environment variable values
+--config-add
+	copy current config and add options to it
+--config-rewrite
+	create new config and add options to it
 --sampleRate
 	sample rate to use for ALSA (default: 44100)
 --mono
