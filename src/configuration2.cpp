@@ -164,7 +164,7 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 	*/
 
 	_configPath.clear();
-	bool needToGenerateConfig = false;
+	int needToGenerateConfig = 0; // 1 - generateConfig, 2 - showParameters
 	int state;
 	/*
 	states:
@@ -185,39 +185,41 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 	set alternative config file path (default is "~/.stretchplayer.conf")
 	${...} and ~ at the begin resolves to appropriate environment variable values
 --config-gen
-	generate config-file content (print it to stdin) and normal exit
---sampleRate
+	generate config-file content (print it to stdout) and normal exit
+--showOptionsInsteadOfApplying
+	show parameters, resulting of config file (if exists) and command-line arguments, and exit normally
+--sampleRate <number>
 	sample rate to use for ALSA (default: 44100)
---mono
+--mono <true|false>
 	merge all sound channels into the one: make it mono (default: false)
---mic
+--mic <true|false>
 	use microphone for sound catching (default: false)
---shift
+--shift <number>
 	right channel ahead of left (in seconds). Automaticaly make it mono. (default: 0)
---stretch
+--stretch <number>
 	playing speed (in percents) (default: 100)
---pitch
+--pitch <number>
 	frequency shift (number from -12 to 12) (default: 0)
 --alsa
 	use ALSA for audio
 	Options:
-	--device
+	--device <string>
 		device to use for ALSA (default: "default")
-	--periodSize
+	--periodSize <number>
 		period size to use for ALSA (default: 1024)
-	--periods
+	--periods <number>
 		periods per buffer for ALSA (default: 2)
 --fake
 	use FIFO-s to write playback-data and read capture-data
 	Options:
-	--fifoPlayback
+	--fifoPlayback <string>
 		filepath to the FIFO to write playback into (default: "~/.stretchplayer-playback.fifo")
-	--fifoCapture
+	--fifoCapture <string>
 		filepath to the FIFO to read capture from (default: "~/.stretchplayer-capture.fifo")
 --jack
 	use JACK for audio
 	Options:
-	--noAutoconnect
+	--noAutoconnect <true|false>
 		disable auto-connection ot ouputs (for JACK) (default: false))" << std::endl;
 			if (p_helpPostfix)
 			{
@@ -231,7 +233,11 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 		}
 		else if (!strcmp(arg, "--config-gen"))
 		{
-			needToGenerateConfig = true;
+			needToGenerateConfig = 1;
+		}
+		else if (!strcmp(arg, "--showOptionsInsteadOfApplying"))
+		{
+			needToGenerateConfig = 2;
 		}
 		else if (state)
 		{
@@ -320,6 +326,7 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 		if (!strcmp(arg, "--config"))
 			state = -1;
 		else if (!strcmp(arg, "--config-gen"));
+		else if (!strcmp(arg, "--showOptionsInsteadOfApplying"));
 		else if (!strcmp(arg, "--alsa"));
 		else if (!strcmp(arg, "--fake"));
 		else if (!strcmp(arg, "--jack"));
@@ -470,7 +477,10 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 
 	if (needToGenerateConfig)
 	{
-		std::cout << generateConf() << std::endl;
+		if (needToGenerateConfig == 1)
+			std::cout << generateConf() << std::endl;
+		else if (needToGenerateConfig == 2)
+			std::cout << toString() << std::endl;
 		exit(0);
 	}
 
