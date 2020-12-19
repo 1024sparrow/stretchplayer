@@ -1225,7 +1225,6 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 
 std::string Configuration2::generateConf() const
 {
-	//return "<not implemented>";
 	std::string retVal = "{";
 
 	if (_mode == Mode::Alsa)
@@ -1378,41 +1377,7 @@ std::string Configuration2::generateConf() const
 		else
 			retVal += "false";
 	}
-	/*if (_mode == Mode::Alsa)
-	{
-		retVal += R"(
-		"sampleRate": )";
-		retVal += std::to_string(_data.alsa.sampleRate);
-
-		retVal.push_back(',');
-		retVal += R"( // <------- boolean
-		"mono": )";
-		if (_data.alsa.mono)
-			retVal += "true";
-		else
-			retVal += "false";
-
-		retVal.push_back(',');
-		retVal += R"( // <---- string
-		"device": ")";
-		retVal += _data.alsa.device;
-		retVal += "\"";
-
-		retVal.push_back(',');
-		retVal += R"( // <---- integer
-		"periodSize": )";
-		retVal += std::to_string(_data.alsa.periodSize);
-
-		retVal.push_back(',');
-		retVal += R"(
-		"periods": )";
-		retVal += std::to_string(_data.alsa.periods);
-	}
-	else if (_mode == Mode::Fake)
-	{
-		// ...
-	}
-	*/
+	// else { ... } // set common only parameters. Not supported work without an active mode.
 
 	return retVal + R"(
 	}
