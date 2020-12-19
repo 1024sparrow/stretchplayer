@@ -443,6 +443,34 @@ for (const oMode of src.modes){
 	}`;
 }
 
+var generateConfMode = '', generateConfParams = '';
+for (const oMode of src.modes){
+	generateConfMode += generateConfMode ? `
+	else ` : ``;
+	generateConfMode += `if (_mode == Mode::${oMode.inEnumName})
+	{
+		retVal += R"(
+	"mode": "${oMode.name}",
+	"parameters": {)";
+	}`;
+
+	generateConfParams += generateConfParams ? `
+	else ` : ``;
+	generateConfParams += `if (_mode == Mode::${oMode.inEnumName})
+	{`;
+	let opts = '';
+	generateConfParams += opts;
+	generateConfParams += `
+	}`;
+}
+generateConfMode += generateConfMode ? `
+else` : ``;
+generateConfMode += `
+	{
+		retVal += R"(
+	"parameters": {)";
+	}`;
+
 
 
 var result = {
@@ -1297,9 +1325,52 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 
 std::string Configuration2::generateConf() const
 {
-	return "<not implemented>";
-}
+	//return "<not implemented>";
+	std::string retVal = "{";
 
+	${generateConfMode}
+
+	${generateConfParams}
+	/*if (_mode == Mode::Alsa)
+	{
+		retVal += R"(
+		"sampleRate": )";
+		retVal += std::to_string(_data.alsa.sampleRate);
+
+		retVal.push_back(',');
+		retVal += R"(
+		"mono": )";
+		if (_data.alsa.mono)
+			retVal += "true";
+		else
+			retVal += "false";
+
+		retVal.push_back(',');
+		retVal += R"(
+		"device": ")";
+		retVal += _data.alsa.device;
+		retVal += "\\"";
+
+		retVal.push_back(',');
+		retVal += R"(
+		"periodSize": )";
+		retVal += std::to_string(_data.alsa.periodSize);
+
+		retVal.push_back(',');
+		retVal += R"(
+		"periods": )";
+		retVal += std::to_string(_data.alsa.periods);
+	}
+	else if (_mode == Mode::Fake)
+	{
+		// ...
+	}
+	*/
+
+	return retVal + R"(
+	}
+})";
+}
 `
 };
 fs.writeFileSync(path.resolve(TARGET_DIR, `${CLASSFILENAME}.h`), result.h, 'utf8');
