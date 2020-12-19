@@ -1225,6 +1225,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 
 std::string Configuration2::generateConf() const
 {
+	//return "<not implemented>";
 	std::string retVal = "{";
 
 	if (_mode == Mode::Alsa)
@@ -1233,16 +1234,16 @@ std::string Configuration2::generateConf() const
 	"mode": "alsa",
 	"parameters": {)";
 	}
-	else if (_mode == Mode::Jack)
-	{
-		retVal += R"(
-	"mode": "jack",
-	"parameters": {)";
-	}
 	else if (_mode == Mode::Fake)
 	{
 		retVal += R"(
 	"mode": "fake",
+	"parameters": {)";
+	}
+	else if (_mode == Mode::Jack)
+	{
+		retVal += R"(
+	"mode": "jack",
 	"parameters": {)";
 	}
 	else
@@ -1256,7 +1257,6 @@ std::string Configuration2::generateConf() const
 		retVal += R"(
 		"sampleRate": )";
 		retVal += std::to_string(_data.alsa.sampleRate);
-
 		retVal.push_back(',');
 		retVal += R"(
 		"mono": )";
@@ -1264,15 +1264,142 @@ std::string Configuration2::generateConf() const
 			retVal += "true";
 		else
 			retVal += "false";
-
+		retVal.push_back(',');
+		retVal += R"(
+		"mic": )";
+		if (_data.alsa.mic)
+			retVal += "true";
+		else
+			retVal += "false";
+		retVal.push_back(',');
+		retVal += R"(
+		"shift": )";
+		retVal += std::to_string(_data.alsa.shift);
+		retVal.push_back(',');
+		retVal += R"(
+		"stretch": )";
+		retVal += std::to_string(_data.alsa.stretch);
+		retVal.push_back(',');
+		retVal += R"(
+		"pitch": )";
+		retVal += std::to_string(_data.alsa.pitch);
 		retVal.push_back(',');
 		retVal += R"(
 		"device": ")";
 		retVal += _data.alsa.device;
 		retVal += "\"";
-
 		retVal.push_back(',');
 		retVal += R"(
+		"periodSize": )";
+		retVal += std::to_string(_data.alsa.periodSize);
+		retVal.push_back(',');
+		retVal += R"(
+		"periods": )";
+		retVal += std::to_string(_data.alsa.periods);
+	}
+	else if (_mode == Mode::Fake)
+	{
+		retVal += R"(
+		"sampleRate": )";
+		retVal += std::to_string(_data.fake.sampleRate);
+		retVal.push_back(',');
+		retVal += R"(
+		"mono": )";
+		if (_data.fake.mono)
+			retVal += "true";
+		else
+			retVal += "false";
+		retVal.push_back(',');
+		retVal += R"(
+		"mic": )";
+		if (_data.fake.mic)
+			retVal += "true";
+		else
+			retVal += "false";
+		retVal.push_back(',');
+		retVal += R"(
+		"shift": )";
+		retVal += std::to_string(_data.fake.shift);
+		retVal.push_back(',');
+		retVal += R"(
+		"stretch": )";
+		retVal += std::to_string(_data.fake.stretch);
+		retVal.push_back(',');
+		retVal += R"(
+		"pitch": )";
+		retVal += std::to_string(_data.fake.pitch);
+		retVal.push_back(',');
+		retVal += R"(
+		"fifoPlayback": ")";
+		retVal += _data.fake.fifoPlayback;
+		retVal += "\"";
+		retVal.push_back(',');
+		retVal += R"(
+		"fifoCapture": ")";
+		retVal += _data.fake.fifoCapture;
+		retVal += "\"";
+	}
+	else if (_mode == Mode::Jack)
+	{
+		retVal += R"(
+		"sampleRate": )";
+		retVal += std::to_string(_data.jack.sampleRate);
+		retVal.push_back(',');
+		retVal += R"(
+		"mono": )";
+		if (_data.jack.mono)
+			retVal += "true";
+		else
+			retVal += "false";
+		retVal.push_back(',');
+		retVal += R"(
+		"mic": )";
+		if (_data.jack.mic)
+			retVal += "true";
+		else
+			retVal += "false";
+		retVal.push_back(',');
+		retVal += R"(
+		"shift": )";
+		retVal += std::to_string(_data.jack.shift);
+		retVal.push_back(',');
+		retVal += R"(
+		"stretch": )";
+		retVal += std::to_string(_data.jack.stretch);
+		retVal.push_back(',');
+		retVal += R"(
+		"pitch": )";
+		retVal += std::to_string(_data.jack.pitch);
+		retVal.push_back(',');
+		retVal += R"(
+		"noAutoconnect": )";
+		if (_data.jack.noAutoconnect)
+			retVal += "true";
+		else
+			retVal += "false";
+	}
+	/*if (_mode == Mode::Alsa)
+	{
+		retVal += R"(
+		"sampleRate": )";
+		retVal += std::to_string(_data.alsa.sampleRate);
+
+		retVal.push_back(',');
+		retVal += R"( // <------- boolean
+		"mono": )";
+		if (_data.alsa.mono)
+			retVal += "true";
+		else
+			retVal += "false";
+
+		retVal.push_back(',');
+		retVal += R"( // <---- string
+		"device": ")";
+		retVal += _data.alsa.device;
+		retVal += "\"";
+
+		retVal.push_back(',');
+		retVal += R"( // <---- integer
 		"periodSize": )";
 		retVal += std::to_string(_data.alsa.periodSize);
 
@@ -1285,9 +1412,9 @@ std::string Configuration2::generateConf() const
 	{
 		// ...
 	}
+	*/
 
 	return retVal + R"(
 	}
 })";
 }
-

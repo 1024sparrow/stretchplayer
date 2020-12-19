@@ -458,13 +458,45 @@ for (const oMode of src.modes){
 	else ` : ``;
 	generateConfParams += `if (_mode == Mode::${oMode.inEnumName})
 	{`;
-	let opts = '';
+	let opts = '', optSrc = [];
+	for (const oParam of src.options){
+		optSrc.push(oParam);
+	}
+	for (const oParam of oMode.options){
+		optSrc.push(oParam);
+	}
+	for (const oParam of optSrc){
+		opts += opts ? `
+		retVal.push_back(',');` : ``;
+		if (oParam.type === 'string'){
+			opts += `
+		retVal += R"(
+		"${oParam.name}": ")";
+		retVal += _data.${oMode.name}.${oParam.name};
+		retVal += "\\"";`;
+		}
+		else if (oParam.type === 'integer'){
+			opts += `
+		retVal += R"(
+		"${oParam.name}": )";
+		retVal += std::to_string(_data.${oMode.name}.${oParam.name});`;
+		}
+		else if (oParam.type === 'boolean'){
+			opts += `
+		retVal += R"(
+		"${oParam.name}": )";
+		if (_data.${oMode.name}.${oParam.name})
+			retVal += "true";
+		else
+			retVal += "false";`;
+		}
+	}
 	generateConfParams += opts;
 	generateConfParams += `
 	}`;
 }
 generateConfMode += generateConfMode ? `
-else` : ``;
+	else` : ``;
 generateConfMode += `
 	{
 		retVal += R"(
@@ -1338,7 +1370,7 @@ std::string Configuration2::generateConf() const
 		retVal += std::to_string(_data.alsa.sampleRate);
 
 		retVal.push_back(',');
-		retVal += R"(
+		retVal += R"( // <------- boolean
 		"mono": )";
 		if (_data.alsa.mono)
 			retVal += "true";
@@ -1346,13 +1378,13 @@ std::string Configuration2::generateConf() const
 			retVal += "false";
 
 		retVal.push_back(',');
-		retVal += R"(
+		retVal += R"( // <---- string
 		"device": ")";
 		retVal += _data.alsa.device;
 		retVal += "\\"";
 
 		retVal.push_back(',');
-		retVal += R"(
+		retVal += R"( // <---- integer
 		"periodSize": )";
 		retVal += std::to_string(_data.alsa.periodSize);
 
