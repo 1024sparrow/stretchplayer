@@ -291,7 +291,7 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 
 	Configuration2 confCopy = *this;
 	JsonParser jsonParser(&confCopy);
-	if (!jsonParser.parse(_configPath.c_str(), !usingDefaultConfig, _mode, p_error))
+	if (!jsonParser.parse(_configPath.c_str(), !usingDefaultConfig, p_error))
 	{
 		return collectError(p_error, "can not parse config");
 	}
