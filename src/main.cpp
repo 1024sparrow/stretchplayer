@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 {
 	Configuration2 config2;
 	std::string error;
-	if (int configParseResult = config2.parse(argc, argv, &error))
+	if (int configParseResult = config2.parse(argc, argv, nullptr, nullptr, &error))
 	{
 		if (configParseResult > 0)
 			return 0;
