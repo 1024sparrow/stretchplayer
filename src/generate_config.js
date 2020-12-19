@@ -522,7 +522,7 @@ public:
 	{${_modes}
 	};${_fields.structs}
 	${CLASSNAME}() = default;
-	int parse(int p_argc, char **p_argv, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
+	int parse(int p_argc, char **p_argv, const char *p_helpPrefix, const char *p_helpPostfix, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
 ${_fields.getters}
 
 	std::string toString() const;
@@ -687,9 +687,10 @@ private:
 	Configuration2 *_conf;
 };
 
-int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
+int ${CLASSNAME}::parse(int p_argc, char **p_argv, const char *p_helpPrefix, const char *p_helpPostfix, std::string *p_error)
 {
-	/* boris here:
+	/* Порядок разбора аргументов командной строки:
+
 	1. проходим на предмет запроса справки: тогда показываем справку и выходим
 		попутно записываем значение --config - отсюда мы получаем итоговый (_)configPath.
 	2. Вычитываем конфигурационный файл в копию структуры
@@ -705,9 +706,6 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 			* режим указан несколько раз
 			* режим не указан, но указаны параметры, которых нет в числе общих параметров
 			* режим указан, но не все указанные параметры есть в числе (общих и специфичных для указанного режима) параметров
-
-	boris here 01218 ffd:
-	1. Вывод в консоль содержимого конфига (генерация конфигурационного файла)
 	*/
 
 	_configPath.clear();
@@ -724,7 +722,15 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 		const char *arg = p_argv[iArg];
 		if (!strcmp(arg, "--help"))
 		{
+			if (p_helpPrefix)
+			{
+				std::cout << p_helpPrefix << std::endl;
+			}
 			std::cout << R"(${_fields.help})" << std::endl;
+			if (p_helpPostfix)
+			{
+				std::cout << p_helpPostfix << std::endl;
+			}
 			exit(0);
 		}
 		else if (!strcmp(arg, "--config"))
