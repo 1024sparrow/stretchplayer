@@ -286,8 +286,8 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 
 	bool usingDefaultConfig = _configPath.size();
 	if (!usingDefaultConfig)
-		//_configPath = "~/.stretchplayer.conf";
-		_configPath = "/home/boris/.stretchplayer.conf";
+		_configPath = "~/.stretchplayer.conf";
+	_configPath = resolveEnvVarsAndTilda(_configPath);
 
 	Configuration2 confCopy = *this;
 	JsonParser jsonParser(&confCopy);
