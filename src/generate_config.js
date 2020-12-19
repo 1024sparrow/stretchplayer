@@ -20,7 +20,8 @@ var _modes = `
 var modeResolving = '';
 var paramIfs = `if (!strcmp(arg, "--config"))
 			state = -1;
-		else if (!strcmp(arg, "--config-gen"));`;
+		else if (!strcmp(arg, "--config-gen"));
+		else if (!strcmp(arg, "--showOptionsInsteadOfApplying"));`;
 var stateCounter = [];
 for (let o of src.modes){
 	paramIfs += `
@@ -830,7 +831,10 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, const char *p_helpPrefix, con
 
 	if (needToGenerateConfig)
 	{
-		std::cout << generateConf() << std::endl;
+		if (needToGenerateConfig == 1)
+			std::cout << generateConf() << std::endl;
+		else if (needToGenerateConfig == 2)
+			std::cout << toString() << std::endl;
 		exit(0);
 	}
 
