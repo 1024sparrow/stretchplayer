@@ -171,6 +171,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	*/
 
 	_configPath.clear();
+	bool needToGenerateConfig = false;
 	int state;
 	/*
 	states:
@@ -226,6 +227,10 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		else if (!strcmp(arg, "--config"))
 		{
 			state = 1;
+		}
+		else if (!strcmp(arg, "--config-gen"))
+		{
+			needToGenerateConfig = true;
 		}
 		else if (state)
 		{
@@ -449,6 +454,12 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 				state = 0;
 			}
 		}
+	}
+
+	if (needToGenerateConfig)
+	{
+		std::cout << generateConf() << std::endl;
+		exit(0);
 	}
 
 	return 0;
@@ -1210,5 +1221,73 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	}
 
 	return Error::NoError;
+}
+
+std::string Configuration2::generateConf() const
+{
+	std::string retVal = "{";
+
+	if (_mode == Mode::Alsa)
+	{
+		retVal += R"(
+	"mode": "alsa",
+	"parameters": {)";
+	}
+	else if (_mode == Mode::Jack)
+	{
+		retVal += R"(
+	"mode": "jack",
+	"parameters": {)";
+	}
+	else if (_mode == Mode::Fake)
+	{
+		retVal += R"(
+	"mode": "fake",
+	"parameters": {)";
+	}
+	else
+	{
+		retVal += R"(
+	"parameters": {)";
+	}
+
+	if (_mode == Mode::Alsa)
+	{
+		retVal += R"(
+		"sampleRate": )";
+		retVal += std::to_string(_data.alsa.sampleRate);
+
+		retVal.push_back(',');
+		retVal += R"(
+		"mono": )";
+		if (_data.alsa.mono)
+			retVal += "true";
+		else
+			retVal += "false";
+
+		retVal.push_back(',');
+		retVal += R"(
+		"device": ")";
+		retVal += _data.alsa.device;
+		retVal += "\"";
+
+		retVal.push_back(',');
+		retVal += R"(
+		"periodSize": )";
+		retVal += std::to_string(_data.alsa.periodSize);
+
+		retVal.push_back(',');
+		retVal += R"(
+		"periods": )";
+		retVal += std::to_string(_data.alsa.periods);
+	}
+	else if (_mode == Mode::Fake)
+	{
+		// ...
+	}
+
+	return retVal + R"(
+	}
+})";
 }
 

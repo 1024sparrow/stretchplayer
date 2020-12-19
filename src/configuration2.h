@@ -53,6 +53,7 @@ private:
 	class JsonParser;
 	int collectError(std::string *p_error, const std::string &p_message) const;
 	static std::string resolveEnvVarsAndTilda(const std::string &p);
+	std::string generateConf() const;
 
 	std::string _configPath;
 
