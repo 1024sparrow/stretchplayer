@@ -147,7 +147,7 @@ private:
 	Configuration2 *_conf;
 };
 
-int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
+int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, const char *p_helpPostfix, std::string *p_error)
 {
 	/* boris here:
 	1. проходим на предмет запроса справки: тогда показываем справку и выходим
@@ -184,6 +184,10 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		const char *arg = p_argv[iArg];
 		if (!strcmp(arg, "--help"))
 		{
+			if (p_helpPrefix)
+			{
+				std::cout << p_helpPrefix << std::endl;
+			}
 			std::cout << R"(--config
 	set alternative config file path (default is "~/.stretchplayer.conf")
 	${...} and ~ at the begin resolves to appropriate environment variable values
@@ -222,6 +226,10 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 	Options:
 	--noAutoconnect
 		disable auto-connection ot ouputs (for JACK) (default: false))" << std::endl;
+			if (p_helpPostfix)
+			{
+				std::cout << p_helpPostfix << std::endl;
+			}
 			exit(0);
 		}
 		else if (!strcmp(arg, "--config"))

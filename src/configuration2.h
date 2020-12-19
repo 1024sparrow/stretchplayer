@@ -40,7 +40,7 @@ public:
 		bool noAutoconnect {false};
 	};
 	Configuration2() = default;
-	int parse(int p_argc, char **p_argv, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
+	int parse(int p_argc, char **p_argv, const char *p_helpPrefix, const char *p_helpPostfix, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
 
 	Mode mode() const {return _mode;}
 	const Alsa & alsa() const {return _data.alsa;}
