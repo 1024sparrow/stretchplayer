@@ -186,10 +186,8 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 			std::cout << R"(--config
 	set alternative config file path (default is "~/.stretchplayer.conf")
 	${...} and ~ at the begin resolves to appropriate environment variable values
---config-add
-	copy current config and add options to it
---config-rewrite
-	create new config and add options to it
+--config-gen
+	generate config-file content (print it to stdin) and normal exit
 --sampleRate
 	sample rate to use for ALSA (default: 44100)
 --mono
@@ -304,6 +302,7 @@ int Configuration2::parse(int p_argc, char **p_argv, std::string *p_error)
 		const char *arg = p_argv[iArg];
 		if (!strcmp(arg, "--config"))
 			state = -1;
+		else if (!strcmp(arg, "--config-gen"));
 		else if (!strcmp(arg, "--alsa"));
 		else if (!strcmp(arg, "--fake"));
 		else if (!strcmp(arg, "--jack"));

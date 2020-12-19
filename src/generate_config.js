@@ -19,7 +19,8 @@ var _modes = `
 		Undefined = 0,`;
 var modeResolving = '';
 var paramIfs = `if (!strcmp(arg, "--config"))
-			state = -1;`;
+			state = -1;
+		else if (!strcmp(arg, "--config-gen"));`;
 var stateCounter = [];
 for (let o of src.modes){
 	paramIfs += `
@@ -280,18 +281,14 @@ var _fields = {
 	getters: '',
 	valueHolders: '',
 	/*
---config-add
-	copy current config and add options to it
---config-rewrite
-	create new config and add options to it`,
+--config-gen
+	generate config-file content (print it to stdin) and normal exit`,
 	*/
 	help: `--config
 	set alternative config file path (default is "~/${src.configFileName}")
 	\${...} and ~ at the begin resolves to appropriate environment variable values
---config-add
-	copy current config and add options to it
---config-rewrite
-	create new config and add options to it`,
+--config-gen
+	generate config-file content (print it to stdin) and normal exit`,
 	structs: '',
 };
 var _getters = (function(p_src, p_fields){
