@@ -469,6 +469,7 @@ private:
 	class JsonParser;
 	int collectError(std::string *p_error, const std::string &p_message) const;
 	static std::string resolveEnvVarsAndTilda(const std::string &p);
+	std::string generateConf() const;
 
 	std::string _configPath;
 ${_fields.valueHolders}
@@ -648,6 +649,7 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 	*/
 
 	_configPath.clear();
+	bool needToGenerateConfig = false;
 	int state;
 	/*
 	states:
@@ -666,6 +668,10 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 		else if (!strcmp(arg, "--config"))
 		{
 			state = 1;
+		}
+		else if (!strcmp(arg, "--config-gen"))
+		{
+			needToGenerateConfig = true;
 		}
 		else if (state)
 		{
@@ -738,6 +744,12 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, std::string *p_error)
 	{
 		const char *arg = p_argv[iArg];
 		${paramIfs}
+	}
+
+	if (needToGenerateConfig)
+	{
+		std::cout << generateConf() << std::endl;
+		exit(0);
 	}
 
 	return 0;
@@ -1281,6 +1293,11 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	}
 
 	return Error::NoError;
+}
+
+std::string Configuration2::generateConf() const
+{
+	return "<not implemented>";
 }
 
 `
