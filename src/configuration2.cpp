@@ -16,7 +16,7 @@ class Configuration2::JsonParser
 public:
 	JsonParser(Configuration2 *p_conf);
 	// p_force - error, if file not exists (or can not read)
-	bool parse(const char *p_filepath, bool p_force, Configuration2::Mode p_mode, std::string *p_error);
+	bool parse(const char *p_filepath, bool p_force, std::string *p_error);
 private:
 	enum class Error
 	{
@@ -35,14 +35,9 @@ private:
 		CanNotOpenFile,
 		__Count
 	};
-	enum class ParsingStage
-	{
-		ModeDetectingAndCommonSaving,
-		ModeSpecificSaving
-	};
 	bool collectError(std::string *p_error, const std::string &p_message) const;
 	void initParse();
-	Error parseTick(char byte, ParsingStage p_parsingStage);
+	Error parseTick(char byte);
 
 	bool isWhitespaceSymbol(char byte)
 	{
@@ -291,11 +286,23 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 
 	bool usingDefaultConfig = _configPath.size();
 	if (!usingDefaultConfig)
-		_configPath = "~/.stretchplayer.conf";
-	JsonParser jsonParser(this);
-	if (!jsonParser.parse(_configPath.c_str(), !usingDefaultConfig, _mode, p_error))
+		//_configPath = "~/.stretchplayer.conf";
+		_configPath = "/home/boris/.stretchplayer.conf";
+
+	Configuration2 confCopy = *this;
+	JsonParser jsonParser(&confCopy);
+	//if (!jsonParser.parse(_configPath.c_str(), !usingDefaultConfig, _mode, p_error))
+	if (!jsonParser.parse(_configPath.c_str(), false, p_error))//
 	{
 		return collectError(p_error, "can not parse config");
+	}
+	if (_mode == Mode::Undefined && confCopy._mode != Mode::Undefined)
+	{
+		_mode = confCopy._mode;
+	}
+	if (confCopy._mode == Mode::Undefined || confCopy._mode == _mode)
+	{
+		_data = confCopy._data;
 	}
 
 	if (_mode == Mode::Undefined)
@@ -676,7 +683,7 @@ Configuration2::JsonParser::JsonParser(Configuration2 *p_conf)
 {
 }
 
-bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, Configuration2::Mode p_mode, std::string *p_error)
+bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std::string *p_error)
 {
 	int fd = open(p_filepath, O_RDONLY);
 	if (fd <= 0)
@@ -701,7 +708,7 @@ bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, Con
 		}
 		for (char i : buffer)
 		{
-			if (int err = static_cast<int>(parseTick(i, ParsingStage::ModeDetectingAndCommonSaving)))
+			if (int err = static_cast<int>(parseTick(i))) // mode detection
 			{
 				close(fd);
 				sprintf(
@@ -732,14 +739,9 @@ bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, Con
 		return collectError(p_error, "file is incomplete");
 	}
 
-	if (_conf->_mode != p_mode) // _conf->_mode can not be equal Mode::Undefined
-	{
-		close(fd);
-		return true;
-	}
-
 	lseek(fd, 0, SEEK_SET);
 	lineNum = 1, colNum = 1;
+	_state = State();
 	while(int result = read(fd, buffer, bufferSize))
 	{
 		if (result < 0)
@@ -750,7 +752,7 @@ bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, Con
 		}
 		for (char i : buffer)
 		{
-			if (int err = static_cast<int>(parseTick(i, ParsingStage::ModeSpecificSaving)))
+			if (int err = static_cast<int>(parseTick(i))) // save parameters
 			{
 				close(fd);
 				sprintf(
@@ -799,9 +801,9 @@ void Configuration2::JsonParser::initParse()
 	_state = State();
 }
 
-Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte, ParsingStage p_parsingStage)
+Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte)
 {
-	//printf("%c\t%s\n", byte, State::str(_state.s));
+	//printf("%c\t%s\tmode %i\n", byte, State::str(_state.s), static_cast<int>(_conf->_mode));
 
 	if (_state.s == State::S::Init)
 	{
@@ -932,57 +934,57 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			;
 		else if (byte == ':')
 		{
-			if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "sampleRate")
+			if (_state.key == "sampleRate")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mono")
+			else if (_state.key == "mono")
 			{
 				_state.s = State::S::InparamsValueBooleanStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mic")
+			else if (_state.key == "mic")
 			{
 				_state.s = State::S::InparamsValueBooleanStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "shift")
+			else if (_state.key == "shift")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "stretch")
+			else if (_state.key == "stretch")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "pitch")
+			else if (_state.key == "pitch")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "device")
+			else if (_conf->_mode == Mode::Alsa && _state.key == "device")
 			{
 				_state.s = State::S::InparamsValueStringStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "periodSize")
+			else if (_conf->_mode == Mode::Alsa && _state.key == "periodSize")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "periods")
+			else if (_conf->_mode == Mode::Alsa && _state.key == "periods")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoPlayback")
+			else if (_conf->_mode == Mode::Fake && _state.key == "fifoPlayback")
 			{
 				_state.s = State::S::InparamsValueStringStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoCapture")
+			else if (_conf->_mode == Mode::Fake && _state.key == "fifoCapture")
 			{
 				_state.s = State::S::InparamsValueStringStarting;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
+			else if (_conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
 			{
 				_state.s = State::S::InparamsValueBooleanStarting;
 			}
@@ -1014,15 +1016,15 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	{
 		if (byte == '"')
 		{
-			if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "device")
+			if (_conf->_mode == Mode::Alsa && _state.key == "device")
 			{
 				_conf->_data.alsa.device = resolveEnvVarsAndTilda(_state.value);
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoPlayback")
+			else if (_conf->_mode == Mode::Fake && _state.key == "fifoPlayback")
 			{
 				_conf->_data.fake.fifoPlayback = resolveEnvVarsAndTilda(_state.value);
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Fake && _state.key == "fifoCapture")
+			else if (_conf->_mode == Mode::Fake && _state.key == "fifoCapture")
 			{
 				_conf->_data.fake.fifoCapture = resolveEnvVarsAndTilda(_state.value);
 			}
@@ -1056,19 +1058,19 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (_state.counter == TRUE_LEN - 1)
 		{
 			bool newVal = true;
-			if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mono")
+			if (_state.key == "mono")
 			{
 				_conf->_data.alsa.mono = newVal;
 				_conf->_data.fake.mono = newVal;
 				_conf->_data.jack.mono = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mic")
+			else if (_state.key == "mic")
 			{
 				_conf->_data.alsa.mic = newVal;
 				_conf->_data.fake.mic = newVal;
 				_conf->_data.jack.mic = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
+			else if (_conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
 			{
 				_conf->_data.jack.noAutoconnect = newVal;
 			}
@@ -1083,19 +1085,19 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (_state.counter == FALSE_LEN - 1)
 		{
 			bool newVal = false;
-			if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mono")
+			if (_state.key == "mono")
 			{
 				_conf->_data.alsa.mono = newVal;
 				_conf->_data.fake.mono = newVal;
 				_conf->_data.jack.mono = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "mic")
+			else if (_state.key == "mic")
 			{
 				_conf->_data.alsa.mic = newVal;
 				_conf->_data.fake.mic = newVal;
 				_conf->_data.jack.mic = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
+			else if (_conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
 			{
 				_conf->_data.jack.noAutoconnect = newVal;
 			}
@@ -1127,35 +1129,35 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		else if (byte == ',' || byte == '}' || isWhitespaceSymbol(byte))
 		{
 			int newVal = _state.intValue.value * (_state.intValue.negative ? -1 : 1);
-			if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "sampleRate")
+			if (_state.key == "sampleRate")
 			{
 				_conf->_data.alsa.sampleRate = newVal;
 				_conf->_data.fake.sampleRate = newVal;
 				_conf->_data.jack.sampleRate = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "shift")
+			else if (_state.key == "shift")
 			{
 				_conf->_data.alsa.shift = newVal;
 				_conf->_data.fake.shift = newVal;
 				_conf->_data.jack.shift = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "stretch")
+			else if (_state.key == "stretch")
 			{
 				_conf->_data.alsa.stretch = newVal;
 				_conf->_data.fake.stretch = newVal;
 				_conf->_data.jack.stretch = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeDetectingAndCommonSaving && _state.key == "pitch")
+			else if (_state.key == "pitch")
 			{
 				_conf->_data.alsa.pitch = newVal;
 				_conf->_data.fake.pitch = newVal;
 				_conf->_data.jack.pitch = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "periodSize")
+			else if (_conf->_mode == Mode::Alsa && _state.key == "periodSize")
 			{
 				_conf->_data.alsa.periodSize = newVal;
 			}
-			else if (p_parsingStage == ParsingStage::ModeSpecificSaving && _conf->_mode == Mode::Alsa && _state.key == "periods")
+			else if (_conf->_mode == Mode::Alsa && _state.key == "periods")
 			{
 				_conf->_data.alsa.periods = newVal;
 			}
