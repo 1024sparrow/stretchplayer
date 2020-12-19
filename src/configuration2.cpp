@@ -291,8 +291,7 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 
 	Configuration2 confCopy = *this;
 	JsonParser jsonParser(&confCopy);
-	//if (!jsonParser.parse(_configPath.c_str(), !usingDefaultConfig, _mode, p_error))
-	if (!jsonParser.parse(_configPath.c_str(), false, p_error))//
+	if (!jsonParser.parse(_configPath.c_str(), !usingDefaultConfig, _mode, p_error))
 	{
 		return collectError(p_error, "can not parse config");
 	}
@@ -708,7 +707,7 @@ bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std
 		}
 		for (char i : buffer)
 		{
-			if (int err = static_cast<int>(parseTick(i))) // mode detection
+			if (int err = static_cast<int>(parseTick(i))) // mode detecting
 			{
 				close(fd);
 				sprintf(
@@ -752,7 +751,7 @@ bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std
 		}
 		for (char i : buffer)
 		{
-			if (int err = static_cast<int>(parseTick(i))) // save parameters
+			if (int err = static_cast<int>(parseTick(i))) // parameters saving
 			{
 				close(fd);
 				sprintf(
@@ -803,7 +802,7 @@ void Configuration2::JsonParser::initParse()
 
 Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte)
 {
-	//printf("%c\t%s\tmode %i\n", byte, State::str(_state.s), static_cast<int>(_conf->_mode));
+	//printf("%c\t%s\n", byte, State::str(_state.s));
 
 	if (_state.s == State::S::Init)
 	{
