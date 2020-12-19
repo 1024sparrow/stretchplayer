@@ -358,10 +358,17 @@ var _getters = (function(p_src, p_fields){
 	Options:`;
 			}
 			for (const oOption of parent.options){
+				let lArg = '';
+				if (oOption.type === 'string')
+					lArg = '<string>';
+				else if (oOption.type === 'boolean')
+					lArg = '<true|false>';
+				else if (oOption.type === 'integer')
+					lArg = '<number>';
 				p_fields.structs += `
 		${resolveType(oOption.type)} ${oOption.name} {${resolveValue(oOption)}};`;
 				p_fields.help += `
-${parent.helpIndent}--${oOption.name}
+${parent.helpIndent}--${oOption.name} ${lArg}
 ${parent.helpIndent}	${oOption.help} (default: ${resolveValue(oOption)})`;
 			}
 		}
