@@ -1,5 +1,6 @@
 /*
  * Copyright(c) 2009 by Gabriel M. Beddingfield <gabriel@teuton.org>
+ * Copyright(c) 2019 by Boris P. Vasilyev <1024sparrow@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +25,6 @@
 #include <string.h>
 #include <unistd.h> // read
 
-#include "Configuration.hpp"
 #include "configuration2.h"
 #include <iostream>
 #include <memory>
@@ -36,46 +36,71 @@ int main(int argc, char* argv[])
 {
 	Configuration2 config2;
 	std::string error;
-	if (int configParseResult = config2.parse(argc, argv, nullptr, nullptr, &error))
+	if (int configParseResult = config2.parse(argc, argv, R"(stretchplayer-cli is slow-downifying audio player with console interface and adapted to run from another applications.
+It is possible to work with sound without sound card (see https://github.com/1024sparrow/webssh).
+
+Usage: stretchplayer [options] [audio_file_name]
+
+Options:
+)", R"( // boris e: STRETCHPLAYER_VERSION use here
+Version 1.0.0
+https://github.com/1024sparrow/stretchplayer-cli
+Copyright 2010 Gabriel M. Beddingfield
+Copyright 2020 Boris P. Vasilyev
+
+StretchPlayer comes with ABSOLUTELY NO WARRANTY;
+This is free software, and you are welcome to redistribute it
+under terms of the GNU Public License (ver. 2 or later))", &error))
 	{
 		if (configParseResult > 0)
 			return 0;
 		std::cerr << error << std::endl;
 		return 1;
 	}
-	std::cout << config2.toString() << std::endl;
-	std::cout << "Normal program execution prevented (not implemented yet)" << std::endl;
-	return 0;
+	//std::cout << config2.toString() << std::endl;
+	//std::cout << "Normal program execution prevented (not implemented yet)" << std::endl;
+	//return 0;
 
-	StretchPlayer::Configuration config;
-	if (!config.init(argc, argv))
-		return 1;
+//	StretchPlayer::Configuration config;
+//	if (!config.init(argc, argv))
+//		return 1;
 
-	if(config.help() || ( !config.ok() )) {
-	config.usage();
-	if( !config.ok() ) return -1;
-	return 0;
+//	if(config.help() || ( !config.ok() )) {
+//	config.usage();
+//	if( !config.ok() ) return -1;
+//	return 0;
+//	}
+
+	Configuration2::Common *conf = nullptr;
+	{
+		if (config2.mode() == Configuration2::Mode::Alsa)
+			conf = &config2.alsa();
+		else if (config2.mode() == Configuration2::Mode::Fake)
+			conf = &config2.fake();
+		else if (config2.mode() == Configuration2::Mode::Jack)
+			conf = &config2.jack();
 	}
-
-	if( !config.quiet() ) {
-	config.copyright();
+	if (!conf)
+	{
+		puts("mode not set");
+		return 1;
 	}
 
 	std::unique_ptr<StretchPlayer::EngineMessageCallback> _engine_callback;
-	StretchPlayer::Engine *_engine = new StretchPlayer::Engine(&config);
+	StretchPlayer::Engine *_engine = new StretchPlayer::Engine(config2);
 
-	_engine->set_shift(config.shift());
-	_engine->set_stretch((float)config.stretch()/100.f);
-	_engine->set_pitch(config.pitch());
-	if (config.startup_file()) {
-		if (!_engine->load_song(config.startup_file(), false)) {
-			printf("0can't open\n");
-			fflush(stdout);
-			return 1;
-		}
-	}
+	_engine->set_shift(conf->shift);
+	_engine->set_stretch(static_cast<float>(conf->stretch/100.f));
+	_engine->set_pitch(conf->pitch);
+//	if (config.startup_file()) {
+//		if (!_engine->load_song(config.startup_file(), false)) {
+//			printf("0can't open\n");
+//			fflush(stdout);
+//			return 1;
+//		}
+//	}
 
-	if (!config.quiet()) {
+	if (!conf->quiet) {
 		printf("enter a command (enter \"h\" for help).\n");
 		fflush(stdout);
 	}

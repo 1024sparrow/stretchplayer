@@ -16,6 +16,12 @@ module.exports = {
 	configFileName: '.stretchplayer.conf', // in home directory
 	options:[ // common options. "--" at begin  passed.
 		{
+			name: 'quiet',
+			type: 'boolean',
+			defaultValue: false,
+			help: 'suppress most output to console'
+		},
+		{
 			name: 'sampleRate',
 			type: 'integer',
 			defaultValue: 44100,

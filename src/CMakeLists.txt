@@ -53,7 +53,7 @@ SET(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 LIST(APPEND sp_cpp
   main.cpp
-  Configuration.cpp
+  #Configuration.cpp
   configuration2.cpp
   Engine.cpp
   AudioSystem.cpp
@@ -65,7 +65,7 @@ LIST(APPEND sp_cpp
   )
 
 LIST(APPEND sp_hpp
-  Configuration.hpp
+  #Configuration.hpp
   configuration2.h
   Engine.hpp
   AudioSystem.hpp

@@ -188,6 +188,8 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 	generate config-file content (print it to stdout) and normal exit
 --showOptionsInsteadOfApplying
 	show parameters, resulting of config file (if exists) and command-line arguments, and exit normally
+--quiet <true|false>
+	suppress most output to console (default: false)
 --sampleRate <number>
 	sample rate to use for ALSA (default: 44100)
 --mono <true|false>
@@ -330,30 +332,32 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 		else if (!strcmp(arg, "--alsa"));
 		else if (!strcmp(arg, "--fake"));
 		else if (!strcmp(arg, "--jack"));
-		else if (!strcmp(arg, "--sampleRate"))
+		else if (!strcmp(arg, "--quiet"))
 			state = 1;
-		else if (!strcmp(arg, "--mono"))
+		else if (!strcmp(arg, "--sampleRate"))
 			state = 2;
-		else if (!strcmp(arg, "--mic"))
+		else if (!strcmp(arg, "--mono"))
 			state = 3;
-		else if (!strcmp(arg, "--shift"))
+		else if (!strcmp(arg, "--mic"))
 			state = 4;
-		else if (!strcmp(arg, "--stretch"))
+		else if (!strcmp(arg, "--shift"))
 			state = 5;
-		else if (!strcmp(arg, "--pitch"))
+		else if (!strcmp(arg, "--stretch"))
 			state = 6;
-		else if (_mode == Mode::Alsa && !strcmp(arg, "--device"))
+		else if (!strcmp(arg, "--pitch"))
 			state = 7;
-		else if (_mode == Mode::Alsa && !strcmp(arg, "--periodSize"))
+		else if (_mode == Mode::Alsa && !strcmp(arg, "--device"))
 			state = 8;
-		else if (_mode == Mode::Alsa && !strcmp(arg, "--periods"))
+		else if (_mode == Mode::Alsa && !strcmp(arg, "--periodSize"))
 			state = 9;
-		else if (_mode == Mode::Fake && !strcmp(arg, "--fifoPlayback"))
+		else if (_mode == Mode::Alsa && !strcmp(arg, "--periods"))
 			state = 10;
-		else if (_mode == Mode::Fake && !strcmp(arg, "--fifoCapture"))
+		else if (_mode == Mode::Fake && !strcmp(arg, "--fifoPlayback"))
 			state = 11;
-		else if (_mode == Mode::Jack && !strcmp(arg, "--noAutoconnect"))
+		else if (_mode == Mode::Fake && !strcmp(arg, "--fifoCapture"))
 			state = 12;
+		else if (_mode == Mode::Jack && !strcmp(arg, "--noAutoconnect"))
+			state = 13;
 		else
 		{
 			if (state == 0)
@@ -382,12 +386,25 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 				}
 				else if (state == 1)
 				{
+					bool tmp;
+					if (!strcmp(arg, "true"))
+						tmp = true;
+					else if (!strcmp(arg, "false"))
+						tmp = false;
+					else
+						return collectError(p_error, "--quiet: true|false expected");
+					_data.alsa.quiet = tmp;
+					_data.fake.quiet = tmp;
+					_data.jack.quiet = tmp;
+				}
+				else if (state == 2)
+				{
 					int tmp = atoi(arg);
 					_data.alsa.sampleRate = tmp;
 					_data.fake.sampleRate = tmp;
 					_data.jack.sampleRate = tmp;
 				}
-				else if (state == 2)
+				else if (state == 3)
 				{
 					bool tmp;
 					if (!strcmp(arg, "true"))
@@ -400,7 +417,7 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 					_data.fake.mono = tmp;
 					_data.jack.mono = tmp;
 				}
-				else if (state == 3)
+				else if (state == 4)
 				{
 					bool tmp;
 					if (!strcmp(arg, "true"))
@@ -413,53 +430,53 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 					_data.fake.mic = tmp;
 					_data.jack.mic = tmp;
 				}
-				else if (state == 4)
+				else if (state == 5)
 				{
 					int tmp = atoi(arg);
 					_data.alsa.shift = tmp;
 					_data.fake.shift = tmp;
 					_data.jack.shift = tmp;
 				}
-				else if (state == 5)
+				else if (state == 6)
 				{
 					int tmp = atoi(arg);
 					_data.alsa.stretch = tmp;
 					_data.fake.stretch = tmp;
 					_data.jack.stretch = tmp;
 				}
-				else if (state == 6)
+				else if (state == 7)
 				{
 					int tmp = atoi(arg);
 					_data.alsa.pitch = tmp;
 					_data.fake.pitch = tmp;
 					_data.jack.pitch = tmp;
 				}
-				else if (state == 7)
+				else if (state == 8)
 				{
 					std::string tmp = resolveEnvVarsAndTilda(arg);
 					_data.alsa.device = tmp;
 				}
-				else if (state == 8)
+				else if (state == 9)
 				{
 					int tmp = atoi(arg);
 					_data.alsa.periodSize = tmp;
 				}
-				else if (state == 9)
+				else if (state == 10)
 				{
 					int tmp = atoi(arg);
 					_data.alsa.periods = tmp;
 				}
-				else if (state == 10)
+				else if (state == 11)
 				{
 					std::string tmp = resolveEnvVarsAndTilda(arg);
 					_data.fake.fifoPlayback = tmp;
 				}
-				else if (state == 11)
+				else if (state == 12)
 				{
 					std::string tmp = resolveEnvVarsAndTilda(arg);
 					_data.fake.fifoCapture = tmp;
 				}
-				else if (state == 12)
+				else if (state == 13)
 				{
 					bool tmp;
 					if (!strcmp(arg, "true"))
@@ -506,6 +523,8 @@ std::string Configuration2::toString() const
 	if (_mode == Mode::Alsa)
 	{
 		retVal += "\n\nCOMMON OPTIONS:\n";
+		retVal += "\nquiet: ";;
+		retVal += _data.alsa.quiet ? "true" : "false";
 		retVal += "\nsampleRate: ";;
 		retVal += std::to_string(_data.alsa.sampleRate);
 		retVal += "\nmono: ";;
@@ -531,6 +550,8 @@ std::string Configuration2::toString() const
 	else if (_mode == Mode::Fake)
 	{
 		retVal += "\n\nCOMMON OPTIONS:\n";
+		retVal += "\nquiet: ";;
+		retVal += _data.fake.quiet ? "true" : "false";
 		retVal += "\nsampleRate: ";;
 		retVal += std::to_string(_data.fake.sampleRate);
 		retVal += "\nmono: ";;
@@ -556,6 +577,8 @@ std::string Configuration2::toString() const
 	else if (_mode == Mode::Jack)
 	{
 		retVal += "\n\nCOMMON OPTIONS:\n";
+		retVal += "\nquiet: ";;
+		retVal += _data.jack.quiet ? "true" : "false";
 		retVal += "\nsampleRate: ";;
 		retVal += std::to_string(_data.jack.sampleRate);
 		retVal += "\nmono: ";;
@@ -943,7 +966,11 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			;
 		else if (byte == ':')
 		{
-			if (_state.key == "sampleRate")
+			if (_state.key == "quiet")
+			{
+				_state.s = State::S::InparamsValueBooleanStarting;
+			}
+			else if (_state.key == "sampleRate")
 			{
 				_state.intValue = {0, false};
 				_state.s = State::S::InparamsValueIntegerStarting;
@@ -1067,7 +1094,13 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (_state.counter == TRUE_LEN - 1)
 		{
 			bool newVal = true;
-			if (_state.key == "mono")
+			if (_state.key == "quiet")
+			{
+				_conf->_data.alsa.quiet = newVal;
+				_conf->_data.fake.quiet = newVal;
+				_conf->_data.jack.quiet = newVal;
+			}
+			else if (_state.key == "mono")
 			{
 				_conf->_data.alsa.mono = newVal;
 				_conf->_data.fake.mono = newVal;
@@ -1094,7 +1127,13 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 		if (_state.counter == FALSE_LEN - 1)
 		{
 			bool newVal = false;
-			if (_state.key == "mono")
+			if (_state.key == "quiet")
+			{
+				_conf->_data.alsa.quiet = newVal;
+				_conf->_data.fake.quiet = newVal;
+				_conf->_data.jack.quiet = newVal;
+			}
+			else if (_state.key == "mono")
 			{
 				_conf->_data.alsa.mono = newVal;
 				_conf->_data.fake.mono = newVal;
@@ -1271,6 +1310,13 @@ std::string Configuration2::generateConf() const
 	if (_mode == Mode::Alsa)
 	{
 		retVal += R"(
+		"quiet": )";
+		if (_data.alsa.quiet)
+			retVal += "true";
+		else
+			retVal += "false";
+		retVal.push_back(',');
+		retVal += R"(
 		"sampleRate": )";
 		retVal += std::to_string(_data.alsa.sampleRate);
 		retVal.push_back(',');
@@ -1316,6 +1362,13 @@ std::string Configuration2::generateConf() const
 	else if (_mode == Mode::Fake)
 	{
 		retVal += R"(
+		"quiet": )";
+		if (_data.fake.quiet)
+			retVal += "true";
+		else
+			retVal += "false";
+		retVal.push_back(',');
+		retVal += R"(
 		"sampleRate": )";
 		retVal += std::to_string(_data.fake.sampleRate);
 		retVal.push_back(',');
@@ -1357,6 +1410,13 @@ std::string Configuration2::generateConf() const
 	}
 	else if (_mode == Mode::Jack)
 	{
+		retVal += R"(
+		"quiet": )";
+		if (_data.jack.quiet)
+			retVal += "true";
+		else
+			retVal += "false";
+		retVal.push_back(',');
 		retVal += R"(
 		"sampleRate": )";
 		retVal += std::to_string(_data.jack.sampleRate);

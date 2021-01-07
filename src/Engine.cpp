@@ -19,7 +19,7 @@
 
 #include "Engine.hpp"
 #include "AudioSystem.hpp"
-#include "Configuration.hpp"
+#include "configuration2.h"
 #include <sndfile.h>
 #include <sndfile.hh>
 #include <mpg123.h>
@@ -37,7 +37,7 @@ using RubberBand::RubberBandStretcher;
 namespace StretchPlayer
 {
 
-Engine::Engine(Configuration *config)
+Engine::Engine(const Configuration2 &config)
 	: _config(config)
 	, _hit_end(false)
 	, _stretch(1.0)

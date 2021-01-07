@@ -17,6 +17,7 @@ public:
 	};
 	struct Common
 	{
+		bool quiet {false};
 		int sampleRate {44100};
 		bool mono {false};
 		bool mic {false};
