@@ -48,13 +48,82 @@ public:
 	const Fake & fake() const {return _data.fake;}
 	const Jack & jack() const {return _data.jack;}
 
-	bool quiet() const;
-	int sampleRate() const;
-	bool mono() const;
-	bool mic() const;
-	int shift() const;
-	int stretch() const;
-	int pitch() const;
+	bool quiet() const
+	{
+		if (_mode == Mode::Alsa)
+			return _data.alsa.quiet;
+		else if (_mode == Mode::Fake)
+			return _data.fake.quiet;
+		else if (_mode == Mode::Jack)
+			return _data.jack.quiet;
+		return _data.jack.quiet;
+	}
+
+	int sampleRate() const
+	{
+		if (_mode == Mode::Alsa)
+			return _data.alsa.sampleRate;
+		else if (_mode == Mode::Fake)
+			return _data.fake.sampleRate;
+		else if (_mode == Mode::Jack)
+			return _data.jack.sampleRate;
+		return _data.jack.sampleRate;
+	}
+
+	bool mono() const
+	{
+		if (_mode == Mode::Alsa)
+			return _data.alsa.mono;
+		else if (_mode == Mode::Fake)
+			return _data.fake.mono;
+		else if (_mode == Mode::Jack)
+			return _data.jack.mono;
+		return _data.jack.mono;
+	}
+
+	bool mic() const
+	{
+		if (_mode == Mode::Alsa)
+			return _data.alsa.mic;
+		else if (_mode == Mode::Fake)
+			return _data.fake.mic;
+		else if (_mode == Mode::Jack)
+			return _data.jack.mic;
+		return _data.jack.mic;
+	}
+
+	int shift() const
+	{
+		if (_mode == Mode::Alsa)
+			return _data.alsa.shift;
+		else if (_mode == Mode::Fake)
+			return _data.fake.shift;
+		else if (_mode == Mode::Jack)
+			return _data.jack.shift;
+		return _data.jack.shift;
+	}
+
+	int stretch() const
+	{
+		if (_mode == Mode::Alsa)
+			return _data.alsa.stretch;
+		else if (_mode == Mode::Fake)
+			return _data.fake.stretch;
+		else if (_mode == Mode::Jack)
+			return _data.jack.stretch;
+		return _data.jack.stretch;
+	}
+
+	int pitch() const
+	{
+		if (_mode == Mode::Alsa)
+			return _data.alsa.pitch;
+		else if (_mode == Mode::Fake)
+			return _data.fake.pitch;
+		else if (_mode == Mode::Jack)
+			return _data.jack.pitch;
+		return _data.jack.pitch;
+	}
 
 	std::string toString() const;
 

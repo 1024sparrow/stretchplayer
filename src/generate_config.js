@@ -381,6 +381,30 @@ ${parent.helpIndent}	${oOption.help} (default: ${resolveValue(oOption)})`;
 	};`;
 		}
 	}
+	if (src.options && src.options.length){
+		for (const oOpt of src.options){
+			p_fields.getters += `
+
+	${resolveType(oOpt.type)} ${oOpt.name}() const
+	{`;
+			let isFirst = true;
+			let oMode;
+			for (oMode of src.modes){
+				p_fields.getters += isFirst ? `
+		` : `
+		else `;
+				p_fields.getters += `if (_mode == Mode::${oMode.inEnumName})
+			return _data.${oMode.name}.${oOpt.name};`;
+				isFirst = false;
+			}
+			if (!isFirst){
+				p_fields.getters += `
+		return _data.${oMode.name}.${oOpt.name};`;
+			}
+			p_fields.getters += `
+	}`;
+		}
+	}
 	p_fields.valueHolders = `
 	struct
 	{${p_fields.valueHolders}
