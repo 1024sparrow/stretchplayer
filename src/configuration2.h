@@ -126,7 +126,7 @@ public:
 		return _data.jack.pitch;
 	}
 
-	std::list<char *> _argv() const
+	std::list<char *> argv() const
 	{
 		return _argv;
 	}

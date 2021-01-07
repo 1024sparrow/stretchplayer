@@ -76,6 +76,7 @@ var _asd = `if (state == 0)
 					errorDescr += "\\"";
 					return collectError(p_error, errorDescr);
 				}
+				_argv.push_back(arg);
 			}
 			else
 			{
@@ -550,6 +551,7 @@ var result = {
 #pragma once
 
 #include <string>
+#include <list>
 
 class ${CLASSNAME}
 {
@@ -561,6 +563,11 @@ public:
 	int parse(int p_argc, char **p_argv, const char *p_helpPrefix, const char *p_helpPostfix, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
 ${_fields.getters}
 
+	std::list<char *> argv() const
+	{
+		return _argv;
+	}
+
 	std::string toString() const;
 
 private:
@@ -571,6 +578,7 @@ private:
 
 	std::string _configPath;
 ${_fields.valueHolders}
+	std::list<char *> _argv;
 };`,
 
 
