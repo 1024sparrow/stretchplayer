@@ -370,6 +370,7 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 					errorDescr += "\"";
 					return collectError(p_error, errorDescr);
 				}
+				_argv.push_back(arg);
 			}
 			else
 			{

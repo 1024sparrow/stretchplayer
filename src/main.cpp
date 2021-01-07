@@ -71,21 +71,6 @@ under terms of the GNU Public License (ver. 2 or later))", &error))
 //	return 0;
 //	}
 
-	Configuration2::Common *conf = nullptr;
-	{
-		if (config2.mode() == Configuration2::Mode::Alsa)
-			conf = &config2.alsa();
-		else if (config2.mode() == Configuration2::Mode::Fake)
-			conf = &config2.fake();
-		else if (config2.mode() == Configuration2::Mode::Jack)
-			conf = &config2.jack();
-	}
-	if (!conf)
-	{
-		puts("mode not set");
-		return 1;
-	}
-
 	std::unique_ptr<StretchPlayer::EngineMessageCallback> _engine_callback;
 	StretchPlayer::Engine *_engine = new StretchPlayer::Engine(config2);
 

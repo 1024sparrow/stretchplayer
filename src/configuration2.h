@@ -4,6 +4,7 @@
 #pragma once
 
 #include <string>
+#include <list>
 
 class Configuration2
 {
@@ -125,6 +126,11 @@ public:
 		return _data.jack.pitch;
 	}
 
+	std::list<char *> _argv() const
+	{
+		return _argv;
+	}
+
 	std::string toString() const;
 
 private:
@@ -142,4 +148,5 @@ private:
 		Jack jack;
 	} _data;
 	Mode _mode {Mode::Undefined};
+	std::list<char *> _argv;
 };
