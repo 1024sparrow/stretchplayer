@@ -44,11 +44,16 @@ Engine::Engine(const Configuration2 &config)
 	, _shift(0)
 	, _pitch(0)
 	, _gain(1.0)
-	, _audio_system{ audio_system_factory(_config->driver()) }
+	, _audio_system{ audio_system_factory(_config.mode()) }
 {
 	char err[1024] = "";
 
 	std::lock_guard<std::mutex> lk(_audio_lock);
+
+//	if (_config.mode() ++ Configuration2::Mode::Alsa)
+//	{
+//		_audio_system
+//	}
 
 	_audio_system->init( "StretchPlayer" , _config, err );
 	_audio_system->set_process_callback(
@@ -514,7 +519,7 @@ bool Engine::load_song(const char *filename, bool prelimanarily)
 		_stretcher.reset();
 	}
 	bool ok = _load_song_using_libsndfile(filename, fd) || _load_song_using_libmpg123(filename, fd);
-	if (ok && fd->_channelCount > 1 && _config->mono()) {
+	if (ok && fd->_channelCount > 1 && _config.mono()) {
 		float average = 0; // for mono option enabled and more then one channels
 		for (size_t i = 0, c = fd->_left.size() ; i < c ; ++i) {
 			average = (fd->_left[i] + fd->_right[i]) / 2.f;
@@ -575,7 +580,7 @@ bool Engine::save(const char *p_filepath)
 		// sf_count_t	frames ;		/* Used to be called samples.  Changed to avoid confusion. */
 		0,
 		// int			samplerate ;
-		static_cast<int>(_config->sample_rate()),
+		_config.sampleRate(),
 		// int			channels ;
 		1, // _config->mono() ? 1 : _fd->_channelCount,
 		// int			format ;
@@ -633,7 +638,7 @@ void Engine::locate(double secs)
 }
 
 void Engine::start_recording(const unsigned long &startPos) {
-	if (!_config->sound_recording())
+	if (!_config.mic())
 	{
 		puts("0recording unavailable");
 		return;
@@ -662,7 +667,7 @@ void Engine::start_recording(
 	const unsigned long &startPos,
 	const unsigned long &stopPos
 ) {
-	if (!_config->sound_recording())
+	if (!_config.mic())
 	{
 		puts("0recording unavailable");
 		return;
@@ -689,7 +694,7 @@ void Engine::start_recording(
 }
 
 void Engine::stop_recording(bool p_reflectChangesInFile) {
-	if (!_config->sound_recording())
+	if (!_config.mic())
 	{
 		puts("0recording unavailable");
 		return;

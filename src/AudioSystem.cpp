@@ -18,7 +18,8 @@
  */
 
 #include "config.h"
-#include "Configuration.hpp"
+//#include "Configuration.hpp"
+#include "configuration2.h"
 #include <stdexcept>
 
 #ifdef AUDIO_SUPPORT_JACK
@@ -33,28 +34,20 @@
 namespace StretchPlayer
 {
 
-	AudioSystem* audio_system_factory(int driver)
+	AudioSystem* audio_system_factory(Configuration2::Mode mode)
 	{
-	AudioSystem* d = 0;
-	switch(driver) {
-#ifdef AUDIO_SUPPORT_JACK
-	case Configuration::JackDriver:
-		d = new JackAudioSystem;
-		break;
-#endif
 #ifdef AUDIO_SUPPORT_ALSA
-	case Configuration::AlsaDriver:
-		d = new AlsaAudioSystem;
-		break;
+		if (mode == Configuration2::Mode::Alsa)
+			return new AlsaAudioSystem();
 #endif
-	case Configuration::FakeAudioDriver:
-		d = new FakeAudioSystem;
-		break;
-	default:
+		if (mode == Configuration2::Mode::Fake)
+			return new FakeAudioSystem();
+#ifdef AUDIO_SUPPORT_JACK
+		if (mode == Configuration2::Mode::Jack)
+			return new JackAudioSystem();
+#endif
 		throw std::runtime_error("Unsupported driver requested");
+		return nullptr;
 	}
-	return d;
-	}
-
 } // namespace StretchPlayer
 

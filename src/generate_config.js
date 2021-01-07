@@ -76,7 +76,8 @@ var _asd = `if (state == 0)
 					errorDescr += "\\"";
 					return collectError(p_error, errorDescr);
 				}
-				_argv.push_back(arg);
+				if (iArg > 0)
+					_argv.push_back(arg);
 			}
 			else
 			{
@@ -343,7 +344,7 @@ var _getters = (function(p_src, p_fields){
 			p_fields.valueHolders += `
 		${parent.name[0].toUpperCase() + parent.name.slice(1)} ${parent.name};`;
 			p_fields.getters += `
-	const ${parent.name[0].toUpperCase() + parent.name.slice(1)} & ${parent.name}() const {return _data.${parent.name};}`;
+	${parent.name[0].toUpperCase() + parent.name.slice(1)} ${parent.name}() const {return _data.${parent.name};}`;
 		}
 		else{ // it's the root node
 			p_fields.structs += `
@@ -563,7 +564,7 @@ public:
 	int parse(int p_argc, char **p_argv, const char *p_helpPrefix, const char *p_helpPostfix, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
 ${_fields.getters}
 
-	std::list<char *> argv() const
+	std::list<std::string> argv() const
 	{
 		return _argv;
 	}
@@ -578,7 +579,7 @@ private:
 
 	std::string _configPath;
 ${_fields.valueHolders}
-	std::list<char *> _argv;
+	std::list<std::string> _argv;
 };`,
 
 

@@ -45,9 +45,9 @@ public:
 	int parse(int p_argc, char **p_argv, const char *p_helpPrefix, const char *p_helpPostfix, std::string *p_error); // return value: 0 if normal player start needed; 1 - if normal exit required; -1 - if error exit required (writing error description into p_error)
 
 	Mode mode() const {return _mode;}
-	const Alsa & alsa() const {return _data.alsa;}
-	const Fake & fake() const {return _data.fake;}
-	const Jack & jack() const {return _data.jack;}
+	Alsa alsa() const {return _data.alsa;}
+	Fake fake() const {return _data.fake;}
+	Jack jack() const {return _data.jack;}
 
 	bool quiet() const
 	{
@@ -126,7 +126,7 @@ public:
 		return _data.jack.pitch;
 	}
 
-	std::list<char *> argv() const
+	std::list<std::string> argv() const
 	{
 		return _argv;
 	}
@@ -148,5 +148,5 @@ private:
 		Jack jack;
 	} _data;
 	Mode _mode {Mode::Undefined};
-	std::list<char *> _argv;
+	std::list<std::string> _argv;
 };

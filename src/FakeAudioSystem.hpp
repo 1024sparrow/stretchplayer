@@ -52,7 +52,7 @@ class FakeAudioSystem : public AudioSystem
 public:
 	FakeAudioSystem();
 	~FakeAudioSystem() override;
-	int init(const char *app_name, Configuration *config, char *err_msg = 0) override;
+	int init(const char *app_name, const Configuration2 &config, char *err_msg = 0) override;
 	void cleanup() override;
 	int set_process_callback(
 		process_callback_t cbPlayback,

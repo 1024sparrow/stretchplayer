@@ -79,7 +79,7 @@ module.exports = {
 					name: 'periods',
 					type: 'integer',
 					defaultValue: 2,
-					help: 'periods per buffer for ALSA'
+					help: 'periods per buffer for ALSA (channels)'
 				}
 			]
 		},

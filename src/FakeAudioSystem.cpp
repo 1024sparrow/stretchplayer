@@ -53,8 +53,11 @@ FakeAudioSystem::~FakeAudioSystem()
 	cleanup();
 }
 
-int FakeAudioSystem::init(const char *app_name, Configuration *config, char *err_msg)
+int FakeAudioSystem::init(const char *app_name, const Configuration2 &p_config, char *err_msg)
 {
+	assert(p_config.mode() == Configuration2::Mode::Fake);
+	Configuration2::Fake config = p_config.fake();
+
 //	const char *configFilepath = getenv("AUDIO_PIPE_CONFIG"); // boris here: читаем только один раз!!
 	const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
 //	const char *captureFilepath = getenv("AUDIO_PIPE_CAPTURE");
@@ -117,8 +120,8 @@ int FakeAudioSystem::init(const char *app_name, Configuration *config, char *err
 //		}
 //	}
 
-	_sample_rate = config->sample_rate();
-	_period_nframes = config->period_size();
+	_sample_rate = config.sampleRate;
+	_period_nframes = 1024;//config->period_size();
 	_left = new float[_period_nframes];
 	_right = new float[_period_nframes];
 	return 0;

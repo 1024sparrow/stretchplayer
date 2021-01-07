@@ -27,12 +27,12 @@
 #include <vector>
 #include <set>
 #include "RubberBandServer.hpp"
+#include "configuration2.h"
 
 
 namespace StretchPlayer
 {
 
-class Configuration2;
 class EngineMessageCallback;
 class AudioSystem;
 class RubberBandServer;
@@ -40,7 +40,7 @@ class RubberBandServer;
 class Engine
 {
 public:
-	Engine(const Configuration2 &config = 0);
+	Engine(const Configuration2 &config);
 	~Engine();
 
 	bool load_song(const char *filename, bool prelimanarily);
@@ -184,7 +184,7 @@ private:
 	void _subscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
 	void _unsubscribe_list(callback_seq_t& seq, EngineMessageCallback* obj);
 
-	Configuration2 *_config;
+	Configuration2 _config;
 	bool _playing{false}, _capturing{false};
 	bool _hit_end; // boris e
 	bool _state_changed; // boris here: move to FileData

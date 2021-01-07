@@ -27,8 +27,7 @@
 namespace StretchPlayer
 {
 	JackAudioSystem::JackAudioSystem() :
-		_client(0),
-		_config(0)
+		_client(0)
 	{
 		_port[0] = 0;
 		_port[1] = 0;
@@ -39,16 +38,11 @@ namespace StretchPlayer
 		cleanup();
 	}
 
-	int JackAudioSystem::init(const char *app_name, Configuration *config, char *err_msg)
+	int JackAudioSystem::init(const char *app_name, const Configuration2 &config, char *err_msg)
 	{
 		const char *name = "StretchPlayer";
 
-		if(config == 0) {
-			if (err_msg)
-				strcat(err_msg, "The JackAudioSystem::init() function must have a non-null config parameter.");
-			goto init_bail;
-		}
-		_config = config;
+		_config = config.jack();
 
 		if(app_name) {
 			name = app_name;
@@ -156,7 +150,8 @@ namespace StretchPlayer
 
 		jack_activate(_client);
 
-		if( _config->autoconnect() ) {
+		if (!_config.noAutoconnect)
+		{
 			// Autoconnection to first two ports we find.
 			const char** ports = jack_get_ports( _client,
 							 0,

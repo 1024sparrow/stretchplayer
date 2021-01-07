@@ -21,10 +21,10 @@
 
 #include <stdint.h>
 
+#include "configuration2.h"
+
 namespace StretchPlayer
 {
-	class Configuration;
-
 	/**
 	 * \brief Pure virtual interface to an audio driver API.
 	 *
@@ -54,7 +54,7 @@ namespace StretchPlayer
 	 *
 	 * \returns 0 on success, nonzero on error.
 	 */
-	virtual int init(const char *app_name, Configuration *config, char *err_msg = 0) = 0;
+	virtual int init(const char *app_name, const Configuration2 &config, char *err_msg = 0) = 0;
 
 	/**
 	 * Clean up the system.
@@ -157,7 +157,7 @@ namespace StretchPlayer
 	virtual uint32_t current_segment_size() = 0;
 	};
 
-	AudioSystem* audio_system_factory(int driver);
+	AudioSystem* audio_system_factory(Configuration2::Mode mode);
 
 } // namespace StretchPlayer
 

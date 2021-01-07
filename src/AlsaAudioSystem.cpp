@@ -106,8 +106,11 @@ AlsaAudioSystem::~AlsaAudioSystem()
 	cleanup();
 }
 
-int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char *err_msg)
+int AlsaAudioSystem::init(const char * /*app_name*/, const Configuration2 &config, char *err_msg)
 {
+	assert(config.mode() == Configuration2::Mode::Alsa);
+	_config = config.alsa();
+
 	unsigned nfrags;
 	int err;
 	snd_pcm_format_t format = SND_PCM_FORMAT_UNKNOWN;
@@ -117,21 +120,14 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 	snd_pcm_hw_params_t *hw_params_record = nullptr;
 	snd_pcm_sw_params_t *sw_params_record = nullptr;
 
-	_sample_rate = config->sample_rate();
-	_period_nframes = config->period_size();
-	nfrags = config->periods_per_buffer();
-
-	if( config == 0 ) {
-		if (err_msg){
-			strcat(err_msg, "The AlsaAudioSystem::init() function must have a non-null config parameter.");// boris e: replace "strcat" for "strncat(..., 1024)"
-		}
-		goto init_bail;
-	}
+	_sample_rate = _config.sampleRate;
+	_period_nframes = _config.periodSize;
+	nfrags = _config.periods;
 
 	int nfds;
 	struct pollfd *pfds;
 
-	if((err = snd_pcm_open(&_playback_handle, config->audio_device(), SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+	if((err = snd_pcm_open(&_playback_handle, _config.device.c_str(), SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
 		if (err_msg){
 			strcat(err_msg, "cannot open default ALSA audio device for playback (");
 			strcat(err_msg, snd_strerror(err));
@@ -169,8 +165,8 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	if (config->sound_recording()) {
-		if((err = snd_pcm_open(&_record_handle, config->audio_device(), SND_PCM_STREAM_CAPTURE, 0)) < 0) {
+	if (_config.mic) {
+		if((err = snd_pcm_open(&_record_handle, _config.device.c_str(), SND_PCM_STREAM_CAPTURE, 0)) < 0) {
 			if (err_msg){
 				strcat(err_msg, "cannot open default ALSA audio device for audio-capturing (");
 				strcat(err_msg, snd_strerror(err));
@@ -210,7 +206,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 	for(k = 0 ; aas_supported_formats[k] != SND_PCM_FORMAT_UNKNOWN ; ++k) {
 		format = aas_supported_formats[k];
 		if(snd_pcm_hw_params_test_format(_playback_handle, hw_params_playback, format)) {
-			if (config->sound_recording()) {
+			if (_config.mic) {
 				if(snd_pcm_hw_params_test_format(_record_handle, hw_params_record, format)) {
 					format = SND_PCM_FORMAT_UNKNOWN;
 				}
@@ -271,7 +267,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
-	if (config->sound_recording()) {
+	if (_config.mic) {
 		if((err = snd_pcm_hw_params_set_format(_record_handle, hw_params_record, format)) < 0) {
 			if (err_msg){
 				strcat(err_msg, "cannot set sample format for sound recording (");
@@ -290,7 +286,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
-	if (config->sound_recording()) {
+	if (_config.mic) {
 		if((err = snd_pcm_hw_params_set_rate(_record_handle, hw_params_record, _sample_rate, 0)) < 0) {
 			if (err_msg){
 				strcat(err_msg, "cannot set sample rate for sound recording (");
@@ -309,7 +305,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
-	if (config->sound_recording()) {
+	if (_config.mic) {
 		if((err = snd_pcm_hw_params_set_channels(_record_handle, hw_params_record, 2)) < 0) { // boris e: 1 channel!
 			if (err_msg){
 				strcat(err_msg, "cannot set channel count for sound recording (");
@@ -349,7 +345,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		goto init_bail;
 	}
 
-	if (config->sound_recording()) {
+	if (_config.mic) {
 		if((err = snd_pcm_hw_params_set_periods_near(_record_handle, hw_params_record, &nfrags, 0)) < 0) {
 			if (err_msg){
 				strcat(err_msg, "cannot set the period count for sound recording (");
@@ -431,7 +427,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 		}
 		goto init_bail;
 	}
-	if (config->sound_recording()) {
+	if (_config.mic) {
 		if((err = snd_pcm_sw_params(_record_handle, sw_params_playback)) < 0) {
 			if (err_msg){
 				strcat(err_msg, "cannot set software parameters (");
@@ -456,7 +452,7 @@ int AlsaAudioSystem::init(const char * /*app_name*/, Configuration *config, char
 	_buf_capture = _buf_capture_root = new unsigned short[_period_nframes * _channels * data_size + 16]; // boris e: _channels must to not be
 	_left = _left_root = new float[_period_nframes + 4];
 	_right = _right_root = new float[_period_nframes + 4];
-	if (config->sound_recording()) {
+	if (_config.mic) {
 		_capturedBuffer = _capturedBuffer_root = new float[_period_nframes + 4];
 		assert(_capturedBuffer);
 	}

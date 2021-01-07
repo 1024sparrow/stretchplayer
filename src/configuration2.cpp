@@ -210,7 +210,7 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 	--periodSize <number>
 		period size to use for ALSA (default: 1024)
 	--periods <number>
-		periods per buffer for ALSA (default: 2)
+		periods per buffer for ALSA (channels) (default: 2)
 --fake
 	use FIFO-s to write playback-data and read capture-data
 	Options:
@@ -370,7 +370,8 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 					errorDescr += "\"";
 					return collectError(p_error, errorDescr);
 				}
-				_argv.push_back(arg);
+				if (iArg > 0)
+					_argv.push_back(arg);
 			}
 			else
 			{

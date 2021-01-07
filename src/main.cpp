@@ -34,23 +34,28 @@
 
 int main(int argc, char* argv[])
 {
-	Configuration2 config2;
+	Configuration2 conf;
 	std::string error;
-	if (int configParseResult = config2.parse(argc, argv, R"(stretchplayer-cli is slow-downifying audio player with console interface and adapted to run from another applications.
+
+	std::string helpPrefix = R"(stretchplayer-cli is slow-downifying audio player with console interface and adapted to run from another applications.
 It is possible to work with sound without sound card (see https://github.com/1024sparrow/webssh).
 
 Usage: stretchplayer [options] [audio_file_name]
 
 Options:
-)", R"( // boris e: STRETCHPLAYER_VERSION use here
-Version 1.0.0
+)";
+
+	std::string helpPostfix = std::string(R"(
+Version )" STRETCHPLAYER_VERSION  R"(
 https://github.com/1024sparrow/stretchplayer-cli
 Copyright 2010 Gabriel M. Beddingfield
 Copyright 2020 Boris P. Vasilyev
 
 StretchPlayer comes with ABSOLUTELY NO WARRANTY;
 This is free software, and you are welcome to redistribute it
-under terms of the GNU Public License (ver. 2 or later))", &error))
+under terms of the GNU Public License (ver. 2 or later))");
+
+	if (int configParseResult = conf.parse(argc, argv, helpPrefix.c_str(), helpPostfix.c_str(), &error))
 	{
 		if (configParseResult > 0)
 			return 0;
@@ -61,31 +66,28 @@ under terms of the GNU Public License (ver. 2 or later))", &error))
 	//std::cout << "Normal program execution prevented (not implemented yet)" << std::endl;
 	//return 0;
 
-//	StretchPlayer::Configuration config;
-//	if (!config.init(argc, argv))
-//		return 1;
-
-//	if(config.help() || ( !config.ok() )) {
-//	config.usage();
-//	if( !config.ok() ) return -1;
-//	return 0;
-//	}
-
 	std::unique_ptr<StretchPlayer::EngineMessageCallback> _engine_callback;
-	StretchPlayer::Engine *_engine = new StretchPlayer::Engine(config2);
+	StretchPlayer::Engine *_engine = new StretchPlayer::Engine(conf);
 
-	_engine->set_shift(conf->shift);
-	_engine->set_stretch(static_cast<float>(conf->stretch/100.f));
-	_engine->set_pitch(conf->pitch);
-//	if (config.startup_file()) {
-//		if (!_engine->load_song(config.startup_file(), false)) {
-//			printf("0can't open\n");
-//			fflush(stdout);
-//			return 1;
-//		}
-//	}
+	_engine->set_shift(conf.shift());
+	_engine->set_stretch(static_cast<float>(conf.stretch()/100.f));
+	_engine->set_pitch(conf.pitch());
+	if (conf.argv().size() > 1)
+	{
+		std::cerr << "only one file possible to set to playback at startup" << std::endl;
+		return 1;
+	}
+	if (conf.argv().size() == 1)
+	{
+		if (!_engine->load_song(conf.argv().cbegin()->c_str(), false))
+		{
+			printf("0can't open\n");
+			fflush(stdout);
+			return 1;
+		}
+	}
 
-	if (!conf->quiet) {
+	if (!conf.quiet()) {
 		printf("enter a command (enter \"h\" for help).\n");
 		fflush(stdout);
 	}
