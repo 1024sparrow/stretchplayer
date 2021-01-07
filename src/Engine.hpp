@@ -40,7 +40,7 @@ class RubberBandServer;
 class Engine
 {
 public:
-	Engine(Configuration2 *config = 0);
+	Engine(const Configuration2 &config = 0);
 	~Engine();
 
 	bool load_song(const char *filename, bool prelimanarily);

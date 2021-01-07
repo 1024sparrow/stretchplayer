@@ -48,6 +48,14 @@ public:
 	const Fake & fake() const {return _data.fake;}
 	const Jack & jack() const {return _data.jack;}
 
+	bool quiet() const;
+	int sampleRate() const;
+	bool mono() const;
+	bool mic() const;
+	int shift() const;
+	int stretch() const;
+	int pitch() const;
+
 	std::string toString() const;
 
 private:

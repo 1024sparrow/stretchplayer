@@ -504,6 +504,83 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 	return 0;
 }
 
+bool Configuration2::quiet() const
+{
+	if (_mode == Mode::Alsa)
+		return _data.alsa.quiet;
+	else if (_mode == Mode::Fake)
+		return _data.fake.quiet;
+	else if (_mode == Mode::Jack)
+		return _data.jack.quiet;
+	return _data.alsa.quiet;
+}
+
+int Configuration2::sampleRate() const
+{
+	if (_mode == Mode::Alsa)
+		return _data.alsa.sampleRate;
+	else if (_mode == Mode::Fake)
+		return _data.fake.sampleRate;
+	else if (_mode == Mode::Jack)
+		return _data.jack.sampleRate;
+	return _data.alsa.sampleRate;
+}
+
+bool Configuration2::mono() const
+{
+	if (_mode == Mode::Alsa)
+		return _data.alsa.mono;
+	else if (_mode == Mode::Fake)
+		return _data.fake.mono;
+	else if (_mode == Mode::Jack)
+		return _data.jack.mono;
+	return _data.alsa.mono;
+}
+
+bool Configuration2::mic() const
+{
+	if (_mode == Mode::Alsa)
+		return _data.alsa.mic;
+	else if (_mode == Mode::Fake)
+		return _data.fake.mic;
+	else if (_mode == Mode::Jack)
+		return _data.jack.mic;
+	return _data.alsa.mic;
+}
+
+int Configuration2::shift() const
+{
+	if (_mode == Mode::Alsa)
+		return _data.alsa.shift;
+	else if (_mode == Mode::Fake)
+		return _data.fake.shift;
+	else if (_mode == Mode::Jack)
+		return _data.jack.shift;
+	return _data.alsa.shift;
+}
+
+int Configuration2::stretch() const
+{
+	if (_mode == Mode::Alsa)
+		return _data.alsa.stretch;
+	else if (_mode == Mode::Fake)
+		return _data.fake.stretch;
+	else if (_mode == Mode::Jack)
+		return _data.jack.stretch;
+	return _data.alsa.stretch;
+}
+
+int Configuration2::pitch() const
+{
+	if (_mode == Mode::Alsa)
+		return _data.alsa.pitch;
+	else if (_mode == Mode::Fake)
+		return _data.fake.pitch;
+	else if (_mode == Mode::Jack)
+		return _data.jack.pitch;
+	return _data.alsa.pitch;
+}
+
 std::string Configuration2::toString() const
 {
 	std::string retVal;retVal += "mode: ";
