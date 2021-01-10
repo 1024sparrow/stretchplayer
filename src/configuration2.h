@@ -36,6 +36,8 @@ public:
 	{
 		std::string fifoPlayback {"~/.stretchplayer-playback.fifo"};
 		std::string fifoCapture {"~/.stretchplayer-capture.fifo"};
+		int periodSize {1024};
+		int bitsPerSample {16};
 	};
 	struct Jack : Common
 	{

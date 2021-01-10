@@ -1,17 +1,3 @@
-/*
-Исходные данные для генератора класса-отображения конфига.
-Конфиг располагается в корне домашней директории или по пути, указанном опцией --config
-У генерируемого класса можно запросить текст справки по опциям.
-Значение каждой опции задаётся в следующем порядке:
-  1. Значение по умолчанию
-  2. Значение, указанное в файле конфига (если такой задан)
-  3. Значение, указанное соответствующим аргументом командной строки
-*/
-
-/*
-Вы можете в разных режимах использовать параметры с одинаковыми именами, НО
-в таком случае вы обязаны обеспечить одинаковость их типов
-*/
 module.exports = {
 	configFileName: '.stretchplayer.conf', // in home directory
 	options:[ // common options. "--" at begin  passed.
@@ -98,6 +84,18 @@ module.exports = {
 					type: 'string',
 					defaultValue: '~/.stretchplayer-capture.fifo',
 					help: 'filepath to the FIFO to read capture from'
+				},
+				{
+					name: 'periodSize',
+					type: 'integer',
+					defaultValue: 1024,
+					help: 'period size to use for Fake'
+				},
+				{
+					name: 'bitsPerSample',
+					type: 'integer',
+					defaultValue: 16,
+					help: 'bit per sample (WAV-file format)'
 				}
 			]
 		},

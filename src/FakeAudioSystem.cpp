@@ -28,8 +28,25 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h> // read
+#include <fstream>
 
 #define debug_profiling printf("--> %s: %i <--\n", __FILE__, __LINE__)
+
+using namespace std;
+
+namespace little_endian_io
+{
+  template <typename Word>
+  std::ostream& write_word( std::ostream& outs, Word value, unsigned size = sizeof( Word ) )
+  {
+	for (; size; --size, value >>= 8)
+	  outs.put( static_cast <char> (value & 0xFF) );
+	return outs;
+  }
+}
+using namespace little_endian_io;
+
+
 
 const int CONST_CONFIG_TIMEOUT = 5000;
 
@@ -56,72 +73,56 @@ FakeAudioSystem::~FakeAudioSystem()
 int FakeAudioSystem::init(const char *app_name, const Configuration2 &p_config, char *err_msg)
 {
 	assert(p_config.mode() == Configuration2::Mode::Fake);
-	Configuration2::Fake config = p_config.fake();
+	_config = p_config.fake();
 
-//	const char *configFilepath = getenv("AUDIO_PIPE_CONFIG"); // boris here: читаем только один раз!!
-	const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
-//	const char *captureFilepath = getenv("AUDIO_PIPE_CAPTURE");
-//	if (!configFilepath)
-//	{
-//		if (err_msg)
-//		{
-//			strcat(err_msg, "environment variable AUDIO_PIPE_CONFIG not set");
-//		}
-//		goto init_bail;
-//	}
-//	if ((_fdConfig = open(configFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_RDONLY)) <= 0)
-//	{
-//		if (err_msg)
-//		{
+	_pipePath = _config.fifoPlayback.c_str();
+	_sample_rate = _config.sampleRate;
+	_period_nframes = _config.periodSize;
+
+	puts(_pipePath);
+//	_fdPlayback = open(_pipePath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY);
+//	if (_fdPlayback <= 0){
+//		if (err_msg) {
 //			strcat(err_msg, "can not open file '");
-//			strcat(err_msg, configFilepath);
-//			strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_CONFIG)");
+//			strcat(err_msg, _pipePath);
+//			strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
 //		}
 //		goto init_bail;
 //	}
-//	if (playbackFilepath){
-//		puts("if (playbackFilepath){");
-//		puts(playbackFilepath);
-//		_fdPlayback = open(playbackFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY);
-//		//if ((_fdPlayback = open(playbackFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY)) <= 0){
-//		if (_fdPlayback <= 0){
-//			if (err_msg) {
-//				strcat(err_msg, "can not open file '");
-//				strcat(err_msg, playbackFilepath);
-//				strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
-//			}
-//			goto init_bail;
-//		}
-//		printf("_fdPlayback: %i\n", _fdPlayback);
-////		struct timeval timeout;
-////		fd_set set;
-////		int rv;
-////		int fdSocket = worker->socket->fdSocket;
-////		FD_ZERO(&set);
-////		FD_SET(fdSocket, &set);
-////		timeout.tv_sec = 0;
-////		timeout.tv_usec = 500;
-////		rv = select(fdSocket + 1, &set, NULL, NULL, &timeout);
-////		// в Linux-е timeout разынициализуется после select-а
-////		if (rv < 0) // ошибка чтения. Например, разрыв соединения
-////		{
-////			//
-////		}
+//	printf("_fdPlayback: %i\n", _fdPlayback);
 
+
+
+
+
+//	struct timeval timeout;
+//	fd_set set;
+//	int rv;
+//	int fdSocket = worker->socket->fdSocket;
+//	FD_ZERO(&set);
+//	FD_SET(fdSocket, &set);
+//	timeout.tv_sec = 0;
+//	timeout.tv_usec = 500;
+//	rv = select(fdSocket + 1, &set, NULL, NULL, &timeout);
+//	// в Linux-е timeout разынициализуется после select-а
+//	if (rv < 0) // ошибка чтения. Например, разрыв соединения
+//	{
+//		//
 //	}
-//	if (captureFilepath){
-//		if ((_fdCapture = open(captureFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY)) <= 0){
+
+
+
+//	if (_capturePipePath){
+//		if ((_fdCapture = open(_capturePipePath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY)) <= 0){
 //			if (err_msg) {
 //				strcat(err_msg, "can not open file '");
-//				strcat(err_msg, captureFilepath);
+//				strcat(err_msg, _capturePipePath);
 //				strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
 //			}
 //			goto init_bail;
 //		}
 //	}
 
-	_sample_rate = config.sampleRate;
-	_period_nframes = 1024;//config->period_size();
 	_left = new float[_period_nframes];
 	_right = new float[_period_nframes];
 	return 0;
@@ -162,26 +163,14 @@ int FakeAudioSystem::set_segment_size_callback(segment_size_callback_t cb, void*
 int FakeAudioSystem::activate(char *err_msg)
 {
 	_active = true;
-//	_tConfig = std::thread(&FakeAudioSystem::_runConfig, this);
-//	_tConfig.detach();
-//	if (_fdPlayback)
-	{
-		_tPlayback = std::thread(&FakeAudioSystem::_runPlaybackRead, this);
-		_tPlayback.detach();
-	}
-	if (_fdCapture)
-	{
-		_tCapture = std::thread(&FakeAudioSystem::_runCaptureRead, this);
-		_tCapture.detach();
-	}
+	_tPlayback = std::thread(&FakeAudioSystem::_runPlayback, this);
+	_tPlayback.detach();
 	return 0;
 }
 
 int FakeAudioSystem::deactivate(char *err_msg)
 {
 	_active = false;
-//	if (_tConfig.joinable())
-//		_tConfig.join();
 	if (_tPlayback.joinable())
 		_tPlayback.join();
 	if (_tCapture.joinable())
@@ -237,293 +226,105 @@ uint32_t FakeAudioSystem::current_segment_size()
 	return _period_nframes;
 }
 
-void FakeAudioSystem::_runConfig()
+void FakeAudioSystem::_runPlayback()
 {
-//	struct timeval timeout;
-//	fd_set set;
-//	int rv;
-//	int fdSocket = worker->socket->fdSocket;
-//	FD_ZERO(&set);
-//	FD_SET(fdSocket, &set);
-//	timeout.tv_sec = 0;
-//	timeout.tv_usec = 500;
-//	rv = select(fdSocket + 1, &set, NULL, NULL, &timeout);
-//	// в Linux-е timeout разынициализуется после select-а
-//	if (rv < 0) // ошибка чтения. Например, разрыв соединения
-//	{
-//		//
-//	}
-
-	const char *configFilepath = getenv("AUDIO_PIPE_CONFIG");
-	if (!configFilepath)
-	{
-//		if (err_msg)
-//		{
-//			strcat(err_msg, "environment variable AUDIO_PIPE_CONFIG not set");
-//		}
-//		goto init_bail;
-	}
-	if ((_fdConfig = open(configFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_RDONLY)) <= 0)
-	{
-//		if (err_msg)
-//		{
-//			strcat(err_msg, "can not open file '");
-//			strcat(err_msg, configFilepath);
-//			strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_CONFIG)");
-//		}
-//		goto init_bail;
-	}
-
-	char buffer[1024];
+	const char *err_msg, *str_err;
 	while (_active)
 	{
-		int readCount = read(_fdConfig, buffer, 1024);
-		if (readCount < 0)
-		{
-			//puts("1111 ERROR");
-			perror("1111 ERROR");
+		if( _cbPlayback(_config.periodSize, _callback_arg) != 0 ) {
+			err_msg = "Application's audio callback failed.";
+			str_err = 0;
+			puts("error 10109.1953");
 		}
-		if (readCount > 0)
-		{
-			std::lock_guard<std::mutex> lkPlayback(_mutexPlayback);
-			std::lock_guard<std::mutex> lkCapture(_mutexCapture);
-			puts("88");
-//			printf("read %i bytes\n", readCount);
-//			if (_playbackDebug)
-//			{
-//				if (_fdPlayback)
-//				{
-////					readCount = write(_fdPlayback, buffer, 2);
-//					readCount = write(_fdPlayback, "hello\n", 7);
-//					if (readCount < 0)
-//					{
-//						perror("2222 ERROR");
-//					}
-//					printf("wrtitten %i bytes\n", readCount);
-//				}
-//			}
-		}
-	}
-}
 
-void FakeAudioSystem::_runPlaybackRead()
-{
-	const char *filepathRequest = getenv("AUDIO_PIPE_PLAYBACK_REQUEST");
-	if (!filepathRequest)
-	{
-		debug_profiling;
-		return;
-	}
-	const char *filepath = getenv("AUDIO_PIPE_PLAYBACK");
-	if (!filepath)
-	{
-		debug_profiling;
-		return;
-	}
-	puts("11");
-	//if ((_fdPlaybackRequest = open(filepathRequest, /*O_ASYNC |*/ /*O_NONBLOCK*/0, O_RDONLY)) <= 0)
-	puts("22");
-//	if ((_fdPlayback = open(filepath, O_WRONLY)) <= 0)
-//	{
-//		debug_profiling;
-//		return;
-//	}
-	puts("33");
-
-	const size_t bufferSize = 1024;
-	char buffer[bufferSize];
-
-	FILE *tmpFile = std::tmpfile();
-	//FILE *tmpFile = fopen("/home/boris/2.wav", "wb");
-	size_t byteCounter = 0;
-
-	while (_active)
-	{
+		//_fdPlayback.
+//		FILE *tmpFile = fopen("tmp", "wb");//std::tmpfile();
+//		printf("10109.1917: %f\n", _left[0]);//
+//		//FILE *tmpFile = fopen(_pipePath, "wb");
+//		//write(_fdPlayback, )
 //		{
 //			WaveFile wf;
-//			if (!wf.OpenRead(filepathRequest))
+//			if (!wf.OpenWrite(tmpFile))
 //			{
-//				perror("can not open playuback request file");
+//				puts("10109.1654 error");
 //			}
-//			unsigned long sr = wf.GetSampleRate();
-//			printf("** sample rate: %lu\n", sr);
-//		}
-		if ((_fdPlaybackRequest = open(filepathRequest, O_RDONLY)) <= 0)
-		{
-			debug_profiling;
-			return;
-		}
-
-		int playbackRequest = 0;
-		int readCount = read(_fdPlaybackRequest, buffer, 1024);
-		if (readCount < 0)
-		{
-			perror("_fdPlaybackRequest read error");
-		}
-
-		if (readCount > 0)
-		{
-			if (byteCounter == 0)
-			{
-				if (readCount >= 40)
-				{
-					if (!strncmp(buffer, "RIFF", 4) && !strncmp(buffer + 8, "WAVEfmt ", 8))
-					{
-						byteCounter = buffer[4] + (buffer[5] << 8) + (buffer[6] << 16) + (buffer[7] << 24);
-					}
-				}
-				else
-				{
-					// читаем количество сэмплов, которые надо отослать
-					puts(buffer);
-				}
-			}
-			if (byteCounter > 0)
-			{
-				byteCounter -= readCount;
-				if (byteCounter > 0)
-				{
-					//tmpFile->
-					fwrite(buffer, 1, readCount, tmpFile);
-					fflush(tmpFile);
-				}
-				else
-				{
-					printf("I got this! %lu\n", byteCounter);
-					byteCounter = 0;
-				}
-			}
-		}
-		else if (readCount == 0)
-		{
-			puts("00000000000000000000000000");
-			// закончили читать
-
-			//FILE *fPlayback = fopen(filepath, "wb");
-			FILE *fPlaybackTmp = std::tmpfile(); // boris commented
-			//FILE *fPlaybackTmp = fopen("/home/boris/00902.wav", "wb");//
-			if (!fPlaybackTmp)
-			{
-				perror("can not open tmp-file to write playback data");
-				continue;
-			}
-
-			WaveFile wfPlayback;
-			{
-				WaveFile wfCapture;
-				if (!wfCapture.OpenRead(tmpFile))
-				{
-					perror("can not open playuback request file");
-				}
-				unsigned long sr = wfCapture.GetSampleRate();
-				printf("** sample rate: %lu\n", sr);
-				// boris here: читаем записанный звук в _left и _right.
-
-				// boris here: по клонированного заголовку пишем _left и _right в WAV-файл.
-//				wfPlayback.CopyFormatFrom(wfCapture);
-				if (!wfPlayback.OpenWrite(fPlaybackTmp)) // boris here
-				{
-					perror("can not open tmp-file to write WAV-header");
-					continue;
-				}
-				wfPlayback.CopyFormatFrom(wfCapture);//
-
-				//-----------------------------
-				if (!wfPlayback.CopyFrom(wfCapture))
-				{
-					perror("can not copy");
-				}
-
-				wfPlayback.SetNumSamples(wfCapture.GetNumSamples() * 2);
-				for (size_t i = 0; i < wfCapture.GetNumSamples(); i++) {
-					float sample = 50;
-					wfCapture.ReadSample(sample);
-					if (!wfPlayback.WriteSample(sample))
-					{
-						perror ("can not write sample");
-						break;
-					}
-				}
-				//=============================
-			}
-
-			//fclose(tmpFile);
-			//tmpFile = std::tmpfile();
-
-			debug_profiling;
-			if ((_fdPlayback = open(filepath, O_WRONLY)) <= 0)
-			{
-				perror("can not open pipe-file to write playback data");
-				continue;
-			}
-			debug_profiling;
-			fseek(fPlaybackTmp, 0, SEEK_SET);
-			while ((readCount = fread(buffer, 1, bufferSize, fPlaybackTmp) )> 0)
-			{
-				debug_profiling;
-				printf("##>%i\n", readCount);
-				write(_fdPlayback, buffer, readCount);
-			}
-			close(_fdPlayback);
-		}
-		else if (readCount < 0)
-		{
-			puts("-------"); // epic fail
-		}
-		close(_fdPlaybackRequest);
-	}
-	fclose(tmpFile);
-
-	// ==============================================================
-//	const char *playbackFilepath = getenv("AUDIO_PIPE_PLAYBACK");
-//	if (playbackFilepath){
-//		puts("if (playbackFilepath){");
-//		puts(playbackFilepath);
-//		_fdPlayback = open(playbackFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY);
-//		//if ((_fdPlayback = open(playbackFilepath, /*O_ASYNC |*/ O_NONBLOCK, O_WRONLY)) <= 0){
-//		if (_fdPlayback <= 0){
-////			if (err_msg) {
-////				strcat(err_msg, "can not open file '");
-////				strcat(err_msg, playbackFilepath);
-////				strcat(err_msg, "' (filepath taken from environment variable AUDIO_PIPE_PLAYBACK)");
-////			}
-////			goto init_bail;
-//		}
-//		printf("_fdPlayback: %i\n", _fdPlayback);
-//	}
-
-//	char buffer[1024];
-//	while (_active)
-//	{
-//		int readCount = read(_fdConfig, buffer, 1024);
-//		if (readCount < 0)
-//		{
-//			//puts("1111 ERROR");
-//			perror("1111 ERROR");
-//		}
-//		if (readCount > 0)
-//		{
-//			printf("read %i bytes\n", readCount);
-//			if (_playbackDebug)
+//			wf.SetupFormat(_config.sampleRate, _config.bitsPerSample, _config.mono ? 1 : 2);
+//			wf.WriteHeaderToFile(tmpFile);
+//			for (int i = 0 ; i < _period_nframes ; ++i)
 //			{
-//				if (_fdPlayback)
+//				if (!wf.WriteSample(_left[i]))
 //				{
-////					readCount = write(_fdPlayback, buffer, 2);
-//					readCount = write(_fdPlayback, "hello\n", 7);
-//					if (readCount < 0)
-//					{
-//						perror("2222 ERROR");
-//					}
-//					printf("wrtitten %i bytes\n", readCount);
+//					puts("10110 error");
 //				}
+//				wf.WriteSample(_right[i]);
 //			}
 //		}
-//	}
+
+//		//std::ifstream in("tmp", std::ifstream::ate | std::ifstream::binary);
+//		int tmpFileSize = 44 + _config.bitsPerSample * _config.periodSize / 8 * (_config.mono ? 1 : 2);//in.tellg();
+
+//		int fd = open("tmp", O_RDONLY);
+//		void *b = malloc(tmpFileSize);
+//		read(fd, b, tmpFileSize);
+//		close(fd);
+//		fd = open(_config.fifoPlayback.c_str(), O_WRONLY);
+//		write(fd, b, tmpFileSize);
+//		free(b);
+//		close(fd);
+
+		//{{
+		{
+		ofstream f( "example.wav", ios::binary );
+		// Write the file headers
+		 f << "RIFF----WAVEfmt ";     // (chunk size to be filled in later)
+		 write_word( f,     16, 4 );  // no extension data
+		 write_word( f,      1, 2 );  // PCM - integer samples
+		 write_word( f,      2, 2 );  // two channels (stereo file)
+		 write_word( f,  44100, 4 );  // samples per second (Hz)
+		 write_word( f, 176400, 4 );  // (Sample Rate * BitsPerSample * Channels) / 8
+		 write_word( f,      4, 2 );  // data block size (size of two integer samples, one for each channel, in bytes)
+		 write_word( f,     16, 2 );  // number of bits per sample (use a multiple of 8)
+
+		 // Write the data chunk header
+		 size_t data_chunk_pos = f.tellp();
+		 f << "data----";  // (chunk size to be filled in later)
+		 write_word( f,     16, 2 );
+		 for (int i = 0 ; i < _period_nframes ; ++i)
+		 {
+			write_word( f,     static_cast<int>(_left[i] * 32760), 2 );
+			write_word( f,     static_cast<int>(_right[i] * 32760), 2 );
+		 }
+
+		 // (We'll need the final file size to fix the chunk sizes above)
+		 size_t file_length = f.tellp();
+
+		 // Fix the data chunk header to contain the data size
+		 f.seekp( data_chunk_pos + 4 );
+		 write_word( f, file_length - data_chunk_pos + 8 );
+
+		 // Fix the file header to contain the proper RIFF chunk size, which is (file size - 8) bytes
+		 f.seekp( 0 + 4 );
+		 write_word( f, file_length - 8, 4 );
+		}
+		 //}}
+		int tmpFileSize = 44 + _config.bitsPerSample * _config.periodSize / 8 * (_config.mono ? 1 : 2);
+		int fd = open("example.wav", O_RDONLY);
+		void *b = malloc(tmpFileSize);
+		read(fd, b, tmpFileSize);
+		close(fd);
+		fd = open(_config.fifoPlayback.c_str(), O_WRONLY);
+		write(fd, b, tmpFileSize);
+		free(b);
+		close(fd);
+	}
 }
 
-void FakeAudioSystem::_runCaptureRead()
+void FakeAudioSystem::_runCapture()
 {
-	//
+	while (_capturing)
+	{
+		//
+	}
 }
 
 void FakeAudioSystem::_runPlaybackWrite()

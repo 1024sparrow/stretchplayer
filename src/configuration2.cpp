@@ -218,6 +218,10 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 		filepath to the FIFO to write playback into (default: "~/.stretchplayer-playback.fifo")
 	--fifoCapture <string>
 		filepath to the FIFO to read capture from (default: "~/.stretchplayer-capture.fifo")
+	--periodSize <number>
+		period size to use for Fake (default: 1024)
+	--bitsPerSample <number>
+		bit per sample (WAV-file format) (default: 16)
 --jack
 	use JACK for audio
 	Options:
@@ -356,8 +360,12 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 			state = 11;
 		else if (_mode == Mode::Fake && !strcmp(arg, "--fifoCapture"))
 			state = 12;
-		else if (_mode == Mode::Jack && !strcmp(arg, "--noAutoconnect"))
+		else if (_mode == Mode::Fake && !strcmp(arg, "--periodSize"))
 			state = 13;
+		else if (_mode == Mode::Fake && !strcmp(arg, "--bitsPerSample"))
+			state = 14;
+		else if (_mode == Mode::Jack && !strcmp(arg, "--noAutoconnect"))
+			state = 15;
 		else
 		{
 			if (state == 0)
@@ -480,6 +488,16 @@ int Configuration2::parse(int p_argc, char **p_argv, const char *p_helpPrefix, c
 				}
 				else if (state == 13)
 				{
+					int tmp = atoi(arg);
+					_data.fake.periodSize = tmp;
+				}
+				else if (state == 14)
+				{
+					int tmp = atoi(arg);
+					_data.fake.bitsPerSample = tmp;
+				}
+				else if (state == 15)
+				{
 					bool tmp;
 					if (!strcmp(arg, "true"))
 						tmp = true;
@@ -575,6 +593,10 @@ std::string Configuration2::toString() const
 		retVal += "\"";
 		retVal += _data.fake.fifoCapture;
 		retVal += "\"";
+		retVal += "\nperiodSize: ";;
+		retVal += std::to_string(_data.fake.periodSize);
+		retVal += "\nbitsPerSample: ";;
+		retVal += std::to_string(_data.fake.bitsPerSample);
 	}
 	else if (_mode == Mode::Jack)
 	{
@@ -1022,6 +1044,16 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			{
 				_state.s = State::S::InparamsValueStringStarting;
 			}
+			else if (_conf->_mode == Mode::Fake && _state.key == "periodSize")
+			{
+				_state.intValue = {0, false};
+				_state.s = State::S::InparamsValueIntegerStarting;
+			}
+			else if (_conf->_mode == Mode::Fake && _state.key == "bitsPerSample")
+			{
+				_state.intValue = {0, false};
+				_state.s = State::S::InparamsValueIntegerStarting;
+			}
 			else if (_conf->_mode == Mode::Jack && _state.key == "noAutoconnect")
 			{
 				_state.s = State::S::InparamsValueBooleanStarting;
@@ -1210,6 +1242,14 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 			else if (_conf->_mode == Mode::Alsa && _state.key == "periods")
 			{
 				_conf->_data.alsa.periods = newVal;
+			}
+			else if (_conf->_mode == Mode::Fake && _state.key == "periodSize")
+			{
+				_conf->_data.fake.periodSize = newVal;
+			}
+			else if (_conf->_mode == Mode::Fake && _state.key == "bitsPerSample")
+			{
+				_conf->_data.fake.bitsPerSample = newVal;
 			}
 			_state.key.clear();
 			_state.value.clear();
@@ -1409,6 +1449,14 @@ std::string Configuration2::generateConf() const
 		"fifoCapture": ")";
 		retVal += _data.fake.fifoCapture;
 		retVal += "\"";
+		retVal.push_back(',');
+		retVal += R"(
+		"periodSize": )";
+		retVal += std::to_string(_data.fake.periodSize);
+		retVal.push_back(',');
+		retVal += R"(
+		"bitsPerSample": )";
+		retVal += std::to_string(_data.fake.bitsPerSample);
 	}
 	else if (_mode == Mode::Jack)
 	{

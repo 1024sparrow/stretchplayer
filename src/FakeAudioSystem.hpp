@@ -77,11 +77,10 @@ public:
 	uint32_t current_segment_size() override;
 
 private:
-	void _runConfig();
-	void _runPlaybackRead();
-	void _runCaptureRead();
-	void _runPlaybackWrite();
-	void _runCaptureWrite();
+	void _runPlayback();
+	void _runCapture();
+	void _runPlaybackWrite(); // boris dm: not using
+	void _runCaptureWrite(); // boris dm: not using
 
 private:
 	mutable std::mutex _mutexPlayback, _mutexCapture;
@@ -89,15 +88,20 @@ private:
 		//
 	} _requestForPlayback;
 
-	int _fdConfig, _fdPlayback, _fdPlaybackRequest, _fdCapture;
+//	int _fdConfig, _fdPlayback, _fdPlaybackRequest, _fdCapture;
+	int _fdPlayback, _fdCapture;
 	process_callback_t _cbPlayback, _cbCapture;
 	void *_callback_arg;
 	float *_left, *_right;
 	uint32_t _sample_rate;
 	uint32_t _period_nframes;
-	bool _active;
+	bool _active{false}, _capturing{false};
 	std::thread _tConfig, _tPlayback, _tCapture;
 	bool _playbackDebug;
+
+	const char *_pipePath{ nullptr };
+
+	Configuration2::Fake _config;
 };
 
 } // namespace StretchPlayer
