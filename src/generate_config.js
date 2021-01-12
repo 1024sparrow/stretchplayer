@@ -3,7 +3,7 @@
 const
 	META = './config.js',
 	CLASSNAME = 'Configuration2',
-	CLASSFILENAME = 'configuration2',
+	CLASSFILENAME = 'configuration',
 	TARGET_DIR = '.'
 ;
 
@@ -1430,6 +1430,13 @@ std::string Configuration2::generateConf() const
 }
 `
 };
-fs.writeFileSync(path.resolve(TARGET_DIR, `${CLASSFILENAME}.h`), result.h, 'utf8');
-fs.writeFileSync(path.resolve(TARGET_DIR, `${CLASSFILENAME}.cpp`), result.cpp, 'utf8');
+//fs.writeFileSync(path.resolve(TARGET_DIR, `${CLASSFILENAME}.h`), result.h, 'utf8');
+//fs.writeFileSync(path.resolve(TARGET_DIR, `${CLASSFILENAME}.cpp`), result.cpp, 'utf8');
 //console.log(result.h);
+
+const dirName = path.dirname(process.argv[2])
+
+fs.writeFileSync(path.resolve(dirName, `${CLASSFILENAME}.cpp`), result.cpp, 'utf-8');
+fs.writeFileSync(path.resolve(process.argv[3], `${CLASSFILENAME}.cpp`), result.cpp, 'utf-8');
+fs.writeFileSync(path.resolve(dirName, `${CLASSFILENAME}.h`), result.h, 'utf-8');
+fs.writeFileSync(path.resolve(process.argv[3], `${CLASSFILENAME}.h`), result.h, 'utf-8');

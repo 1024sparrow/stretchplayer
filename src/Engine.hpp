@@ -27,7 +27,7 @@
 #include <vector>
 #include <set>
 #include "RubberBandServer.hpp"
-#include "configuration2.h"
+#include "configuration.h"
 
 
 namespace StretchPlayer

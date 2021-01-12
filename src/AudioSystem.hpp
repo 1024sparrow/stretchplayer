@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 
-#include "configuration2.h"
+#include "configuration.h"
 
 namespace StretchPlayer
 {

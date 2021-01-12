@@ -25,7 +25,7 @@
 #include <string.h>
 #include <unistd.h> // read
 
-#include "configuration2.h"
+#include "configuration.h"
 #include <iostream>
 #include <memory>
 #include <stdexcept>

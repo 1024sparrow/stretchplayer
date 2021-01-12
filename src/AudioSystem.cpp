@@ -19,7 +19,7 @@
 
 #include "config.h"
 //#include "Configuration.hpp"
-#include "configuration2.h"
+#include "configuration.h"
 #include <stdexcept>
 
 #ifdef AUDIO_SUPPORT_JACK

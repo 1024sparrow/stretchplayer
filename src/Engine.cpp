@@ -19,7 +19,7 @@
 
 #include "Engine.hpp"
 #include "AudioSystem.hpp"
-#include "configuration2.h"
+#include "configuration.h"
 #include <sndfile.h>
 #include <sndfile.hh>
 #include <mpg123.h>
