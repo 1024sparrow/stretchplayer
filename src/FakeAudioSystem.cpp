@@ -273,37 +273,37 @@ void FakeAudioSystem::_runPlayback()
 
 		//{{
 		{
-		ofstream f( "example.wav", ios::binary );
-		// Write the file headers
-		 f << "RIFF----WAVEfmt ";     // (chunk size to be filled in later)
-		 write_word( f,     16, 4 );  // no extension data
-		 write_word( f,      1, 2 );  // PCM - integer samples
-		 write_word( f,      2, 2 );  // two channels (stereo file)
-		 write_word( f,  44100, 4 );  // samples per second (Hz)
-		 write_word( f, 176400, 4 );  // (Sample Rate * BitsPerSample * Channels) / 8
-		 write_word( f,      4, 2 );  // data block size (size of two integer samples, one for each channel, in bytes)
-		 write_word( f,     16, 2 );  // number of bits per sample (use a multiple of 8)
+			ofstream f( "example.wav", ios::binary );
+			// Write the file headers
+			f << "RIFF----WAVEfmt ";     // (chunk size to be filled in later)
+			write_word( f,     16, 4 );  // no extension data
+			write_word( f,      1, 2 );  // PCM - integer samples
+			write_word( f,      2, 2 );  // two channels (stereo file)
+			write_word( f,  44100, 4 );  // samples per second (Hz)
+			write_word( f, 176400, 4 );  // (Sample Rate * BitsPerSample * Channels) / 8
+			write_word( f,      4, 2 );  // data block size (size of two integer samples, one for each channel, in bytes)
+			write_word( f,     16, 2 );  // number of bits per sample (use a multiple of 8)
 
-		 // Write the data chunk header
-		 size_t data_chunk_pos = f.tellp();
-		 f << "data----";  // (chunk size to be filled in later)
-		 write_word( f,     16, 2 );
-		 for (int i = 0 ; i < _period_nframes ; ++i)
-		 {
-			write_word( f,     static_cast<int>(_left[i] * 32760), 2 );
-			write_word( f,     static_cast<int>(_right[i] * 32760), 2 );
-		 }
+			// Write the data chunk header
+			size_t data_chunk_pos = f.tellp();
+			f << "data----";  // (chunk size to be filled in later)
+			write_word( f,     16, 2 );
+			for (int i = 0 ; i < _period_nframes ; ++i)
+			{
+				write_word( f,     static_cast<int>(_left[i] * 32768), 2 );
+				write_word( f,     static_cast<int>(_right[i] * 32768), 2 );
+			}
 
-		 // (We'll need the final file size to fix the chunk sizes above)
-		 size_t file_length = f.tellp();
+			// (We'll need the final file size to fix the chunk sizes above)
+			size_t file_length = f.tellp();
 
-		 // Fix the data chunk header to contain the data size
-		 f.seekp( data_chunk_pos + 4 );
-		 write_word( f, file_length - data_chunk_pos + 8 );
+			// Fix the data chunk header to contain the data size
+			f.seekp( data_chunk_pos + 4 );
+			write_word( f, file_length - data_chunk_pos + 8 );
 
-		 // Fix the file header to contain the proper RIFF chunk size, which is (file size - 8) bytes
-		 f.seekp( 0 + 4 );
-		 write_word( f, file_length - 8, 4 );
+			// Fix the file header to contain the proper RIFF chunk size, which is (file size - 8) bytes
+			f.seekp( 0 + 4 );
+			write_word( f, file_length - 8, 4 );
 		}
 		 //}}
 		int tmpFileSize = 44 + _config.bitsPerSample * _config.periodSize / 8 * (_config.mono ? 1 : 2);
