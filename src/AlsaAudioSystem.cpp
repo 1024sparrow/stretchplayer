@@ -25,7 +25,6 @@
  */
 
 #include "AlsaAudioSystem.hpp"
-#include "Configuration.hpp"
 #include <cassert>
 #include <cstring>
 #include <cstdlib>
@@ -106,9 +105,9 @@ AlsaAudioSystem::~AlsaAudioSystem()
 	cleanup();
 }
 
-int AlsaAudioSystem::init(const char * /*app_name*/, const Configuration2 &config, char *err_msg)
+int AlsaAudioSystem::init(const char * /*app_name*/, const Configuration &config, char *err_msg)
 {
-	assert(config.mode() == Configuration2::Mode::Alsa);
+	assert(config.mode() == Configuration::Mode::Alsa);
 	_config = config.alsa();
 
 	unsigned nfrags;

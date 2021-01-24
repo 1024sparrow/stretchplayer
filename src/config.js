@@ -1,3 +1,7 @@
+// CLASSNAME = 'Configuration',
+// CLASSFILENAME = 'Configuration',
+// TARGET_DIR = '.'
+
 module.exports = {
 	configFileName: '.stretchplayer.conf', // in home directory
 	options:[ // common options. "--" at begin  passed.

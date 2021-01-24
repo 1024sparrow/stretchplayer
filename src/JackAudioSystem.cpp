@@ -18,7 +18,6 @@
  */
 
 #include "JackAudioSystem.hpp"
-#include "Configuration.hpp"
 #include <cassert>
 #include <cstring>
 #include <cstdlib>
@@ -38,7 +37,7 @@ namespace StretchPlayer
 		cleanup();
 	}
 
-	int JackAudioSystem::init(const char *app_name, const Configuration2 &config, char *err_msg)
+	int JackAudioSystem::init(const char *app_name, const Configuration &config, char *err_msg)
 	{
 		const char *name = "StretchPlayer";
 

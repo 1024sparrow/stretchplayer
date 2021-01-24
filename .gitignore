@@ -6,6 +6,8 @@
 *.swo
 build/
 CMakeLists.txt.user
+src/Configuration.h
+src/Configuration.cpp
 
 
 ## For debian package building

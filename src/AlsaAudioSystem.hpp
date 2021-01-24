@@ -26,8 +26,6 @@
 
 namespace StretchPlayer
 {
-	class Configuration;
-
 	/**
 	 * \brief ALSA audio driver implementation.
 	 *
@@ -40,7 +38,7 @@ namespace StretchPlayer
 
 	/* Implementing all of AudioSystem's interface:
 	 */
-	int init(const char *app_name, const Configuration2 &config, char *err_msg = 0) override;
+	int init(const char *app_name, const Configuration &config, char *err_msg = 0) override;
 	void cleanup() override;
 	int set_process_callback(
 		process_callback_t cbPlayback,
@@ -110,7 +108,7 @@ namespace StretchPlayer
 	unsigned long _dsp_work_time[DSP_AVG_SIZE];
 	float _dsp_load;
 
-	Configuration2::Alsa _config;
+	Configuration::Alsa _config;
 
 	std::thread _tPlayback, _tCapture;
 

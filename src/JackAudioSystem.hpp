@@ -24,8 +24,6 @@
 
 namespace StretchPlayer
 {
-	class Configuration;
-
 	/**
 	 * \brief Pure virtual interface to an audio driver API.
 	 *
@@ -41,7 +39,7 @@ namespace StretchPlayer
 
 	/* Implementing all of AudioSystem's interface:
 	 */
-	int init(const char *app_name, const Configuration2 &config, char *err_msg = 0) override;
+	int init(const char *app_name, const Configuration &config, char *err_msg = 0) override;
 	void cleanup() override;
 	int set_process_callback(
 		process_callback_t cbPlayback,
@@ -68,7 +66,7 @@ namespace StretchPlayer
 	private:
 	jack_client_t *_client;
 	jack_port_t* _port[2];
-	Configuration2::Jack _config;
+	Configuration::Jack _config;
 	};
 
 } // namespace StretchPlayer

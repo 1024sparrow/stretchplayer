@@ -2,8 +2,8 @@
 
 const
 	META = './config.js',
-	CLASSNAME = 'Configuration2',
-	CLASSFILENAME = 'configuration',
+	CLASSNAME = 'Configuration',
+	CLASSFILENAME = 'Configuration',
 	TARGET_DIR = '.'
 ;
 
@@ -11,8 +11,7 @@ const
 const
 	src = require(META),
 	fs = require('fs'),
-	path = require('path'),
-	configJsonParser = require('./configJsonParser.js')
+	path = require('path')
 ;
 
 var _modes = `
@@ -596,10 +595,10 @@ ${_fields.valueHolders}
 #include <tuple>
 #include <set>
 
-class Configuration2::JsonParser
+class ${CLASSNAME}::JsonParser
 {
 public:
-	JsonParser(Configuration2 *p_conf);
+	JsonParser(${CLASSNAME} *p_conf);
 	// p_force - error, if file not exists (or can not read)
 	bool parse(const char *p_filepath, bool p_force, std::string *p_error);
 private:
@@ -724,7 +723,7 @@ private:
 		} intValue;
 		int counter {0};
 	} _state;
-	Configuration2 *_conf;
+	${CLASSNAME} *_conf;
 };
 
 int ${CLASSNAME}::parse(int p_argc, char **p_argv, const char *p_helpPrefix, const char *p_helpPostfix, std::string *p_error)
@@ -838,7 +837,7 @@ int ${CLASSNAME}::parse(int p_argc, char **p_argv, const char *p_helpPrefix, con
 		_configPath = "~/${src.configFileName}";
 	_configPath = resolveEnvVarsAndTilda(_configPath);
 
-	Configuration2 confCopy = *this;
+	${CLASSNAME} confCopy = *this;
 	JsonParser jsonParser(&confCopy);
 	if (!jsonParser.parse(_configPath.c_str(), !usingDefaultConfig, p_error))
 	{
@@ -887,7 +886,7 @@ std::string ${CLASSNAME}::toString() const
 	return retVal;
 }
 
-int Configuration2::collectError(std::string *p_error, const std::string &p_message) const
+int ${CLASSNAME}::collectError(std::string *p_error, const std::string &p_message) const
 {
 	if (p_error)
 	{
@@ -903,7 +902,7 @@ int Configuration2::collectError(std::string *p_error, const std::string &p_mess
  * "\${...}" resolves to appropriate environment variable value
  * "~" resolves to home directory path only if it is placed in the begin
  */
-std::string Configuration2::resolveEnvVarsAndTilda(const std::string &p)
+std::string ${CLASSNAME}::resolveEnvVarsAndTilda(const std::string &p)
 {
 	int state = 0, substate = 0;
 	std::string envName, retVal;
@@ -971,7 +970,7 @@ std::string Configuration2::resolveEnvVarsAndTilda(const std::string &p)
 	return retVal;
 }
 
-const char * Configuration2::JsonParser::ERROR_CODE_DESCRIPTIONS[] {
+const char * ${CLASSNAME}::JsonParser::ERROR_CODE_DESCRIPTIONS[] {
 	"no error",
 	"internal error (not implemented)",
 	"internal error (unhandled state)",
@@ -989,22 +988,22 @@ const char * Configuration2::JsonParser::ERROR_CODE_DESCRIPTIONS[] {
 };
 
 const char
-	*Configuration2::JsonParser::USER_MARK = "{user}",
-	*Configuration2::JsonParser::TRUE = "true",
-	*Configuration2::JsonParser::FALSE = "false"
+	*${CLASSNAME}::JsonParser::USER_MARK = "{user}",
+	*${CLASSNAME}::JsonParser::TRUE = "true",
+	*${CLASSNAME}::JsonParser::FALSE = "false"
 ;
 const int
-	Configuration2::JsonParser::USER_MARK_LEN = strlen(USER_MARK),
-	Configuration2::JsonParser::TRUE_LEN = strlen(TRUE),
-	Configuration2::JsonParser::FALSE_LEN = strlen(FALSE)
+	${CLASSNAME}::JsonParser::USER_MARK_LEN = strlen(USER_MARK),
+	${CLASSNAME}::JsonParser::TRUE_LEN = strlen(TRUE),
+	${CLASSNAME}::JsonParser::FALSE_LEN = strlen(FALSE)
 ;
 
-Configuration2::JsonParser::JsonParser(Configuration2 *p_conf)
+${CLASSNAME}::JsonParser::JsonParser(${CLASSNAME} *p_conf)
 	: _conf(p_conf)
 {
 }
 
-bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std::string *p_error)
+bool ${CLASSNAME}::JsonParser::parse(const char *p_filepath, bool p_force, std::string *p_error)
 {
 	int fd = open(p_filepath, O_RDONLY);
 	if (fd <= 0)
@@ -1106,7 +1105,7 @@ bool Configuration2::JsonParser::parse(const char *p_filepath, bool p_force, std
 	return true;
 }
 
-bool Configuration2::JsonParser::collectError(std::string *p_error, const std::string &p_message) const
+bool ${CLASSNAME}::JsonParser::collectError(std::string *p_error, const std::string &p_message) const
 {
 	if (p_error)
 	{
@@ -1117,12 +1116,12 @@ bool Configuration2::JsonParser::collectError(std::string *p_error, const std::s
 	return false;
 }
 
-void Configuration2::JsonParser::initParse()
+void ${CLASSNAME}::JsonParser::initParse()
 {
 	_state = State();
 }
 
-Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byte)
+${CLASSNAME}::JsonParser::Error ${CLASSNAME}::JsonParser::parseTick(char byte)
 {
 	//printf("%c\\t%s\\n", byte, State::str(_state.s));
 
@@ -1416,7 +1415,7 @@ Configuration2::JsonParser::Error Configuration2::JsonParser::parseTick(char byt
 	return Error::NoError;
 }
 
-std::string Configuration2::generateConf() const
+std::string ${CLASSNAME}::generateConf() const
 {
 	std::string retVal = "{";
 

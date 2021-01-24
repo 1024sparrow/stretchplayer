@@ -25,7 +25,7 @@
 #include <string.h>
 #include <unistd.h> // read
 
-#include "configuration.h"
+#include "Configuration.h"
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -34,7 +34,7 @@
 
 int main(int argc, char* argv[])
 {
-	Configuration2 conf;
+	Configuration conf;
 	std::string error;
 
 	std::string helpPrefix = R"(stretchplayer-cli is slow-downifying audio player with console interface and adapted to run from another applications.

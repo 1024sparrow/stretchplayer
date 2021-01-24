@@ -51,7 +51,7 @@ SET(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
 #### CODE GENERATION
 ######################################################################
 
-add_custom_command( OUTPUT configuration.h configuration.cpp
+add_custom_command( OUTPUT Configuration.h Configuration.cpp
 	COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/generate_config.js ${CMAKE_CURRENT_SOURCE_DIR}/config.js ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS generate_config.js config.js
 	MAIN_DEPENDENCY config.js
@@ -63,8 +63,7 @@ add_custom_command( OUTPUT configuration.h configuration.cpp
 
 LIST(APPEND sp_cpp
   main.cpp
-  #Configuration.cpp
-  configuration.cpp
+  Configuration.cpp
   Engine.cpp
   AudioSystem.cpp
   jack_memops.c
@@ -75,8 +74,7 @@ LIST(APPEND sp_cpp
   )
 
 LIST(APPEND sp_hpp
-  #Configuration.hpp
-  configuration.h
+  Configuration.h
   Engine.hpp
   AudioSystem.hpp
   jack_memops.h

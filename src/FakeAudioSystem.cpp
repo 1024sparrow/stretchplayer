@@ -17,7 +17,6 @@
  *
  */
 #include "FakeAudioSystem.hpp"
-#include "Configuration.hpp"
 #include "WAVE/WAVE.h"
 
 #include <cassert>
@@ -70,9 +69,9 @@ FakeAudioSystem::~FakeAudioSystem()
 	cleanup();
 }
 
-int FakeAudioSystem::init(const char *app_name, const Configuration2 &p_config, char *err_msg)
+int FakeAudioSystem::init(const char *app_name, const Configuration &p_config, char *err_msg)
 {
-	assert(p_config.mode() == Configuration2::Mode::Fake);
+	assert(p_config.mode() == Configuration::Mode::Fake);
 	_config = p_config.fake();
 
 	_pipePath = _config.fifoPlayback.c_str();

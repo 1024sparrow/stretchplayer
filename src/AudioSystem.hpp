@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 
-#include "configuration.h"
+#include "Configuration.h"
 
 namespace StretchPlayer
 {
@@ -54,7 +54,7 @@ namespace StretchPlayer
 	 *
 	 * \returns 0 on success, nonzero on error.
 	 */
-	virtual int init(const char *app_name, const Configuration2 &config, char *err_msg = 0) = 0;
+	virtual int init(const char *app_name, const Configuration &config, char *err_msg = 0) = 0;
 
 	/**
 	 * Clean up the system.
@@ -157,7 +157,7 @@ namespace StretchPlayer
 	virtual uint32_t current_segment_size() = 0;
 	};
 
-	AudioSystem* audio_system_factory(Configuration2::Mode mode);
+	AudioSystem* audio_system_factory(Configuration::Mode mode);
 
 } // namespace StretchPlayer
 
