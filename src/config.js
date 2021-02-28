@@ -4,7 +4,7 @@
 
 module.exports = {
 	configFileName: '.stretchplayer.conf', // in home directory
-	options:[ // common options. "--" at begin  passed.
+	options:[ // common options. "--" at begin	passed.
 		{
 			name: 'quiet',
 			type: 'boolean',
@@ -49,6 +49,18 @@ module.exports = {
 		}
 	],
 	modes:[
+		{
+			name: 'outputRaw',
+			type: 'string',
+			help: 'write decoded-to-raw file. Exit immediatelly',
+			options: [
+				{
+					name: 'out',
+					type: 'string',
+					defaultValue: 'out.floats'
+				}
+			]
+		},
 		{
 			name: 'alsa',
 			help: 'use ALSA for audio',

@@ -66,22 +66,48 @@ under terms of the GNU Public License (ver. 2 or later))");
 	//std::cout << "Normal program execution prevented (not implemented yet)" << std::endl;
 	//return 0;
 
+	if (conf.argv().size() > 1)
+	{
+		std::cerr << "only one file possible to set to playback at startup" << std::endl;
+		return 1;
+	}
+
+	if (conf.mode() == Configuration::Mode::OutputRaw)
+	{
+		if (conf.argv().size() != 1)
+		{
+			std::cerr << "can not save raw output - input file not set" << std::endl;
+			return 1;
+		}
+		if (
+			!StretchPlayer::Engine::decodeMediaFile(
+				conf.argv().cbegin()->c_str(),
+				conf.outputRaw().out.c_str(),
+				error
+			)
+		)
+		{
+			std::cerr << "Error:" << error << std::endl;
+			return 1;
+		}
+		return 0;
+	}
+
 	std::unique_ptr<StretchPlayer::EngineMessageCallback> _engine_callback;
 	StretchPlayer::Engine *_engine = new StretchPlayer::Engine(conf);
 
 	_engine->set_shift(conf.shift());
 	_engine->set_stretch(static_cast<float>(conf.stretch()/100.f));
 	_engine->set_pitch(conf.pitch());
-	if (conf.argv().size() > 1)
-	{
-		std::cerr << "only one file possible to set to playback at startup" << std::endl;
-		return 1;
-	}
 	if (conf.argv().size() == 1)
 	{
-		if (!_engine->load_song(conf.argv().cbegin()->c_str(), false))
+		if (_engine->load_song(conf.argv().cbegin()->c_str(), false, error))
 		{
-			printf("0can't open\n");
+			std::cout << "1" << std::endl;
+		}
+		else
+		{
+			std::cout << "0can't open: " << error << std::endl;
 			fflush(stdout);
 			return 1;
 		}
@@ -153,7 +179,14 @@ under terms of the GNU Public License (ver. 2 or later))");
 		}
 		else if (c == '1')
 		{
-			_engine->load_song(paramString, false);
+			if (_engine->load_song(paramString, false, error))
+			{
+				std::cout << "1" << std::endl;
+			}
+			else
+			{
+				std::cout << "0can not open file: " << error << std::endl;
+			}
 		}
 		else if (c == '2')
 		{
@@ -273,7 +306,14 @@ under terms of the GNU Public License (ver. 2 or later))");
 		}
 		else if (c == 'f')
 		{
-			_engine->load_song(paramString, true);
+			if (_engine->load_song(paramString, true, error))
+			{
+				std::cout << "1" << std::endl;
+			}
+			else
+			{
+				std::cout << "0can not open file: " << error << std::endl;
+			}
 		}
 		else if (c == 'g')
 		{

@@ -30,6 +30,12 @@
 #include <cstdlib>
 #include <algorithm>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+
 #include "config.h"
 
 using RubberBand::RubberBandStretcher;
@@ -49,11 +55,6 @@ Engine::Engine(const Configuration &config)
 	char err[1024] = "";
 
 	std::lock_guard<std::mutex> lk(_audio_lock);
-
-//	if (_config.mode() ++ Configuration::Mode::Alsa)
-//	{
-//		_audio_system
-//	}
 
 	_audio_system->init( "StretchPlayer" , _config, err );
 	_audio_system->set_process_callback(
@@ -336,20 +337,15 @@ void Engine::_process_playing(uint32_t nframes)
  *
  * \return true on success
  */
-bool Engine::_load_song_using_libsndfile(const char *p_filename, FileData *p_fileData)
+bool Engine::_load_song_using_libsndfile(const char *p_filename, FileData *p_fileData, std::string &error)
 {
 	SNDFILE *sf = 0;
 	SF_INFO sf_info;
 	memset(&sf_info, 0, sizeof(sf_info));
 
-	_message("Opening file...");
 	sf = sf_open(p_filename, SFM_READ, &sf_info);
 	if( !sf ) {
-		char tmp[1024] = "Error opening file: '";
-		strcat(tmp, p_filename);
-		strcat(tmp, "': ");
-		strcat(tmp, sf_strerror(sf));
-		_error(tmp);
+		error = std::string{"Error opening file: '"} + p_filename + "': " + sf_strerror(sf);
 		return false;
 	}
 
@@ -359,16 +355,12 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename, FileData *p_fil
 	p_fileData->_null.resize( sf_info.frames, 0.f );
 
 	if(sf_info.frames == 0) {
-		char tmp[512] = "Error opening file '";
-		strcat(tmp, p_filename);
-		strcat(tmp, "': File is empty");
-		_error(tmp);
 		sf_close(sf);
+		error = std::string{"Error opening file: '"} + p_filename + "': File is empty";
 		return false;
 	}
 	p_fileData->_channelCount = sf_info.channels;
 
-	_message("Reading file...");
 	std::vector<float> buf(4096, 0.0f);
 	sf_count_t read, k;
 	unsigned mod;
@@ -390,7 +382,7 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename, FileData *p_fil
 	}
 
 	if( p_fileData->_left.size() != sf_info.frames ) {
-		_error("Warning: not all of the file data was read.");
+		//_error("Warning: not all of the file data was read.");
 	}
 
 	sf_close(sf);
@@ -404,26 +396,22 @@ bool Engine::_load_song_using_libsndfile(const char *p_filename, FileData *p_fil
  *
  * \return true on success
  */
-bool Engine::_load_song_using_libmpg123(const char *filename, FileData *p_fileData)
+bool Engine::_load_song_using_libmpg123(const char *filename, FileData *p_fileData, std::string &error)
 {
 	mpg123_handle *mh = 0;
 	int err, channels, encoding;
 	long rate;
-	char tmpp[1024] = "Error opening file '";
 
-	_message("Opening file...");
 	if ((err = mpg123_init()) != MPG123_OK ||
 		(mh = mpg123_new(0, &err)) == 0 ||
 		mpg123_open(mh, filename) != MPG123_OK ||
 		mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK) {
 
-		strcat(tmpp, filename);
-		strcat(tmpp, "': ");
+		error = std::string{"Error opening file '"} + filename + "': ";
 		if (mh == NULL)
-			strcat(tmpp, mpg123_plain_strerror(err));
+			error += mpg123_plain_strerror(err);
 		else
-			strcat(tmpp, mpg123_strerror(mh));
-		_error(tmpp);
+			error += mpg123_strerror(mh);
 
 	  mpg123error:
 		mpg123_close(mh);
@@ -432,7 +420,7 @@ bool Engine::_load_song_using_libmpg123(const char *filename, FileData *p_fileDa
 		return false;
 	}
 	if (encoding != MPG123_ENC_SIGNED_16) {
-		_error("Error: unsupported encoding format.");
+		error = "unsupported encoding format.";
 		goto mpg123error;
 	}
 	/* lock the output format */
@@ -442,7 +430,7 @@ bool Engine::_load_song_using_libmpg123(const char *filename, FileData *p_fileDa
 
 	off_t length = mpg123_length(mh);
 	if (length == MPG123_ERR || length == 0) {
-		_error("Error: file is empty or length unknown.");
+		error = "file is empty or length unknown.";
 		goto mpg123error;
 	}
 
@@ -451,7 +439,6 @@ bool Engine::_load_song_using_libmpg123(const char *filename, FileData *p_fileDa
 	p_fileData->_right.reserve( length );
 	p_fileData->_null.reserve( length );
 
-	_message("Reading file...");
 	std::vector<signed short> buffer(4096, 0);
 	size_t read = 0, k;
 
@@ -477,13 +464,10 @@ bool Engine::_load_song_using_libmpg123(const char *filename, FileData *p_fileDa
 	};
 
 	if (err == MPG123_NEED_MORE) {
-		_error("Warning: premature end of MP3 stream");
+		//_error("Warning: premature end of MP3 stream");
 		/* allow user to play what we did manage to read */
 	} else if (err != MPG123_DONE) {
-		 char tmp[512] = "Error decoding file: ";
-		 strcat(tmp, err == MPG123_ERR ? mpg123_strerror(mh) : mpg123_plain_strerror(err));
-		 strcat(tmp, ".");
-		 _error(tmp);
+		error = std::string{"Error decoding file: "} + std::string{MPG123_ERR ? mpg123_strerror(mh) : mpg123_plain_strerror(err)} + ".";
 		goto mpg123error;
 	}
 
@@ -498,7 +482,7 @@ bool Engine::_load_song_using_libmpg123(const char *filename, FileData *p_fileDa
  *
  * \return Name of song
  */
-bool Engine::load_song(const char *filename, bool prelimanarily)
+bool Engine::load_song(const char *filename, bool prelimanarily, std::string &error)
 {
 	FileData *fd { _fd };
 	if (prelimanarily) {
@@ -518,8 +502,15 @@ bool Engine::load_song(const char *filename, bool prelimanarily)
 	if (!prelimanarily) {
 		_stretcher.reset();
 	}
-	bool ok = _load_song_using_libsndfile(filename, fd) || _load_song_using_libmpg123(filename, fd);
-	if (ok && fd->_channelCount > 1 && _config.mono()) {
+
+	if (!_load_song_using_libsndfile(filename, fd, error))
+	{
+		if (!_load_song_using_libmpg123(filename, fd, error))
+		{
+			return false;
+		}
+	}
+	if (fd->_channelCount > 1 && _config.mono()) {
 		float average = 0; // for mono option enabled and more then one channels
 		for (size_t i = 0, c = fd->_left.size() ; i < c ; ++i) {
 			average = (fd->_left[i] + fd->_right[i]) / 2.f;
@@ -527,15 +518,73 @@ bool Engine::load_song(const char *filename, bool prelimanarily)
 			fd->_right[i] = average;
 		}
 	}
-	if (ok) {
-		puts("1");
-		fflush(stdout);
+	return true;
+}
+
+bool Engine::decodeMediaFile(const char *encodedInFile, const char *rawOutFile, std::string &p_error)
+{
+	/*
+	 * Структура файла типа FLOATS:
+	 * текстовая метка "FLOATS  " (8 байт, с двумя пробелами в конце)
+	 * float sampleRate
+	 * Далее идут по очереди float-ы с отдельными сэмлами. Чтобы выяснить длительность записи, необходимо вычитать все сэмплы, ну или посмотреть размер файла.
+	 *
+	 * Все файлы FLOATS представляют только моно-записи.
+	 */
+	FileData fd;
+	std::string error;
+	if (!_load_song_using_libsndfile(encodedInFile, &fd, error))
+	{
+		if (!_load_song_using_libmpg123(encodedInFile, &fd, error))
+		{
+			p_error = "can not open file: " + error;
+			return false;
+		}
 	}
-	else {
-		puts("0can not open file");
-		fflush(stdout);
+	// we use only LEFT channel
+	if (fd._channelCount > 1) { //  && _config.mono()) {
+		for (size_t i = 0, c = fd._left.size() ; i < c ; ++i) {
+			fd._left[i] = (fd._left[i] + fd._right[i]) / 2.f;
+		}
 	}
-	return ok;
+
+	int file = open(rawOutFile, O_CREAT | O_WRONLY | O_TRUNC);
+	if (file <= 0)
+	{
+		perror("can not open file for writing");
+		p_error = "can not open file for writing";
+		return false;
+	}
+
+	const char * const MARK = "FLOATS  ";
+	if (write(file, MARK, strlen(MARK)) != strlen(MARK))
+	{
+		p_error = "can not write to file...";
+		return false;
+	}
+	if (write(file, &fd._sample_rate, sizeof(fd._sample_rate)) != sizeof(fd._sample_rate))
+	{
+		p_error = "can not write to file...";
+		return false;
+	}
+
+	int counter = 0, totalMegabyteCount = fd._left.size() * sizeof(float) / (1024*1024) + 1;
+	for (auto oSample : fd._left)
+	{
+		if (write(file, &oSample, sizeof(oSample)) != sizeof(oSample))
+		{
+			p_error = "can not write to file...";
+			return false;
+		}
+		if (!(counter % (1024*1024 / sizeof(oSample))))
+		{
+			printf("writing %i-th megabyte of %i\n", (counter + 1)* sizeof(float) / (1024*1024) + 1, totalMegabyteCount);
+		}
+		++counter;
+	}
+	close(file);
+
+	return true;
 }
 
 void Engine::applyPreloaded()

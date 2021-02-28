@@ -43,7 +43,8 @@ public:
 	Engine(const Configuration &config);
 	~Engine();
 
-	bool load_song(const char *filename, bool prelimanarily);
+	bool load_song(const char *filename, bool prelimanarily, std::string &error);
+	static bool decodeMediaFile(const char *encodedInFile, const char *rawOutFile, std::string &p_error);
 	void applyPreloaded();
 	void play();
 	void play_pause();
@@ -169,8 +170,8 @@ private:
 
 	void _zero_buffers(uint32_t nframes);
 	void _process_playing(uint32_t nframes);
-	bool _load_song_using_libsndfile(const char *p_filename, FileData *p_fileData);
-	bool _load_song_using_libmpg123(const char *filename, FileData *p_fileData);
+	static bool _load_song_using_libsndfile(const char *p_filename, FileData *p_fileData, std::string &error);
+	static bool _load_song_using_libmpg123(const char *filename, FileData *p_fileData, std::string &error);
 
 	typedef std::set<EngineMessageCallback*> callback_seq_t;
 
