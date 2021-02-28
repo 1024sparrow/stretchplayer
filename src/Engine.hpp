@@ -172,6 +172,7 @@ private:
 	void _process_playing(uint32_t nframes);
 	static bool _load_song_using_libsndfile(const char *p_filename, FileData *p_fileData, std::string &error);
 	static bool _load_song_using_libmpg123(const char *filename, FileData *p_fileData, std::string &error);
+	static bool _load_song_from_floats(const char *filename, FileData *p_fileData, std::string &error);
 
 	typedef std::set<EngineMessageCallback*> callback_seq_t;
 

@@ -35,13 +35,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
 #include "config.h"
 
 using RubberBand::RubberBandStretcher;
 
 namespace StretchPlayer
 {
+
+const char * const FLOATS_FILE_MARK = "FLOATS  ";
 
 Engine::Engine(const Configuration &config)
 	: _config(config)
@@ -477,6 +478,44 @@ bool Engine::_load_song_using_libmpg123(const char *filename, FileData *p_fileDa
 	return true;
 }
 
+bool Engine::_load_song_from_floats(const char *filename, FileData *p_fileData, std::string &error)
+{
+	int file = open(filename, O_RDONLY);
+	if (file <= 0)
+	{
+		error = std::string{"can not open file for reading: "} + strerror(errno);
+		return false;
+	}
+	char testMark[sizeof(FLOATS_FILE_MARK)];
+	p_fileData->_channelCount = 1;
+	if (read(file, testMark, strlen(FLOATS_FILE_MARK)) != strlen(FLOATS_FILE_MARK))
+	{
+		error = "it is not a FLOATS file";
+		return false;
+	}
+	if (strncmp(testMark, FLOATS_FILE_MARK, strlen(FLOATS_FILE_MARK)) != 0)
+	{
+		error = "it is not a FLOATS file";
+		printf("boris: <%s> instead of <%s>\n", testMark, FLOATS_FILE_MARK);
+		return false;
+	}
+	if (read(file, &(p_fileData->_sample_rate), sizeof(p_fileData->_sample_rate)) != sizeof(p_fileData->_sample_rate))
+	{
+		error = std::string{"can not read sample rate: "} + strerror(errno);
+		return false;
+	}
+	float sampleCand ;
+	while (read(file, &sampleCand, sizeof(sampleCand)) == sizeof(sampleCand))
+	{
+		p_fileData->_left.push_back(sampleCand);
+		p_fileData->_right.push_back(sampleCand);
+		p_fileData->_null.push_back(0);
+	}
+
+	close(file);
+	return true;
+}
+
 /**
  * Load a file
  *
@@ -507,7 +546,10 @@ bool Engine::load_song(const char *filename, bool prelimanarily, std::string &er
 	{
 		if (!_load_song_using_libmpg123(filename, fd, error))
 		{
-			return false;
+			if (!_load_song_from_floats(filename, fd, error))
+			{
+				return false;
+			}
 		}
 	}
 	if (fd->_channelCount > 1 && _config.mono()) {
@@ -537,8 +579,11 @@ bool Engine::decodeMediaFile(const char *encodedInFile, const char *rawOutFile, 
 	{
 		if (!_load_song_using_libmpg123(encodedInFile, &fd, error))
 		{
-			p_error = "can not open file: " + error;
-			return false;
+			if (!_load_song_from_floats(encodedInFile, &fd, error))
+			{
+				p_error = "can not open file: " + error;
+				return false;
+			}
 		}
 	}
 	// we use only LEFT channel
@@ -551,13 +596,11 @@ bool Engine::decodeMediaFile(const char *encodedInFile, const char *rawOutFile, 
 	int file = open(rawOutFile, O_CREAT | O_WRONLY | O_TRUNC);
 	if (file <= 0)
 	{
-		perror("can not open file for writing");
-		p_error = "can not open file for writing";
+		p_error = std::string{"can not open file for writing: "} + strerror(errno);
 		return false;
 	}
 
-	const char * const MARK = "FLOATS  ";
-	if (write(file, MARK, strlen(MARK)) != strlen(MARK))
+	if (write(file, FLOATS_FILE_MARK, strlen(FLOATS_FILE_MARK)) != strlen(FLOATS_FILE_MARK))
 	{
 		p_error = "can not write to file...";
 		return false;
@@ -578,7 +621,11 @@ bool Engine::decodeMediaFile(const char *encodedInFile, const char *rawOutFile, 
 		}
 		if (!(counter % (1024*1024 / sizeof(oSample))))
 		{
-			printf("writing %i-th megabyte of %i\n", (counter + 1)* sizeof(float) / (1024*1024) + 1, totalMegabyteCount);
+			printf(
+				"writing %i-th megabyte of %i\n",
+				static_cast<int>((counter + 1)* sizeof(float) / (1024*1024) + 1),
+				totalMegabyteCount
+			);
 		}
 		++counter;
 	}
